@@ -198,59 +198,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Auto-signup for all demo users
             const demoUser = DEMO_USERS.find((u) => u.email === normalised)
             if (demoUser) {
-              const role = normalised.includes("admin") ? "admin" : "parent"
               const { error: signUpError } = await supabase.auth.signUp({
                 email: normalised,
                 password,
                 options: { data: { name: demoUser.name, role: demoUser.role } },
               })
 
-              if (signUpError) {
-                return { success: false, error: `Auto-signup failed: ${signUpError.message}` }
-              }
+              if (!signUpError) {
+                // Sign in again after auto-signup
+                const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+                  email: normalised,
+                  password,
+                })
 
-              // Sign in again after auto-signup
-              const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
-                email: normalised,
-                password,
-              })
+                if (!signInErr && signInData.user) {
+                  const profile = await fetchProfile(signInData.user.id, signInData.user.email || "")
+                  setUser(profile)
+                  return { success: true }
+                }
 
-              if (signInErr) {
-                return {
-                  success: false,
-                  error: "Account created! If email confirmation is enabled, please check your inbox. Otherwise, disable 'Confirm email' in Supabase Auth settings.",
+                if (signInErr) {
+                  return {
+                    success: false,
+                    error: "Account created! If email confirmation is enabled, please check your inbox. Otherwise, disable 'Confirm email' in Supabase Auth settings.",
+                  }
                 }
               }
-
-              if (signInData.user) {
-                const profile = await fetchProfile(signInData.user.id, signInData.user.email || "")
-                setUser(profile)
-                return { success: true }
-              }
+              // If auto-signup fails, fall through to localStorage fallback below
             }
           }
 
           // Map common error messages
           const msg = error.message.toLowerCase()
           if (msg.includes("invalid login credentials") || msg.includes("invalid email")) {
-            return { success: false, error: "Invalid email or password. Please try again." }
-          }
-          if (msg.includes("email not confirmed")) {
+            // Fall through to localStorage fallback instead of returning error
+          } else if (msg.includes("email not confirmed")) {
             return { success: false, error: "Please confirm your email address before logging in. Check your inbox." }
-          }
-          if (msg.includes("rate limit")) {
+          } else if (msg.includes("rate limit")) {
             return { success: false, error: "Too many login attempts. Please wait a moment and try again." }
+          } else {
+            // For other errors, still try localStorage fallback
+            console.warn("Supabase login error, falling back to localStorage:", error.message)
           }
-          return { success: false, error: error.message }
-        }
-
-        if (data.user) {
+        } else if (data.user) {
           const profile = await fetchProfile(data.user.id, data.user.email || "")
           setUser(profile)
           return { success: true }
+        } else {
+          // No error but no user either - fall through to localStorage
         }
-
-        return { success: false, error: "Login failed. No user data returned." }
       } catch (err: any) {
         return { success: false, error: err?.message || "A connection error occurred. Check your Supabase configuration." }
       }
