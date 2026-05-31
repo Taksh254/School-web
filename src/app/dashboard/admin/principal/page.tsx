@@ -52,7 +52,7 @@ export default function PrincipalProfilePage() {
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Dashboard
           </button>
-          <h1 className="text-xl font-display font-bold text-olive">Principal Profile</h1>
+          <h1 className="text-xl font-display font-bold text-olive">Profile</h1>
           <p className="text-sm text-olive/50 font-body">Edit how the principal appears on the website</p>
         </div>
         <motion.button
