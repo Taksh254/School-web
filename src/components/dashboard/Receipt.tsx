@@ -29,7 +29,7 @@ export default function Receipt({ payment, studentName, parentName, program }: R
               <path d="M18 26C19 27 21 27 22 26" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
             </svg>
           </div>
-          <h2 className="text-lg font-display font-bold">Happy Kids Preschool</h2>
+          <h2 className="text-lg font-display font-bold">Tiny Mind Play School</h2>
           <p className="text-white/70 text-xs mt-0.5">Fee Receipt</p>
         </div>
 

@@ -22,9 +22,10 @@ export default function Header() {
   if (path.startsWith("/login") || path.startsWith("/dashboard")) return null
 
   return (
-    <header className="relative z-50 bg-soft-white/95 backdrop-blur-sm border-b border-beige/20">
+    <header className="relative z-50 bg-transparent py-3">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="bg-soft-white/95 backdrop-blur-sm rounded-2xl border border-beige/30 shadow-soft px-5 md:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-pistachio to-sage flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
@@ -35,7 +36,7 @@ export default function Header() {
               </svg>
             </div>
             <span className="text-xl md:text-2xl font-display font-bold text-olive">
-              Happy Kids
+              Tiny Mind Play School
             </span>
           </Link>
 
@@ -75,32 +76,33 @@ export default function Header() {
             {open ? <X className="w-5 h-5 text-olive" /> : <Menu className="w-5 h-5 text-olive" />}
           </button>
         </div>
-      </div>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="lg:hidden border-t border-beige/20 bg-soft-white overflow-hidden">
-            <nav className="px-4 py-4 space-y-1">
-              {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} onClick={() => setOpen(false)}
-                  className={cn("block px-4 py-2.5 rounded-xl text-base font-medium transition-colors",
-                    path === link.href ? "bg-cream text-olive" : "text-olive/60 hover:bg-cream/50 hover:text-olive"
-                  )}>
-                  {link.label}
+        <AnimatePresence>
+          {open && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="lg:hidden border-t border-beige/20 overflow-hidden">
+              <nav className="py-4 space-y-1">
+                {navLinks.map((link) => (
+                  <Link key={link.href} href={link.href} onClick={() => setOpen(false)}
+                    className={cn("block px-4 py-2.5 rounded-xl text-base font-medium transition-colors",
+                      path === link.href ? "bg-cream text-olive" : "text-olive/60 hover:bg-cream/50 hover:text-olive"
+                    )}>
+                    {link.label}
+                  </Link>
+                ))}
+                <Link href="/login" onClick={() => setOpen(false)}
+                  className="block text-center px-4 py-2.5 rounded-full border border-pistachio/30 text-olive font-medium mt-3">
+                  Login
                 </Link>
-              ))}
-              <Link href="/login" onClick={() => setOpen(false)}
-                className="block text-center px-4 py-2.5 rounded-full border border-pistachio/30 text-olive font-medium mt-3">
-                Login
-              </Link>
-              <Link href="/contact" onClick={() => setOpen(false)}
-                className="block text-center px-4 py-3 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium mt-2">
-                Book a Visit
-              </Link>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <Link href="/contact" onClick={() => setOpen(false)}
+                  className="block text-center px-4 py-3 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium mt-2">
+                  Book a Visit
+                </Link>
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      </div>
     </header>
   )
 }

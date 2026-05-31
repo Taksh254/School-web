@@ -75,24 +75,7 @@ export default function HeroCarousel() {
         </div>
       </div>
 
-      <div className="absolute -bottom-8 -left-8 bg-soft-white rounded-3xl p-4 shadow-card border border-beige/20">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-pistachio/15 flex items-center justify-center text-xl">🎨</div>
-          <div>
-            <p className="text-sm font-display font-semibold text-olive">Creative Learning</p>
-            <p className="text-xs text-olive/50">Hands-on activities</p>
-          </div>
-        </div>
-      </div>
-      <div className="absolute -top-6 -right-6 bg-soft-white rounded-3xl p-4 shadow-card border border-beige/20">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-sage/15 flex items-center justify-center text-xl">🌱</div>
-          <div>
-            <p className="text-sm font-display font-semibold text-olive">Growing Together</p>
-            <p className="text-xs text-olive/50">Age 2-6 years</p>
-          </div>
-        </div>
-      </div>
+
     </motion.div>
   )
 }

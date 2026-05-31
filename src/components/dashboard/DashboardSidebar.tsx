@@ -59,7 +59,7 @@ export default function DashboardSidebar({ open, onClose }: SidebarProps) {
           </svg>
         </div>
         <div className="min-w-0">
-          <span className="text-base font-display font-bold text-olive block leading-tight">Happy Kids</span>
+          <span className="text-base font-display font-bold text-olive block leading-tight">Tiny Mind Play School</span>
           <span className="text-[10px] text-olive/40 font-body uppercase tracking-wider">
             {user?.role === "admin" ? "Admin Portal" : "Parent Portal"}
           </span>

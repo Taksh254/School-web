@@ -19,7 +19,7 @@ export default function AdmissionsCTA() {
             Ready to Begin This Beautiful Journey?
           </h2>
           <p className="text-olive/60 text-base md:text-lg max-w-xl mx-auto mb-8">
-            Give your child the gift of a joyful, nurturing early education. We&apos;d love to welcome you to the Happy Kids family.
+            Give your child the gift of a joyful, nurturing early education. We&apos;d love to welcome you to the Tiny Mind family.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/admissions"
@@ -31,8 +31,8 @@ export default function AdmissionsCTA() {
               Schedule a Visit
             </Link>
           </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
     </section>
   )
 }

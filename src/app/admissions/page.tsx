@@ -6,7 +6,7 @@ import { ClipboardCheck, FileText, Calendar, PhoneCall, CheckCircle, Send, Heart
 
 const steps = [
   { icon: PhoneCall, title: "1. Reach Out", desc: "Give us a call or fill out our inquiry form. We'll answer all your questions and schedule a tour.", color: "bg-pistachio/10 text-olive" },
-  { icon: Calendar, title: "2. Visit Us", desc: "Come see our classrooms, meet our teachers, and experience the Happy Kids environment firsthand.", color: "bg-sage/10 text-olive" },
+  { icon: Calendar, title: "2. Visit Us", desc: "Come see our classrooms, meet our teachers, and experience the Tiny Mind environment firsthand.", color: "bg-sage/10 text-olive" },
   { icon: ClipboardCheck, title: "3. Enroll", desc: "Complete the enrollment form and submit required documents. Our team guides you every step.", color: "bg-cream text-olive" },
   { icon: FileText, title: "4. Confirmation", desc: "Receive your welcome kit with school calendar and everything you need for a smooth start.", color: "bg-beige/30 text-olive" },
 ]

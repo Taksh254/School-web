@@ -4,17 +4,18 @@ import { motion } from "framer-motion"
 import { Star, Quote } from "lucide-react"
 
 const testimonials = [
-  { quote: "Happy Kids has been a second home for our daughter. She's grown so confident and loves going to school every morning. The teachers are incredibly caring.", name: "Priya Sharma", child: "Mother of Aanya", color: "bg-pistachio/5" },
+  { quote: "Tiny Mind has been a second home for our daughter. She's grown so confident and loves going to school every morning. The teachers are incredibly caring.", name: "Priya Sharma", child: "Mother of Aanya", color: "bg-pistachio/5" },
   { quote: "The Montessori approach here is wonderful. Our son has developed such a love for learning. The outdoor play area and art sessions are his favorites.", name: "Rahul & Neha Verma", child: "Parents of Arjun", color: "bg-sage/5" },
   { quote: "We were nervous about starting preschool, but the team made the transition so smooth. The daily updates and photos give us so much peace of mind.", name: "Anita Kapoor", child: "Mother of Riya", color: "bg-cream" },
 ]
 
 export default function TestimonialsSection() {
   return (
-    <section className="py-20 md:py-28 bg-cream relative overflow-hidden">
+    <section className="py-20 md:py-28 relative overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-soft-white to-transparent pointer-events-none" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
+        <div className="bg-soft-white rounded-3xl border border-beige/30 shadow-soft p-8 md:p-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto text-center mb-12 md:mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full bg-pistachio/10 text-olive text-sm font-medium font-display mb-3">Happy Parents</span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-olive leading-tight">What Families Say</h2>
@@ -34,6 +35,7 @@ export default function TestimonialsSection() {
               </div>
             </motion.div>
           ))}
+          </div>
         </div>
       </div>
     </section>

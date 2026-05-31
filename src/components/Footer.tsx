@@ -16,7 +16,7 @@ export default function Footer() {
                   <path d="M18 26C19 27 21 27 22 26" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
                 </svg>
               </div>
-              <span className="text-xl font-display font-bold text-white">Happy Kids</span>
+              <span className="text-xl font-display font-bold text-white">Tiny Mind</span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed mb-6">
               Where little minds grow with joy. A warm, nurturing space for your child&apos;s first steps into learning.
@@ -80,7 +80,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/40">&copy; {new Date().getFullYear()} Happy Kids Preschool. All rights reserved.</p>
+          <p className="text-xs text-white/40">&copy; {new Date().getFullYear()} Tiny Mind Play School. All rights reserved.</p>
           <p className="text-xs text-white/40 flex items-center gap-1">
             Made with <Heart className="w-3 h-3 text-pistachio fill-pistachio" /> for little learners
           </p>

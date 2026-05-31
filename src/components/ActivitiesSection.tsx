@@ -14,12 +14,13 @@ const activities = [
 
 export default function ActivitiesSection() {
   return (
-    <section className="py-20 md:py-28 bg-soft-white">
+    <section className="py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
+        <div className="bg-soft-white rounded-3xl border border-beige/30 shadow-soft p-8 md:p-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto text-center mb-12 md:mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full bg-pistachio/10 text-olive text-sm font-medium font-display mb-3">Daily Activities</span>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-olive leading-tight">A Day at Happy Kids</h2>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-olive leading-tight">A Day at Tiny Mind</h2>
           <p className="mt-4 text-olive/60 text-base md:text-lg max-w-xl mx-auto">Every day is filled with purposeful play, creative exploration, and joyful learning.</p>
         </motion.div>
 
@@ -36,6 +37,7 @@ export default function ActivitiesSection() {
               <p className="text-sm text-olive/60 leading-relaxed">{a.desc}</p>
             </motion.div>
           ))}
+          </div>
         </div>
       </div>
     </section>

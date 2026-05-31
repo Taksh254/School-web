@@ -68,7 +68,7 @@ export default function LoginPage() {
                 <path d="M18 26C19 27 21 27 22 26" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
               </svg>
             </div>
-            <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5">Welcome to Happy Kids</h1>
+            <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5">Welcome to Tiny Mind Play School</h1>
             <p className="text-olive/60 text-sm font-body">Login to your portal</p>
           </div>
 
@@ -111,7 +111,7 @@ export default function LoginPage() {
             <p className="text-xs text-beige/60 text-center font-body mt-1">Parent: parent@school.com / (any password)</p>
           </div>
         </div>
-        <p className="text-center mt-6 text-xs text-olive/40 font-body">Happy Kids Preschool &copy; {new Date().getFullYear()}</p>
+        <p className="text-center mt-6 text-xs text-olive/40 font-body">Tiny Mind Play School Preschool &copy; {new Date().getFullYear()}</p>
       </motion.div>
     </div>
   )

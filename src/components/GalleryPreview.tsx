@@ -22,7 +22,7 @@ export default function GalleryPreview() {
           className="max-w-2xl mx-auto text-center mb-12 md:mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full bg-pistachio/10 text-olive text-sm font-medium font-display mb-3">Gallery</span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-olive leading-tight">Moments That Matter</h2>
-          <p className="mt-4 text-olive/60 text-base md:text-lg max-w-xl mx-auto">A glimpse into the joyful everyday moments at Happy Kids.</p>
+          <p className="mt-4 text-olive/60 text-base md:text-lg max-w-xl mx-auto">A glimpse into the joyful everyday moments at Tiny Mind.</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }}

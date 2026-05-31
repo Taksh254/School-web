@@ -21,13 +21,14 @@ const floatAnimations = [
 
 export default function WhyTrustUs() {
   return (
-    <section className="py-20 md:py-28 bg-soft-white">
+    <section className="py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
+        <div className="bg-soft-white rounded-3xl border border-beige/30 shadow-soft p-8 md:p-12">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto text-center mb-12 md:mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full bg-pistachio/10 text-olive text-sm font-medium font-display mb-3">Why Parents Trust Us</span>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-olive leading-tight">A Foundation Built on Love & Learning</h2>
-          <p className="mt-4 text-olive/60 text-base md:text-lg max-w-xl mx-auto">We understand the trust you place in us. Here&apos;s what makes Happy Kids a home away from home.</p>
+          <p className="mt-4 text-olive/60 text-base md:text-lg max-w-xl mx-auto">We understand the trust you place in us. Here&apos;s what makes Tiny Mind a home away from home.</p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
@@ -70,6 +71,7 @@ export default function WhyTrustUs() {
               </motion.div>
             </TiltCard>
           ))}
+          </div>
         </div>
       </div>
     </section>

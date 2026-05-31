@@ -14,10 +14,10 @@ export default function Home() {
       <WhyTrustUs />
       <ProgramsSection />
       <ActivitiesSection />
-      <TestimonialsSection />
       <HomeGallery />
       <TeachersSection />
       <AdmissionsCTA />
+      <TestimonialsSection />
     </>
   )
 }
