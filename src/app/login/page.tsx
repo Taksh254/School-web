@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowRight, Leaf, Unlock, ArrowLeft, UserPlus, LogIn } from "lucide-react"
@@ -8,18 +8,37 @@ import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, bypassLogin, register } = useAuth()
+  const { user, loading, login, bypassLogin, register } = useAuth()
   const [mode, setMode] = useState<"login" | "signup">("login")
   const [email, setEmail] = useState("admin@school.com")
   const [password, setPassword] = useState("Admin@123")
   const [name, setName] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!loading && user) {
+      const target = user.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+      router.replace(target)
+    }
+  }, [user, loading, router])
+
+  if (loading) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(160deg, #F7F2E8 0%, #E8D8C3 40%, #B7C9A8 100%)" }}>
+        <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (user) return null
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email || !password) return
-    setLoading(true)
+    setSubmitting(true)
     setError("")
 
     try {
@@ -37,27 +56,31 @@ export default function LoginPage() {
     } catch {
       setError("Login failed. Please try again.")
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name || !email || !password) return
-    setLoading(true)
+    setSubmitting(true)
     setError("")
 
     try {
       const res = await register(name, email, password)
       if (res.success) {
-        router.push("/dashboard/parent")
+        if (res.error) {
+          setError(res.error)
+        } else {
+          router.push("/dashboard/parent")
+        }
       } else {
         setError(res.error || "Registration failed")
       }
     } catch {
       setError("Registration failed. Please try again.")
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
 
@@ -90,7 +113,7 @@ export default function LoginPage() {
                 <path d="M18 26C19 27 21 27 22 26" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
               </svg>
             </div>
-            <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5">Welcome to Tiny Mind Play School</h1>
+            <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5">Tiny Mind Play School</h1>
             <p className="text-olive/60 text-sm font-body">{mode === "login" ? "Login to your portal" : "Create a parent account"}</p>
           </div>
 
@@ -113,9 +136,9 @@ export default function LoginPage() {
                     className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
                     style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                 </div>
-                <motion.button type="submit" disabled={loading} whileHover={!loading ? { scale: 1.02, y: -1 } : {}} whileTap={!loading ? { scale: 0.98 } : {}}
+                <motion.button type="submit" disabled={submitting} whileHover={!submitting ? { scale: 1.02, y: -1 } : {}} whileTap={!submitting ? { scale: 0.98 } : {}}
                   className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] hover:shadow-[0_6px_24px_rgba(183,201,168,0.35)]">
-                  <span>{loading ? "Logging in..." : "Enter Portal"}</span>
+                  <span>{submitting ? "Logging in..." : "Enter Portal"}</span>
                   <ArrowRight className="w-4 h-4" />
                 </motion.button>
               </motion.form>
@@ -139,9 +162,9 @@ export default function LoginPage() {
                     className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
                     style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                 </div>
-                <motion.button type="submit" disabled={loading} whileHover={!loading ? { scale: 1.02, y: -1 } : {}} whileTap={!loading ? { scale: 0.98 } : {}}
+                <motion.button type="submit" disabled={submitting} whileHover={!submitting ? { scale: 1.02, y: -1 } : {}} whileTap={!submitting ? { scale: 0.98 } : {}}
                   className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] hover:shadow-[0_6px_24px_rgba(183,201,168,0.35)]">
-                  <span>{loading ? "Creating account..." : "Create Account"}</span>
+                  <span>{submitting ? "Creating account..." : "Create Account"}</span>
                   <UserPlus className="w-4 h-4" />
                 </motion.button>
               </motion.form>
@@ -174,7 +197,7 @@ export default function LoginPage() {
             <p className="text-xs text-beige/60 text-center font-body mt-1">Parent: parent@school.com / (any password)</p>
           </div>
         </div>
-        <p className="text-center mt-6 text-xs text-olive/40 font-body">Tiny Mind Play School Preschool &copy; {new Date().getFullYear()}</p>
+        <p className="text-center mt-6 text-xs text-olive/40 font-body">Tiny Mind Play School &copy; {new Date().getFullYear()}</p>
       </motion.div>
     </div>
   )

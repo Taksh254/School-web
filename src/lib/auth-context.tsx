@@ -8,26 +8,64 @@ import { supabase, isSupabaseConfigured } from "./supabase"
 interface AuthState {
   user: User | null
   loading: boolean
+  sessionDebug: {
+    hasSession: boolean
+    userId: string | null
+    email: string | null
+    role: Role | null
+    provider: string
+  }
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   bypassLogin: (email: string) => Promise<{ success: boolean }>
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
 }
 
+const defaultDebug: AuthState["sessionDebug"] = {
+  hasSession: false,
+  userId: null,
+  email: null,
+  role: null,
+  provider: "none",
+}
+
 const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
+  sessionDebug: defaultDebug,
   login: async () => ({ success: false }),
   bypassLogin: async () => ({ success: false }),
   register: async () => ({ success: false }),
   logout: async () => {},
 })
 
+// Auto-create profile helper
+async function ensureProfile(userId: string, email: string, name: string, role: Role) {
+  try {
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle()
+
+    if (!existing) {
+      await supabase.from("profiles").insert({
+        id: userId,
+        email,
+        name,
+        role,
+      })
+    }
+  } catch (err) {
+    console.error("Profile creation error:", err)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [sessionDebug, setSessionDebug] = useState(defaultDebug)
 
-  // Fetch profiles table info for Supabase User
   const fetchProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
     try {
       const { data, error } = await supabase
@@ -45,8 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           childId: data.child_id || undefined,
         }
       }
-      // If profile not found in table, mock a default profile matching role keywords
-      const role: Role = email.toLowerCase().includes("admin") ? "admin" : "parent"
+
+      // Infer role from email if no profile
+      const role: Role = email?.toLowerCase().includes("admin") ? "admin" : "parent"
       return {
         id: userId,
         email,
@@ -59,33 +98,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Restore session on mount + seed data
   useEffect(() => {
     seedIfNeeded()
-    
+
     if (!isSupabaseConfigured()) {
-      // Local fallback
       try {
         const raw = localStorage.getItem("hk_user")
-        if (raw) setUser(JSON.parse(raw))
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          setUser(parsed)
+          setSessionDebug({
+            hasSession: true,
+            userId: parsed.id,
+            email: parsed.email,
+            role: parsed.role,
+            provider: "localStorage",
+          })
+        }
       } catch { /* empty */ }
       setLoading(false)
       return
     }
 
-    // Supabase active session restore
     let active = true
+
     async function restoreSession() {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
+
         if (!active) return
 
         if (!error && session?.user) {
           const profile = await fetchProfile(session.user.id, session.user.email || "")
-          if (active) setUser(profile)
+          if (active) {
+            setUser(profile)
+            const pid = profile?.id ?? session.user.id
+            const pemail = profile?.email ?? session.user.email ?? null
+            const prole = profile?.role ?? null
+            setSessionDebug({
+              hasSession: true,
+              userId: pid,
+              email: pemail,
+              role: prole,
+              provider: "supabase",
+            })
+          }
+        } else {
+          if (active) setSessionDebug((d) => ({ ...d, hasSession: false, provider: "none" }))
         }
       } catch (err) {
-        console.error("Supabase restore session error:", err)
+        console.error("Session restore error:", err)
       } finally {
         if (active) setLoading(false)
       }
@@ -93,13 +155,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     restoreSession()
 
-    // Listen to Auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id, session.user.email || "")
-        if (active) setUser(profile)
+        if (active) {
+          setUser(profile)
+          setSessionDebug({
+            hasSession: true,
+            userId: profile?.id || session.user.id,
+            email: profile?.email || session.user.email || null,
+            role: profile?.role || null,
+            provider: "supabase",
+          })
+        }
       } else {
-        if (active) setUser(null)
+        if (active) {
+          setUser(null)
+          setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+        }
       }
       if (active) setLoading(false)
     })
@@ -115,63 +188,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (isSupabaseConfigured()) {
       try {
-        let { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: normalised,
-          password: password,
+          password,
         })
 
-        // Auto-signup fallback for demo users if credentials not found
-        if (error && (error.message.toLowerCase().includes("invalid") || error.status === 400)) {
-          const isDemo = normalised === "admin@school.com" || normalised === "parent@school.com"
-          if (isDemo) {
-            const role = normalised.includes("admin") ? "admin" : "parent"
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: normalised,
-              password: password,
-              options: {
-                data: {
-                  name: role === "admin" ? "Principal Sunita" : "Priya Sharma",
-                  role: role,
-                }
-              }
-            })
+        if (error) {
+          if (error.message.toLowerCase().includes("invalid") || error.status === 400) {
+            // Auto-signup for demo users
+            const isDemo = normalised === "admin@school.com" || normalised === "parent@school.com"
+            if (isDemo) {
+              const role = normalised.includes("admin") ? "admin" : "parent"
+              const { error: signUpError } = await supabase.auth.signUp({
+                email: normalised,
+                password,
+                options: { data: { name: role === "admin" ? "Principal Sunita" : "Priya Sharma", role } },
+              })
 
-            if (!signUpError) {
-              // Attempt to sign in again after automatic registration
+              if (signUpError) {
+                return { success: false, error: `Auto-signup failed: ${signUpError.message}` }
+              }
+
+              // Sign in again after auto-signup
               const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
                 email: normalised,
-                password: password,
+                password,
               })
-              if (!signInErr && signInData.user) {
+
+              if (signInErr) {
+                return {
+                  success: false,
+                  error: "Account created! If email confirmation is enabled, please check your inbox. Otherwise, disable 'Confirm email' in Supabase Auth settings.",
+                }
+              }
+
+              if (signInData.user) {
                 const profile = await fetchProfile(signInData.user.id, signInData.user.email || "")
                 setUser(profile)
                 return { success: true }
-              } else if (signInErr) {
-                return {
-                  success: false,
-                  error: "Demo account created! If email confirmation is enabled in your Supabase Auth provider settings, please check your inbox to confirm or disable 'Confirm email' in the Supabase Dashboard."
-                }
               }
-            } else {
-              return { success: false, error: `${error.message} (Auto-signup failed: ${signUpError.message})` }
             }
           }
-        }
 
-        if (error) {
+          // Map common error messages
+          const msg = error.message.toLowerCase()
+          if (msg.includes("invalid login credentials") || msg.includes("invalid email")) {
+            return { success: false, error: "Invalid email or password. Please try again." }
+          }
+          if (msg.includes("email not confirmed")) {
+            return { success: false, error: "Please confirm your email address before logging in. Check your inbox." }
+          }
+          if (msg.includes("rate limit")) {
+            return { success: false, error: "Too many login attempts. Please wait a moment and try again." }
+          }
           return { success: false, error: error.message }
         }
+
         if (data.user) {
           const profile = await fetchProfile(data.user.id, data.user.email || "")
           setUser(profile)
           return { success: true }
         }
+
+        return { success: false, error: "Login failed. No user data returned." }
       } catch (err: any) {
-        return { success: false, error: err.message || "An authentication error occurred." }
+        return { success: false, error: err?.message || "A connection error occurred. Check your Supabase configuration." }
       }
     }
 
-    // Match demo users or registered users (localStorage fallback)
+    // LocalStorage fallback
     let matched = DEMO_USERS.find((u) => u.email === normalised)
 
     if (!matched) {
@@ -181,9 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!matched) {
-      let role: Role = "parent"
-      if (normalised.includes("admin")) role = "admin"
-
+      const role: Role = normalised.includes("admin") ? "admin" : "parent"
       matched = {
         id: "u-custom",
         email: normalised,
@@ -225,18 +308,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           password,
           options: { data: { name, role: "parent" } },
         })
-        if (error) return { success: false, error: error.message }
+
+        if (error) {
+          if (error.message.toLowerCase().includes("already registered")) {
+            return { success: false, error: "An account with this email already exists. Please log in instead." }
+          }
+          return { success: false, error: error.message }
+        }
+
         if (data.user) {
+          // Auto-create profile
+          await ensureProfile(data.user.id, normalised, name, "parent")
+
           const profile = await fetchProfile(data.user.id, normalised)
           if (profile) {
             setUser({ ...profile, name, role: "parent" })
             localStorage.setItem("hk_user", JSON.stringify({ ...profile, name, role: "parent" }))
           }
-          return { success: true }
+
+          return {
+            success: true,
+            error: data.user.identities?.length === 0
+              ? "Account created! If email confirmation is enabled, please check your inbox."
+              : undefined,
+          }
         }
-        return { success: false, error: "Registration failed" }
+        return { success: false, error: "Registration failed. No user data returned." }
       } catch (err: any) {
-        return { success: false, error: err.message || "Registration failed" }
+        return { success: false, error: err?.message || "Registration failed. Check your Supabase configuration." }
       }
     }
 
@@ -270,11 +369,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setUser(null)
+    setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
     localStorage.removeItem("hk_user")
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, bypassLogin, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, logout }}>
       {children}
     </AuthContext.Provider>
   )

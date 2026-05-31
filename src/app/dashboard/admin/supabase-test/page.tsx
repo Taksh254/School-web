@@ -14,7 +14,7 @@ interface DebugInfo {
 }
 
 export default function SupabaseTestPage() {
-  const { user } = useAuth()
+  const { user, sessionDebug } = useAuth()
 
   // Test 1: Connection
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "success" | "error">("idle")
@@ -398,6 +398,10 @@ export default function SupabaseTestPage() {
             ["Supabase URL", debug.supabaseUrl],
             ["Current User", debug.currentUser],
             ["Auth Status", debug.authStatus],
+            ["User ID", sessionDebug.userId || "N/A"],
+            ["Email", sessionDebug.email || "N/A"],
+            ["Role", sessionDebug.role || "N/A"],
+            ["Session Provider", sessionDebug.provider],
             ["Connection Status", debug.connectionStatus],
             ["Database Response", debug.dbResponse],
             ["Last Error", debug.lastError],
