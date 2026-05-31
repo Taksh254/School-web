@@ -285,7 +285,38 @@ function mapNoteFromDb(row: any): TeacherNote {
   }
 }
 
-// ── Seed ───────────────────────────────────────────────────────
+// ── Principal Profile ──────────────────────────────────────────
+
+export interface PrincipalProfile {
+  name: string
+  role: string
+  bio: string
+  photoUrl: string
+  initial: string
+}
+
+const DEFAULT_PRINCIPAL: PrincipalProfile = {
+  name: "Ms. Sunita Mehta",
+  role: "Founder & Principal",
+  bio: "With over 20 years of experience in early childhood education, Ms. Sunita Mehta founded Tiny Mind Play School with a vision to create a warm, nurturing environment where every child feels safe, valued, and inspired to learn. She believes that the early years are the most formative and is dedicated to providing a Montessori-inspired curriculum that fosters curiosity, creativity, and confidence.",
+  photoUrl: "",
+  initial: "S",
+}
+
+export function getPrincipalProfile(): PrincipalProfile {
+  if (typeof window === "undefined") return DEFAULT_PRINCIPAL
+  try {
+    const raw = localStorage.getItem("hk_principal")
+    return raw ? JSON.parse(raw) : DEFAULT_PRINCIPAL
+  } catch {
+    return DEFAULT_PRINCIPAL
+  }
+}
+
+export function updatePrincipalProfile(profile: PrincipalProfile): void {
+  if (typeof window === "undefined") return
+  localStorage.setItem("hk_principal", JSON.stringify(profile))
+}
 
 export function seedIfNeeded() {
   if (typeof window === "undefined") return

@@ -1,13 +1,14 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import TiltCard from "@/components/ui/tilt-card"
+import { getPrincipalProfile, type PrincipalProfile } from "@/lib/data-store"
 
-const teachers = [
-  { name: "Ms. Sunita Mehta", role: "Founder & Principal", initial: "S", color: "bg-pistachio/20" },
-  { name: "Ms. Priya Kapoor", role: "Head of Curriculum", initial: "P", color: "bg-sage/20" },
-  { name: "Ms. Anita Desai", role: "Senior Teacher", initial: "A", color: "bg-cream" },
-  { name: "Mr. Rohan Joshi", role: "Activity Coordinator", initial: "R", color: "bg-beige/30" },
+const staticTeachers = [
+  { name: "Ms. Priya Kapoor", role: "Head of Curriculum", initial: "P", color: "bg-sage/20", photoUrl: "" },
+  { name: "Ms. Anita Desai", role: "Senior Teacher", initial: "A", color: "bg-cream", photoUrl: "" },
+  { name: "Mr. Rohan Joshi", role: "Activity Coordinator", initial: "R", color: "bg-beige/30", photoUrl: "" },
 ]
 
 const floatAnims = [
@@ -18,6 +19,18 @@ const floatAnims = [
 ]
 
 export default function TeachersSection() {
+  const [principal, setPrincipal] = useState<PrincipalProfile | null>(null)
+
+  useEffect(() => {
+    setPrincipal(getPrincipalProfile())
+  }, [])
+
+  const principalCard = principal
+    ? { name: principal.name, role: principal.role, initial: principal.initial, color: "bg-pistachio/20", photoUrl: principal.photoUrl }
+    : { name: "Ms. Sunita Mehta", role: "Founder & Principal", initial: "S", color: "bg-pistachio/20", photoUrl: "" }
+
+  const allTeachers = [principalCard, ...staticTeachers]
+
   return (
     <section className="py-20 md:py-28">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,7 +43,7 @@ export default function TeachersSection() {
         </motion.div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-          {teachers.map((t, i) => (
+          {allTeachers.map((t, i) => (
             <motion.div
               key={t.name}
               animate={{ y: floatAnims[i].y }}
@@ -44,8 +57,12 @@ export default function TeachersSection() {
               <TiltCard
                 className="text-center bg-soft-white rounded-3xl p-6 md:p-8 border border-white/50 shadow-soft hover:shadow-lift transition-shadow duration-500"
               >
-                <div className={`w-24 h-24 mx-auto rounded-full ${t.color} flex items-center justify-center text-3xl font-display font-bold text-olive mb-5`}>
-                  {t.initial}
+                <div className={`w-24 h-24 mx-auto rounded-full ${t.color} flex items-center justify-center text-3xl font-display font-bold text-olive mb-5 overflow-hidden`}>
+                  {t.photoUrl ? (
+                    <img src={t.photoUrl} alt={t.name} className="w-full h-full object-cover" />
+                  ) : (
+                    t.initial
+                  )}
                 </div>
                 <h3 className="text-lg font-display font-semibold text-olive">{t.name}</h3>
                 <p className="text-sm text-olive/50">{t.role}</p>

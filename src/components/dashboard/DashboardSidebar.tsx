@@ -17,6 +17,7 @@ import {
   FileText,
   X,
   Leaf,
+  Crown,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ const adminLinks = [
   { href: "/dashboard/admin/fees", label: "Fee Management", icon: CreditCard },
   { href: "/dashboard/admin/announcements", label: "Announcements", icon: Bell },
   { href: "/dashboard/admin/reports", label: "Reports", icon: BarChart3 },
+  { href: "/dashboard/admin/principal", label: "Principal Profile", icon: Crown },
 ]
 
 const parentLinks = [
