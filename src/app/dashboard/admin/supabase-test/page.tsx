@@ -141,6 +141,7 @@ export default function SupabaseTestPage() {
         setInsertResult({ success: true, id: data?.[0]?.id })
         setDebug((d) => ({ ...d, lastError: "None", dbResponse: "Insert OK" }))
         addLog("Insert succeeded", data)
+        await fetchStudents()
       }
     } catch (err: any) {
       setInsertResult({ success: false, error: err.message })
@@ -206,6 +207,7 @@ export default function SupabaseTestPage() {
         setUpdateResult({ success: true, rows: data?.length || 0 })
         setDebug((d) => ({ ...d, lastError: "None", dbResponse: `${data?.length || 0} rows affected` }))
         addLog("Update succeeded", data)
+        await fetchStudents()
       }
     } catch (err: any) {
       setUpdateResult({ success: false, error: err.message })
@@ -247,6 +249,7 @@ export default function SupabaseTestPage() {
         setDeleteResult({ success: true })
         setDebug((d) => ({ ...d, lastError: "None", dbResponse: "Delete OK" }))
         addLog("Delete succeeded", { id: first[0].id })
+        await fetchStudents()
       }
     } catch (err: any) {
       setDeleteResult({ success: false, error: err.message })
