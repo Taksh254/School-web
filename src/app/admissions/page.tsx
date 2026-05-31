@@ -1,7 +1,8 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { ClipboardCheck, FileText, Calendar, PhoneCall, CheckCircle } from "lucide-react"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ClipboardCheck, FileText, Calendar, PhoneCall, CheckCircle, Send, HeartHandshake } from "lucide-react"
 
 const steps = [
   { icon: PhoneCall, title: "1. Reach Out", desc: "Give us a call or fill out our inquiry form. We'll answer all your questions and schedule a tour.", color: "bg-pistachio/10 text-olive" },
@@ -20,6 +21,28 @@ const faqs = [
 ]
 
 export default function AdmissionsPage() {
+  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState({
+    childName: "",
+    childDob: "",
+    program: "Nursery",
+    parentName: "",
+    parentEmail: "",
+    parentPhone: "",
+    message: "",
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    // Simulate submission API call
+    setTimeout(() => {
+      setLoading(false)
+      setSubmitted(true)
+    }, 1000)
+  }
+
   return (
     <>
       <section className="py-20 md:py-28 bg-gradient-to-b from-soft-white to-cream">
@@ -61,7 +84,7 @@ export default function AdmissionsPage() {
           </div>
 
           <h3 className="text-2xl font-display font-bold text-olive text-center mb-10">How Admissions Work</h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
             {steps.map((s, i) => (
               <motion.div key={s.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: i * 0.1 }}
                 whileHover={{ y: -4 }} className="bg-soft-white rounded-3xl p-6 border border-beige/20 shadow-soft hover:shadow-card transition-all duration-300 text-center">
@@ -71,6 +94,154 @@ export default function AdmissionsPage() {
               </motion.div>
             ))}
           </div>
+
+          {/* Admission Inquiry Form */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="max-w-3xl mx-auto"
+          >
+            <div className="bg-soft-white rounded-[32px] p-8 md:p-10 border border-beige/25 shadow-soft relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-pistachio/5 rounded-bl-full pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-beige/10 rounded-tr-full pointer-events-none" />
+
+              <AnimatePresence mode="wait">
+                {!submitted ? (
+                  <motion.div
+                    key="form"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <div className="text-center mb-8">
+                      <span className="text-2xl">📝</span>
+                      <h3 className="text-2xl font-display font-bold text-olive mt-2">Admission Inquiry Form</h3>
+                      <p className="text-sm text-olive/50 font-body mt-1">Please share a few details, and our friendly staff will contact you shortly.</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      <div className="grid sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Child&apos;s Full Name *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Aarav Sharma"
+                            value={formData.childName}
+                            onChange={(e) => setFormData({ ...formData, childName: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Child&apos;s Date of Birth *</label>
+                          <input
+                            type="date"
+                            required
+                            value={formData.childDob}
+                            onChange={(e) => setFormData({ ...formData, childDob: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Program of Interest *</label>
+                          <select
+                            value={formData.program}
+                            onChange={(e) => setFormData({ ...formData, program: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                          >
+                            <option value="Play Group">Play Group (2-3 years)</option>
+                            <option value="Nursery">Nursery (3-4 years)</option>
+                            <option value="Kindergarten">Kindergarten (4-6 years)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Parent / Guardian Name *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Priya Sharma"
+                            value={formData.parentName}
+                            onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Email Address *</label>
+                          <input
+                            type="email"
+                            required
+                            placeholder="priya@example.com"
+                            value={formData.parentEmail}
+                            onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Phone Number *</label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="+91 XXXXX XXXXX"
+                            value={formData.parentPhone}
+                            onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Message / Specific Questions</label>
+                        <textarea
+                          rows={3}
+                          placeholder="Tell us a little bit about your child, or ask any questions you have..."
+                          value={formData.message}
+                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                          className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body resize-none"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-semibold shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>{loading ? "Sending Inquiry..." : "Submit Inquiry"}</span>
+                      </button>
+                    </form>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-10"
+                  >
+                    <div className="w-16 h-16 bg-pistachio/15 rounded-full flex items-center justify-center mx-auto mb-6 text-olive">
+                      <HeartHandshake className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-display font-bold text-olive mb-2">Thank You, {formData.parentName}!</h3>
+                    <p className="text-sm text-olive/60 font-body max-w-md mx-auto leading-relaxed">
+                      We have received your inquiry for <strong className="text-olive">{formData.childName}</strong>. Our admissions coordinator will get in touch with you at <strong className="text-olive">{formData.parentEmail}</strong> or <strong className="text-olive">{formData.parentPhone}</strong> within 24 working hours.
+                    </p>
+                    <button
+                      onClick={() => setSubmitted(false)}
+                      className="mt-8 px-6 py-2.5 rounded-full border border-pistachio/30 text-olive text-xs font-semibold hover:bg-cream transition-all font-body"
+                    >
+                      Submit Another Inquiry
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
         </div>
       </section>
 

@@ -1,0 +1,109 @@
+// ── Roles & Auth ──────────────────────────────────────────────
+
+export type Role = "admin" | "parent"
+
+export interface User {
+  id: string
+  email: string
+  name: string
+  role: Role
+  avatar?: string
+  /** Only relevant for parent role */
+  childId?: string
+}
+
+// ── Students ──────────────────────────────────────────────────
+
+export type ProgramType = "Play Group" | "Nursery" | "Kindergarten"
+
+export interface Student {
+  id: string
+  name: string
+  age: number
+  dateOfBirth: string
+  program: ProgramType
+  section: string
+  parentName: string
+  parentEmail: string
+  parentPhone: string
+  admissionDate: string
+  teacher: string
+  photo?: string
+}
+
+// ── Attendance ────────────────────────────────────────────────
+
+export type AttendanceStatus = "present" | "absent" | "holiday" | "leave"
+
+export interface AttendanceRecord {
+  id: string
+  studentId: string
+  date: string // YYYY-MM-DD
+  status: AttendanceStatus
+}
+
+// ── Fees & Payments ───────────────────────────────────────────
+
+export type FeeStatus = "paid" | "pending" | "overdue" | "partial"
+export type PaymentMethod = "Online" | "Cash" | "Cheque" | "UPI"
+
+export interface FeeRecord {
+  id: string
+  studentId: string
+  studentName: string
+  term: string
+  amount: number
+  paidAmount: number
+  dueDate: string
+  status: FeeStatus
+  createdAt: string
+}
+
+export interface Payment {
+  id: string
+  feeId: string
+  studentId: string
+  studentName: string
+  amount: number
+  date: string
+  method: PaymentMethod
+  receiptNo: string
+  description: string
+}
+
+// ── Announcements ─────────────────────────────────────────────
+
+export type AnnouncementPriority = "normal" | "important" | "urgent"
+
+export interface Announcement {
+  id: string
+  title: string
+  content: string
+  date: string
+  priority: AnnouncementPriority
+  published: boolean
+  author: string
+}
+
+// ── Events ────────────────────────────────────────────────────
+
+export interface SchoolEvent {
+  id: string
+  title: string
+  description: string
+  date: string
+  time: string
+  location: string
+  type: "academic" | "cultural" | "sports" | "holiday" | "meeting"
+}
+
+// ── Teacher Notes ─────────────────────────────────────────────
+
+export interface TeacherNote {
+  id: string
+  studentId: string
+  teacherName: string
+  date: string
+  message: string
+  category: "academic" | "behavior" | "health" | "general" | "achievement"
+}

@@ -3,6 +3,7 @@ import { Nunito, Inter, Caveat } from "next/font/google"
 import "./globals.css"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
+import { AuthProvider } from "@/lib/auth-context"
 
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap" })
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
@@ -17,9 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${nunito.variable} ${inter.variable} ${caveat.variable}`}>
       <body className="min-h-screen flex flex-col antialiased bg-soft-white text-olive font-body">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <AuthProvider>
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   )

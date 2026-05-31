@@ -3,12 +3,14 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowRight, Leaf } from "lucide-react"
+import { ArrowRight, Leaf, Unlock, ArrowLeft } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const { login, bypassLogin } = useAuth()
+  const [email, setEmail] = useState("admin@school.com")
+  const [password, setPassword] = useState("Admin@123")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -19,15 +21,16 @@ export default function LoginPage() {
     setError("")
 
     try {
-      if (email.includes("admin")) {
-        localStorage.setItem("role", "admin")
-        router.push("/dashboard/admin")
-      } else if (email.includes("teacher")) {
-        localStorage.setItem("role", "teacher")
-        router.push("/dashboard/teacher")
+      const res = await login(email, password)
+      if (res.success) {
+        const normalised = email.toLowerCase().trim()
+        if (normalised.includes("admin")) {
+          router.push("/dashboard/admin")
+        } else {
+          router.push("/dashboard/parent")
+        }
       } else {
-        localStorage.setItem("role", "parent")
-        router.push("/dashboard/parent")
+        setError(res.error || "Login failed")
       }
     } catch {
       setError("Login failed. Please try again.")
@@ -52,6 +55,10 @@ export default function LoginPage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
         className="relative w-full max-w-[420px]">
         <div className="bg-soft-white rounded-[32px] p-8 sm:p-10 shadow-card border border-white/50 paper-texture">
+          <a href="/" className="inline-flex items-center gap-1.5 text-xs text-olive/40 hover:text-olive transition-colors font-body mb-4">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to Home
+          </a>
           <div className="text-center mb-8">
             <div className="w-[88px] h-[88px] mx-auto mb-5 rounded-full bg-gradient-to-br from-pistachio to-sage flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)]">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -89,9 +96,19 @@ export default function LoginPage() {
             </motion.button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-beige/30">
-            <p className="text-xs text-beige/60 text-center font-body">Demo: admin@school.com / teacher@school.com / parent@school.com</p>
-            <p className="text-[10px] text-beige/40 text-center mt-0.5 font-body">(any password works)</p>
+          <div className="mt-6 pt-5 border-t border-beige/30 space-y-3">
+            <button onClick={async () => { await bypassLogin("admin@school.com"); router.push("/dashboard/admin") }}
+              className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border-2 border-dashed border-pistachio/40 text-sm text-pistachio-dark font-medium font-body transition-all duration-300 hover:border-pistachio hover:bg-pistachio/10 hover:shadow-glow">
+              <Unlock className="w-3.5 h-3.5" />
+              <span>Bypass Login (enter as Admin)</span>
+            </button>
+            <button onClick={async () => { await bypassLogin("parent@school.com"); router.push("/dashboard/parent") }}
+              className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border-2 border-dashed border-sage/40 text-sm text-olive font-medium font-body transition-all duration-300 hover:border-sage hover:bg-sage/10 hover:shadow-glow">
+              <Unlock className="w-3.5 h-3.5" />
+              <span>Bypass Login (enter as Parent)</span>
+            </button>
+            <p className="text-xs text-beige/60 text-center font-body">Admin: admin@school.com / Admin@123</p>
+            <p className="text-xs text-beige/60 text-center font-body mt-1">Parent: parent@school.com / (any password)</p>
           </div>
         </div>
         <p className="text-center mt-6 text-xs text-olive/40 font-body">Happy Kids Preschool &copy; {new Date().getFullYear()}</p>

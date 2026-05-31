@@ -8,8 +8,21 @@ module.exports = {
         cream: "#F7F2E8",
         beige: "#E8D8C3",
         olive: "#5F6B55",
-        sage: "#9CAF88",
+        sage: {
+          DEFAULT: "#9CAF88",
+          light: "#B7C9A8",
+          dark: "#6B7F5A",
+        },
         "soft-white": "#FCFBF8",
+        navy: {
+          DEFAULT: "#3D4F5F",
+          light: "#5A6F7F",
+        },
+        terracotta: "#C4785A",
+        wood: {
+          DEFAULT: "#A0896A",
+          dark: "#7D6A50",
+        },
       },
       fontFamily: {
         display: ["var(--font-nunito)", "ui-sans-serif", "sans-serif"],

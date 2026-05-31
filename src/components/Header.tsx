@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 
 const navLinks = [
   { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
   { href: "/programs", label: "Programs" },
   { href: "/gallery", label: "Gallery" },
   { href: "/admissions", label: "Admissions" },
@@ -57,6 +58,12 @@ export default function Header() {
 
           <div className="hidden lg:flex items-center gap-3">
             <Link
+              href="/login"
+              className="px-4 py-2 rounded-full border border-pistachio/30 text-olive text-sm font-medium hover:bg-cream transition-all duration-200"
+            >
+              Login
+            </Link>
+            <Link
               href="/contact"
               className="px-5 py-2.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300"
             >
@@ -82,8 +89,12 @@ export default function Header() {
                   {link.label}
                 </Link>
               ))}
+              <Link href="/login" onClick={() => setOpen(false)}
+                className="block text-center px-4 py-2.5 rounded-full border border-pistachio/30 text-olive font-medium mt-3">
+                Login
+              </Link>
               <Link href="/contact" onClick={() => setOpen(false)}
-                className="block text-center px-4 py-3 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium mt-4">
+                className="block text-center px-4 py-3 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium mt-2">
                 Book a Visit
               </Link>
             </nav>

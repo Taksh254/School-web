@@ -5,6 +5,7 @@ import { useRef } from "react"
 import Link from "next/link"
 import { ArrowRight, Leaf } from "lucide-react"
 import HeroCarousel from "@/components/HeroCarousel"
+import PixelArtBackground from "@/components/PixelArtBackground"
 
 export default function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -18,6 +19,7 @@ export default function HeroSection() {
 
   return (
     <section ref={sectionRef} className="relative min-h-[85vh] md:min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-b from-soft-white via-cream to-cream">
+      <PixelArtBackground />
       <div className="absolute inset-0 pointer-events-none paper-texture" />
 
       <motion.div className="absolute top-16 left-[12%] text-pistachio/25" animate={{ y: [0, -8, 0], rotate: [0, 5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
