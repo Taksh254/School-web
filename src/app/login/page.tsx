@@ -45,7 +45,7 @@ export default function LoginPage() {
       const res = await login(email, password)
       if (res.success) {
         const normalised = email.toLowerCase().trim()
-        if (normalised.includes("admin")) {
+        if (normalised.includes("admin") || normalised === "sehrawatsonia27@gmail.com") {
           router.push("/dashboard/admin")
         } else {
           router.push("/dashboard/parent")

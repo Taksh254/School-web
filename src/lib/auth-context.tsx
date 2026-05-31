@@ -195,14 +195,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (error) {
           if (error.message.toLowerCase().includes("invalid") || error.status === 400) {
-            // Auto-signup for demo users
-            const isDemo = normalised === "admin@school.com" || normalised === "parent@school.com"
-            if (isDemo) {
+            // Auto-signup for all demo users
+            const demoUser = DEMO_USERS.find((u) => u.email === normalised)
+            if (demoUser) {
               const role = normalised.includes("admin") ? "admin" : "parent"
               const { error: signUpError } = await supabase.auth.signUp({
                 email: normalised,
                 password,
-                options: { data: { name: role === "admin" ? "Principal Sunita" : "Priya Sharma", role } },
+                options: { data: { name: demoUser.name, role: demoUser.role } },
               })
 
               if (signUpError) {

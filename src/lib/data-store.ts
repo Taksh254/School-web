@@ -47,6 +47,7 @@ const K = {
 export const DEMO_USERS: User[] = [
   { id: "u1", email: "admin@school.com", name: "Principal Sunita", role: "admin" },
   { id: "u2", email: "parent@school.com", name: "Priya Sharma", role: "parent", childId: "s1" },
+  { id: "u3", email: "sehrawatsonia27@gmail.com", name: "Sonia Sehrawat", role: "admin" },
 ]
 
 // ── Seed Data ─────────────────────────────────────────────────
