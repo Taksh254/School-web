@@ -2,15 +2,17 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "framer-motion"
-import { ArrowRight, Leaf, Unlock, ArrowLeft } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ArrowRight, Leaf, Unlock, ArrowLeft, UserPlus, LogIn } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, bypassLogin } = useAuth()
+  const { login, bypassLogin, register } = useAuth()
+  const [mode, setMode] = useState<"login" | "signup">("login")
   const [email, setEmail] = useState("admin@school.com")
   const [password, setPassword] = useState("Admin@123")
+  const [name, setName] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -34,6 +36,26 @@ export default function LoginPage() {
       }
     } catch {
       setError("Login failed. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name || !email || !password) return
+    setLoading(true)
+    setError("")
+
+    try {
+      const res = await register(name, email, password)
+      if (res.success) {
+        router.push("/dashboard/parent")
+      } else {
+        setError(res.error || "Registration failed")
+      }
+    } catch {
+      setError("Registration failed. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -69,32 +91,73 @@ export default function LoginPage() {
               </svg>
             </div>
             <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5">Welcome to Tiny Mind Play School</h1>
-            <p className="text-olive/60 text-sm font-body">Login to your portal</p>
+            <p className="text-olive/60 text-sm font-body">{mode === "login" ? "Login to your portal" : "Create a parent account"}</p>
           </div>
 
           {error && (
-            <div className="mb-5 p-3 rounded-xl bg-cream border border-beige text-sm text-olive text-center">{error}</div>
+            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 text-center">{error}</div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Email Address</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required
-                className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
-                style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required
-                className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
-                style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
-            </div>
-            <motion.button type="submit" disabled={loading} whileHover={!loading ? { scale: 1.02, y: -1 } : {}} whileTap={!loading ? { scale: 0.98 } : {}}
-              className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] hover:shadow-[0_6px_24px_rgba(183,201,168,0.35)]">
-              <span>{loading ? "Logging in..." : "Enter Portal"}</span>
-              <ArrowRight className="w-4 h-4" />
-            </motion.button>
-          </form>
+          <AnimatePresence mode="wait">
+            {mode === "login" ? (
+              <motion.form key="login" onSubmit={handleLogin} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Email Address</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required
+                    className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                    style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Password</label>
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required
+                    className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                    style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                </div>
+                <motion.button type="submit" disabled={loading} whileHover={!loading ? { scale: 1.02, y: -1 } : {}} whileTap={!loading ? { scale: 0.98 } : {}}
+                  className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] hover:shadow-[0_6px_24px_rgba(183,201,168,0.35)]">
+                  <span>{loading ? "Logging in..." : "Enter Portal"}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </motion.button>
+              </motion.form>
+            ) : (
+              <motion.form key="signup" onSubmit={handleSignup} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Full Name</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required
+                    className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                    style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Email Address</label>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required
+                    className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                    style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Password</label>
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a password" required
+                    className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                    style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                </div>
+                <motion.button type="submit" disabled={loading} whileHover={!loading ? { scale: 1.02, y: -1 } : {}} whileTap={!loading ? { scale: 0.98 } : {}}
+                  className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] hover:shadow-[0_6px_24px_rgba(183,201,168,0.35)]">
+                  <span>{loading ? "Creating account..." : "Create Account"}</span>
+                  <UserPlus className="w-4 h-4" />
+                </motion.button>
+              </motion.form>
+            )}
+          </AnimatePresence>
+
+          <div className="mt-5 text-center">
+            <button type="button" onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError("") }}
+              className="inline-flex items-center gap-1.5 text-sm text-olive/50 hover:text-olive transition-colors font-body">
+              {mode === "login" ? (
+                <><UserPlus className="w-3.5 h-3.5" /> Don&apos;t have an account? Sign up</>
+              ) : (
+                <><LogIn className="w-3.5 h-3.5" /> Already have an account? Log in</>
+              )}
+            </button>
+          </div>
 
           <div className="mt-6 pt-5 border-t border-beige/30 space-y-3">
             <button onClick={async () => { await bypassLogin("admin@school.com"); router.push("/dashboard/admin") }}

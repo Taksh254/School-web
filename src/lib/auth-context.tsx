@@ -10,6 +10,7 @@ interface AuthState {
   loading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   bypassLogin: (email: string) => Promise<{ success: boolean }>
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
 }
 
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthState>({
   loading: true,
   login: async () => ({ success: false }),
   bypassLogin: async () => ({ success: false }),
+  register: async () => ({ success: false }),
   logout: async () => {},
 })
 
@@ -169,8 +171,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Match demo users or infer role from email (localStorage fallback)
+    // Match demo users or registered users (localStorage fallback)
     let matched = DEMO_USERS.find((u) => u.email === normalised)
+
+    if (!matched) {
+      const existing = localStorage.getItem("hk_registered_users")
+      const registered: User[] = existing ? JSON.parse(existing) : []
+      matched = registered.find((u) => u.email === normalised)
+    }
 
     if (!matched) {
       let role: Role = "parent"
@@ -204,6 +212,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true }
   }, [])
 
+  const register = useCallback(async (name: string, email: string, password: string) => {
+    const normalised = email.toLowerCase().trim()
+    if (!name || !normalised || !password) {
+      return { success: false, error: "All fields are required" }
+    }
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: normalised,
+          password,
+          options: { data: { name, role: "parent" } },
+        })
+        if (error) return { success: false, error: error.message }
+        if (data.user) {
+          const profile = await fetchProfile(data.user.id, normalised)
+          if (profile) {
+            setUser({ ...profile, name, role: "parent" })
+            localStorage.setItem("hk_user", JSON.stringify({ ...profile, name, role: "parent" }))
+          }
+          return { success: true }
+        }
+        return { success: false, error: "Registration failed" }
+      } catch (err: any) {
+        return { success: false, error: err.message || "Registration failed" }
+      }
+    }
+
+    // LocalStorage fallback
+    const existing = localStorage.getItem("hk_registered_users")
+    const users: User[] = existing ? JSON.parse(existing) : []
+
+    if (users.some((u) => u.email === normalised)) {
+      return { success: false, error: "An account with this email already exists" }
+    }
+
+    const newUser: User = {
+      id: `u-${Date.now()}`,
+      email: normalised,
+      name,
+      role: "parent",
+    }
+    users.push(newUser)
+    localStorage.setItem("hk_registered_users", JSON.stringify(users))
+    setUser(newUser)
+    localStorage.setItem("hk_user", JSON.stringify(newUser))
+    return { success: true }
+  }, [fetchProfile])
+
   const logout = useCallback(async () => {
     if (isSupabaseConfigured()) {
       try {
@@ -217,7 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, bypassLogin, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, bypassLogin, register, logout }}>
       {children}
     </AuthContext.Provider>
   )
