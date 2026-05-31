@@ -18,6 +18,7 @@ import {
   X,
   Leaf,
   Crown,
+  Database,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -32,6 +33,7 @@ const adminLinks = [
   { href: "/dashboard/admin/announcements", label: "Announcements", icon: Bell },
   { href: "/dashboard/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/dashboard/admin/principal", label: "Profile", icon: Crown },
+  { href: "/dashboard/admin/supabase-test", label: "Supabase Test", icon: Database },
 ]
 
 const parentLinks = [
