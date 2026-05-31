@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import { Nunito, Inter, Caveat } from "next/font/google"
 import "./globals.css"
-import BackgroundVideo from "@/components/BackgroundVideo"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import { AuthProvider } from "@/lib/auth-context"
@@ -19,7 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${nunito.variable} ${inter.variable} ${caveat.variable}`}>
       <body className="min-h-screen flex flex-col antialiased bg-soft-white text-olive font-body">
-        <BackgroundVideo />
+        <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover opacity-40 pointer-events-none" style={{ zIndex: 0 }}>
+          <source src="/images/bg-video.mp4" type="video/mp4" />
+        </video>
         <div className="relative" style={{ zIndex: 1 }}>
           <AuthProvider>
             <Header />
