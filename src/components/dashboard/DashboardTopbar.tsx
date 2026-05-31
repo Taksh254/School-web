@@ -1,8 +1,11 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import { Menu, LogOut, User } from "lucide-react"
+import { Menu, LogOut, User, Crown } from "lucide-react"
+import Link from "next/link"
+import { getPrincipalProfile } from "@/lib/data-store"
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -11,11 +14,22 @@ interface TopbarProps {
 export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
   const { user, logout } = useAuth()
   const router = useRouter()
+  const [principal, setPrincipal] = useState(getPrincipalProfile())
+
+  useEffect(() => {
+    const handler = () => setPrincipal(getPrincipalProfile())
+    window.addEventListener("storage", handler)
+    return () => window.removeEventListener("storage", handler)
+  }, [])
 
   const handleLogout = () => {
     logout()
     router.push("/login")
   }
+
+  const displayName = user?.role === "admin" ? principal.name : user?.name
+  const displayPhoto = user?.role === "admin" ? principal.photoUrl : ""
+  const profileLink = user?.role === "admin" ? "/dashboard/admin/principal" : "/dashboard/parent"
 
   return (
     <header className="sticky top-0 z-40 bg-cream/80 backdrop-blur-md border-b border-beige/20">
@@ -41,15 +55,22 @@ export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
 
         {/* Right — user + logout */}
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-soft-white border border-beige/15">
-            <div className="w-7 h-7 rounded-lg bg-pistachio/15 flex items-center justify-center">
-              <User className="w-3.5 h-3.5 text-olive" />
+          <Link
+            href={profileLink}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-soft-white border border-beige/15 hover:border-pistachio/30 transition-colors"
+          >
+            <div className="w-7 h-7 rounded-lg bg-pistachio/15 flex items-center justify-center overflow-hidden">
+              {displayPhoto ? (
+                <img src={displayPhoto} alt={displayName || ""} className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-3.5 h-3.5 text-olive" />
+              )}
             </div>
             <div className="text-right">
-              <p className="text-xs font-medium text-olive font-body">{user?.name}</p>
+              <p className="text-xs font-medium text-olive font-body">{displayName}</p>
               <p className="text-[10px] text-olive/40 capitalize font-body">{user?.role}</p>
             </div>
-          </div>
+          </Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-olive/50 hover:text-olive hover:bg-soft-white border border-transparent hover:border-beige/20 transition-all text-xs font-medium font-body"
