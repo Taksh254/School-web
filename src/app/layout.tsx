@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${nunito.variable} ${inter.variable} ${caveat.variable}`}>
       <body className="min-h-screen flex flex-col antialiased bg-soft-white text-olive font-body">
         <video autoPlay muted loop playsInline className="fixed inset-0 w-full h-full object-cover opacity-40 pointer-events-none" style={{ zIndex: 0 }}>
-          <source src="/images/bg-video.mp4" type="video/mp4" />
+          <source src="/0531(1).mp4" type="video/mp4" />
         </video>
         <div className="relative" style={{ zIndex: 1 }}>
           <AuthProvider>
