@@ -42,3 +42,4 @@ next-env.d.ts
 
 # Stray videos
 0531*.mp4
+.vercel
