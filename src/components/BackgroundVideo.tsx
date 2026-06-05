@@ -9,28 +9,12 @@ export default function BackgroundVideo() {
     const video = videoRef.current
     if (!video) return
 
-    let forward = true
-
-    const handleTimeUpdate = () => {
-      if (forward) {
-        if (video.currentTime >= video.duration - 0.1) {
-          forward = false
-          video.playbackRate = -1.0
-        }
-      } else {
-        if (video.currentTime <= 0.1) {
-          forward = true
-          video.playbackRate = 1.0
-        }
-      }
-    }
-
-    video.playbackRate = 1.0
-    video.addEventListener("timeupdate", handleTimeUpdate)
-
-    return () => {
-      video.removeEventListener("timeupdate", handleTimeUpdate)
-    }
+    // Programmatically mute and play the video to ensure autoplay works 
+    // seamlessly across all modern browsers (bypassing strict browser policies).
+    video.muted = true
+    video.play().catch((err) => {
+      console.warn("Background video autoPlay failed or was blocked:", err)
+    })
   }, [])
 
   return (
@@ -38,11 +22,13 @@ export default function BackgroundVideo() {
       ref={videoRef}
       autoPlay
       muted
+      loop
       playsInline
       className="fixed inset-0 w-full h-full object-cover opacity-40 pointer-events-none"
       style={{ zIndex: 0 }}
     >
       <source src="/images/bg-video.mp4" type="video/mp4" />
+      <source src="/0531(1).mp4" type="video/mp4" />
     </video>
   )
 }
