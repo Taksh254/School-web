@@ -28,7 +28,6 @@ export default function BackgroundVideo() {
       style={{ zIndex: 0 }}
     >
       <source src="/videos/bg-video.mp4" type="video/mp4" />
-      <source src="/0531(1).mp4" type="video/mp4" />
     </video>
   )
 }
