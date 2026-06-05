@@ -27,7 +27,7 @@ export default function BackgroundVideo() {
       className="fixed inset-0 w-full h-full object-cover opacity-40 pointer-events-none"
       style={{ zIndex: 0 }}
     >
-      <source src="/videos/bg-video.mp4" type="video/mp4" />
+      <source src="/videos/bg-video.mp4?v=3" type="video/mp4" />
     </video>
   )
 }
