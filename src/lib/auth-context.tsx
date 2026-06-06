@@ -18,6 +18,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   bypassLogin: (email: string) => Promise<{ success: boolean }>
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
 }
 
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthState>({
   login: async () => ({ success: false }),
   bypassLogin: async () => ({ success: false }),
   register: async () => ({ success: false }),
+  loginWithGoogle: async () => ({ success: false }),
   logout: async () => {},
 })
 
@@ -188,7 +190,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const profile = await fetchProfile(session.user.id, session.user.email || "")
+        const email = session.user.email || ""
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "School User"
+        const role: Role = email.toLowerCase().includes("admin") ? "admin" : "parent"
+        
+        // Auto-create a profile if it doesn't exist (crucial for OAuth sign-ins)
+        await ensureProfile(session.user.id, email, name, role)
+
+        const profile = await fetchProfile(session.user.id, email)
         if (active && profile) {
           setUser(profile)
           setSessionDebug({
@@ -406,6 +415,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true }
   }, [fetchProfile])
 
+  const loginWithGoogle = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      return { success: false, error: "Supabase is not configured. Google login is only available in Supabase mode." }
+    }
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+        },
+      })
+      if (error) {
+        return { success: false, error: error.message }
+      }
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || "OAuth connection failed" }
+    }
+  }, [])
+
   const logout = useCallback(async () => {
     if (isSupabaseConfigured()) {
       try {
@@ -420,7 +449,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, loginWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   )
