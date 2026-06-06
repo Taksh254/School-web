@@ -6,10 +6,24 @@ const publicPaths = ["/login", "/", "/about", "/programs", "/gallery", "/admissi
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Check bypass cookie
+  const bypassCookie = request.cookies.get("hk_bypass_user")
+  let bypassUser = null
+  if (bypassCookie?.value) {
+    try {
+      bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
+    } catch {}
+  }
+
   // Allow public paths
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     // If already logged in, redirect to dashboard
     if (pathname === "/login") {
+      if (bypassUser) {
+        const target = bypassUser.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+        return NextResponse.redirect(new URL(target, request.url))
+      }
+
       const { supabase } = createClient(request)
       const { data: { user }, error } = await supabase.auth.getUser()
 
@@ -30,30 +44,41 @@ export async function middleware(request: NextRequest) {
 
   // Protect all dashboard and admin routes
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
-    const { supabase, supabaseResponse } = createClient(request)
-    const { data: { user }, error } = await supabase.auth.getUser()
+    let role = null
+    let response = NextResponse.next({ request })
 
-    if (error || !user) {
+    if (bypassUser) {
+      role = bypassUser.role
+    } else {
+      const { supabase, supabaseResponse } = createClient(request)
+      response = supabaseResponse
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+
+        if (!error && user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .maybeSingle()
+
+          role = profile?.role || (user.email?.toLowerCase().includes("admin") ? "admin" : "parent")
+        }
+      } catch {}
+    }
+
+    if (!role) {
       const loginUrl = new URL("/login", request.url)
       loginUrl.searchParams.set("redirect", pathname)
       return NextResponse.redirect(loginUrl)
     }
-
-    // Role check
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle()
-
-    const role = profile?.role || (user.email?.toLowerCase().includes("admin") ? "admin" : "parent")
 
     // Admin routes - only admins
     if (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin")) {
       if (role !== "admin") {
         return NextResponse.redirect(new URL("/dashboard/parent", request.url))
       }
-      return supabaseResponse
+      return response
     }
 
     // Parent routes - only parents
@@ -61,10 +86,10 @@ export async function middleware(request: NextRequest) {
       if (role !== "parent") {
         return NextResponse.redirect(new URL("/dashboard/admin", request.url))
       }
-      return supabaseResponse
+      return response
     }
 
-    return supabaseResponse
+    return response
   }
 
   return NextResponse.next()

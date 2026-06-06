@@ -16,7 +16,6 @@ import {
   Calendar,
   FileText,
   X,
-  Leaf,
   Crown,
   Database,
 } from "lucide-react"
@@ -29,6 +28,7 @@ interface SidebarProps {
 const adminLinks = [
   { href: "/dashboard/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/admin/students", label: "Students", icon: Users },
+  { href: "/dashboard/admin/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/dashboard/admin/fees", label: "Fee Management", icon: CreditCard },
   { href: "/dashboard/admin/announcements", label: "Announcements", icon: Bell },
   { href: "/dashboard/admin/reports", label: "Reports", icon: BarChart3 },
@@ -106,7 +106,6 @@ export default function DashboardSidebar({ open, onClose }: SidebarProps) {
           href="/"
           className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-olive/40 hover:text-olive hover:bg-cream/50 transition-colors font-body"
         >
-          <Leaf className="w-3.5 h-3.5" />
           Back to Website
         </Link>
       </div>

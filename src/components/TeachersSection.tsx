@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import TiltCard from "@/components/ui/tilt-card"
-import { getPrincipalProfile } from "@/lib/data-store"
+import { getPrincipalProfile, DEFAULT_PRINCIPAL } from "@/lib/data-store"
 
 const staticTeachers = [
   { name: "Ms. Priya Kapoor", role: "Head of Curriculum", initial: "P", color: "bg-sage/20", photoUrl: "" },
@@ -19,9 +19,10 @@ const floatAnims = [
 ]
 
 export default function TeachersSection() {
-  const [principal, setPrincipal] = useState(getPrincipalProfile())
+  const [principal, setPrincipal] = useState(DEFAULT_PRINCIPAL)
 
   useEffect(() => {
+    setPrincipal(getPrincipalProfile())
     const handler = () => setPrincipal(getPrincipalProfile())
     window.addEventListener("storage", handler)
     return () => window.removeEventListener("storage", handler)

@@ -296,7 +296,7 @@ export interface PrincipalProfile {
   initial: string
 }
 
-const DEFAULT_PRINCIPAL: PrincipalProfile = {
+export const DEFAULT_PRINCIPAL: PrincipalProfile = {
   name: "Ms. Sunita Mehta",
   role: "Founder & Principal",
   bio: "With over 20 years of experience in early childhood education, Ms. Sunita Mehta founded Tiny Mind Play School with a vision to create a warm, nurturing environment where every child feels safe, valued, and inspired to learn. She believes that the early years are the most formative and is dedicated to providing a Montessori-inspired curriculum that fosters curiosity, creativity, and confidence.",
@@ -651,3 +651,92 @@ export async function getNotes(studentId?: string): Promise<TeacherNote[]> {
   }
   return getLocalNotes(studentId)
 }
+
+// ── Bulk Importers ─────────────────────────────────────────────
+
+export async function bulkAddStudents(dataList: Omit<Student, "id">[]): Promise<Student[]> {
+  if (dataList.length === 0) return []
+
+  if (isSupabaseConfigured()) {
+    try {
+      const dbRows = dataList.map(mapStudentToDb)
+      const { data: inserted, error } = await supabase.from("students").insert(dbRows).select()
+      if (!error && inserted) {
+        return inserted.map(mapStudentFromDb)
+      }
+      console.warn("Supabase bulk insert failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase bulk error:", err)
+    }
+  }
+
+  const students = getLocalStudents()
+  const insertedStudents: Student[] = dataList.map((data) => ({
+    ...data,
+    id: uid(),
+  }))
+  students.push(...insertedStudents)
+  set(K.students, students)
+  return insertedStudents
+}
+
+export async function bulkAddFees(dataList: Omit<FeeRecord, "id" | "createdAt">[]): Promise<FeeRecord[]> {
+  if (dataList.length === 0) return []
+
+  if (isSupabaseConfigured()) {
+    try {
+      const dbRows = dataList.map(mapFeeToDb)
+      const { data: inserted, error } = await supabase.from("fees").insert(dbRows).select()
+      if (!error && inserted) {
+        return inserted.map(mapFeeFromDb)
+      }
+      console.warn("Supabase bulk insert failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase bulk error:", err)
+    }
+  }
+
+  const fees = getLocalFees()
+  const createdAt = new Date().toISOString().slice(0, 10)
+  const insertedFees: FeeRecord[] = dataList.map((data) => ({
+    ...data,
+    id: uid(),
+    createdAt,
+  }))
+  fees.push(...insertedFees)
+  set(K.fees, fees)
+  return insertedFees
+}
+
+export async function bulkAddAttendance(dataList: Omit<AttendanceRecord, "id">[]): Promise<AttendanceRecord[]> {
+  if (dataList.length === 0) return []
+
+  if (isSupabaseConfigured()) {
+    try {
+      const dbRows = dataList.map((a) => ({
+        student_id: a.studentId,
+        date: a.date,
+        status: a.status,
+      }))
+      const { data: inserted, error } = await supabase.from("attendance").insert(dbRows).select()
+      if (!error && inserted) {
+        return inserted.map(mapAttendanceFromDb)
+      }
+      console.warn("Supabase bulk insert failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase bulk error:", err)
+    }
+  }
+
+  const list = get<AttendanceRecord[]>(K.attendance, [])
+  const keysToAdd = new Set(dataList.map((a) => `${a.studentId}_${a.date}`))
+  const filteredList = list.filter((item) => !keysToAdd.has(`${item.studentId}_${item.date}`))
+  const newRecords: AttendanceRecord[] = dataList.map((a) => ({
+    ...a,
+    id: uid(),
+  }))
+  const updated = [...filteredList, ...newRecords]
+  set(K.attendance, updated)
+  return newRecords
+}
+

@@ -1,13 +1,15 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import { getStudents, addStudent, updateStudent, deleteStudent } from "@/lib/data-store"
+import { getStudents, addStudent, updateStudent, deleteStudent, bulkAddStudents } from "@/lib/data-store"
 import type { Student, ProgramType } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
 import Modal from "@/components/dashboard/Modal"
-import { Users, Plus, Pencil, Trash2, GraduationCap } from "lucide-react"
+import ImportReportModal from "@/components/dashboard/ImportReportModal"
+import { parseCsvFile, validateStudents, exportToCSV, exportToExcel } from "@/lib/importer-exporter"
+import { Users, Plus, Pencil, Trash2, GraduationCap, Upload, Download, FileSpreadsheet } from "lucide-react"
 
 const PROGRAMS: ProgramType[] = ["Play Group", "Nursery", "Kindergarten"]
 
@@ -24,6 +26,66 @@ export default function AdminStudentsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importReport, setImportReport] = useState<{
+    open: boolean
+    successCount: number
+    failCount: number
+    errors: { row: number; error: string }[]
+  } | null>(null)
+
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setLoading(true)
+    try {
+      const parsedRows = await parseCsvFile(file)
+      const validation = validateStudents(parsedRows, students)
+
+      if (validation.validRecords.length > 0) {
+        await bulkAddStudents(validation.validRecords)
+        await refresh()
+      }
+
+      setImportReport({
+        open: true,
+        successCount: validation.successCount,
+        failCount: validation.failCount,
+        errors: validation.errors,
+      })
+    } catch (err: any) {
+      console.error("Import error:", err)
+      alert("Failed to parse CSV file: " + (err.message || err))
+    } finally {
+      setLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleExportCSV = () => {
+    const exportData = filtered.map((s) => ({
+      "Name": s.name,
+      "Class": s.program,
+      "Parent Name": s.parentName,
+      "Phone Number": s.parentPhone,
+      "Email": s.parentEmail,
+    }))
+    exportToCSV(exportData, "students_export")
+  }
+
+  const handleExportExcel = () => {
+    const exportData = filtered.map((s) => ({
+      "Name": s.name,
+      "Class": s.program,
+      "Parent Name": s.parentName,
+      "Phone Number": s.parentPhone,
+      "Email": s.parentEmail,
+    }))
+    exportToExcel(exportData, "students_export")
+  }
+
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -117,12 +179,39 @@ export default function AdminStudentsPage() {
           <h1 className="text-xl font-display font-bold text-olive">Student Management</h1>
           <p className="text-sm text-olive/50 font-body">Add, edit, and manage students</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300"
-        >
-          <Plus className="w-4 h-4" /> Add Student
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportCSV}
+            accept=".csv"
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cream hover:bg-beige/40 text-olive text-xs font-medium border border-beige/20 transition-all shadow-soft font-body"
+          >
+            <Upload className="w-3.5 h-3.5" /> Import CSV
+          </button>
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cream hover:bg-beige/40 text-olive text-xs font-medium border border-beige/20 transition-all shadow-soft font-body"
+          >
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cream hover:bg-beige/40 text-olive text-xs font-medium border border-beige/20 transition-all shadow-soft font-body"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+          </button>
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <Plus className="w-4 h-4" /> Add Student
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -270,6 +359,18 @@ export default function AdminStudentsPage() {
           </button>
         </div>
       </Modal>
+
+      {/* Import Report Modal */}
+      {importReport && (
+        <ImportReportModal
+          open={importReport.open}
+          onClose={() => setImportReport(null)}
+          title="Students Import Report"
+          successCount={importReport.successCount}
+          failCount={importReport.failCount}
+          errors={importReport.errors}
+        />
+      )}
     </div>
   )
 }

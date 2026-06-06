@@ -99,28 +99,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (user) {
+      localStorage.setItem("hk_user", JSON.stringify(user))
+      document.cookie = `hk_bypass_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400; SameSite=Lax`
+    } else {
+      localStorage.removeItem("hk_user")
+      document.cookie = "hk_bypass_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+    }
+  }, [user])
+
+  useEffect(() => {
     seedIfNeeded()
 
+    let active = true
+
+    // Restore from localStorage first (for fast initial load of local/bypass users)
+    try {
+      const raw = localStorage.getItem("hk_user")
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        setUser(parsed)
+        setSessionDebug({
+          hasSession: true,
+          userId: parsed.id,
+          email: parsed.email,
+          role: parsed.role,
+          provider: "localStorage",
+        })
+      }
+    } catch { /* empty */ }
+
     if (!isSupabaseConfigured()) {
-      try {
-        const raw = localStorage.getItem("hk_user")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          setUser(parsed)
-          setSessionDebug({
-            hasSession: true,
-            userId: parsed.id,
-            email: parsed.email,
-            role: parsed.role,
-            provider: "localStorage",
-          })
-        }
-      } catch { /* empty */ }
       setLoading(false)
       return
     }
-
-    let active = true
 
     async function restoreSession() {
       try {
@@ -130,21 +142,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!error && session?.user) {
           const profile = await fetchProfile(session.user.id, session.user.email || "")
-          if (active) {
+          if (active && profile) {
             setUser(profile)
-            const pid = profile?.id ?? session.user.id
-            const pemail = profile?.email ?? session.user.email ?? null
-            const prole = profile?.role ?? null
             setSessionDebug({
               hasSession: true,
-              userId: pid,
-              email: pemail,
-              role: prole,
+              userId: profile.id,
+              email: profile.email,
+              role: profile.role,
               provider: "supabase",
             })
           }
         } else {
-          if (active) setSessionDebug((d) => ({ ...d, hasSession: false, provider: "none" }))
+          // If no Supabase session, keep the localStorage user if it exists
+          if (active) {
+            try {
+              const raw = localStorage.getItem("hk_user")
+              if (raw) {
+                const parsed = JSON.parse(raw)
+                setUser(parsed)
+                setSessionDebug({
+                  hasSession: true,
+                  userId: parsed.id,
+                  email: parsed.email,
+                  role: parsed.role,
+                  provider: "localStorage",
+                })
+              } else {
+                setUser(null)
+                setSessionDebug((d) => ({ ...d, hasSession: false, provider: "none" }))
+              }
+            } catch {
+              setUser(null)
+              setSessionDebug((d) => ({ ...d, hasSession: false, provider: "none" }))
+            }
+          }
         }
       } catch (err) {
         console.error("Session restore error:", err)
@@ -158,20 +189,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id, session.user.email || "")
-        if (active) {
+        if (active && profile) {
           setUser(profile)
           setSessionDebug({
             hasSession: true,
-            userId: profile?.id || session.user.id,
-            email: profile?.email || session.user.email || null,
-            role: profile?.role || null,
+            userId: profile.id,
+            email: profile.email,
+            role: profile.role,
             provider: "supabase",
           })
         }
       } else {
         if (active) {
-          setUser(null)
-          setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+          // Keep local user if it exists
+          try {
+            const raw = localStorage.getItem("hk_user")
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              setUser(parsed)
+              setSessionDebug({
+                hasSession: true,
+                userId: parsed.id,
+                email: parsed.email,
+                role: parsed.role,
+                provider: "localStorage",
+              })
+            } else {
+              setUser(null)
+              setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+            }
+          } catch {
+            setUser(null)
+            setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+          }
         }
       }
       if (active) setLoading(false)

@@ -88,10 +88,10 @@ export default function AdminReportsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total Students" value={data.totalStudents} color="bg-pistachio/10" index={0} />
-        <StatCard icon={CreditCard} label="Fee Collected" value={`₹${(data.totalPaid / 1000).toFixed(1)}K`} sub={`${data.collectionRate}% rate`} color="bg-sage/10" index={1} />
-        <StatCard icon={TrendingUp} label="Pending Fees" value={`₹${(data.totalPending / 1000).toFixed(1)}K`} color="bg-beige/30" index={2} />
-        <StatCard icon={CalendarCheck} label="Avg Attendance" value={`${data.avgAttendance}%`} sub="All classes" color="bg-cream" index={3} />
+        <StatCard icon={Users} label="Total Students" value={data.totalStudents} color="bg-pistachio/10" index={0} href="/dashboard/admin/students" />
+        <StatCard icon={CreditCard} label="Fee Collected" value={`₹${(data.totalPaid / 1000).toFixed(1)}K`} sub={`${data.collectionRate}% rate`} color="bg-sage/10" index={1} href="/dashboard/admin/fees" />
+        <StatCard icon={TrendingUp} label="Pending Fees" value={`₹${(data.totalPending / 1000).toFixed(1)}K`} color="bg-beige/30" index={2} href="/dashboard/admin/fees" />
+        <StatCard icon={CalendarCheck} label="Avg Attendance" value={`${data.avgAttendance}%`} sub="All classes" color="bg-cream" index={3} href="/dashboard/admin/attendance" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

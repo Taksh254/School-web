@@ -5,6 +5,9 @@ import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import { AuthProvider } from "@/lib/auth-context"
 import BackgroundVideo from "@/components/BackgroundVideo"
+import { Suspense } from "react"
+import { LoadingProvider } from "@/lib/loading-context"
+import PageLoader from "@/components/dashboard/PageLoader"
 
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap" })
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" })
@@ -21,11 +24,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col antialiased bg-soft-white text-olive font-body">
         <BackgroundVideo />
         <div className="relative" style={{ zIndex: 1 }}>
-          <AuthProvider>
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </AuthProvider>
+          <Suspense fallback={null}>
+            <LoadingProvider>
+              <AuthProvider>
+                <PageLoader />
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </AuthProvider>
+            </LoadingProvider>
+          </Suspense>
         </div>
       </body>
     </html>

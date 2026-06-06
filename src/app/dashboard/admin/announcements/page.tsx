@@ -5,15 +5,40 @@ import { motion } from "framer-motion"
 import { getAnnouncements, addAnnouncement, updateAnnouncement, deleteAnnouncement } from "@/lib/data-store"
 import type { Announcement, AnnouncementPriority } from "@/lib/types"
 import Modal from "@/components/dashboard/Modal"
-import { Bell, Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react"
+import { exportToCSV, exportToExcel } from "@/lib/importer-exporter"
+import { Bell, Plus, Pencil, Trash2, Eye, EyeOff, Download, FileSpreadsheet } from "lucide-react"
 
 export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Announcement | null>(null)
   const [form, setForm] = useState({ title: "", content: "", priority: "normal" as AnnouncementPriority, published: true, author: "Principal Sunita" })
-
   const [loading, setLoading] = useState(true)
+
+  const handleExportCSV = () => {
+    const exportData = announcements.map((a) => ({
+      "Title": a.title,
+      "Content": a.content,
+      "Date": a.date,
+      "Priority": a.priority,
+      "Published": a.published ? "Yes" : "No",
+      "Author": a.author,
+    }))
+    exportToCSV(exportData, "announcements_export")
+  }
+
+  const handleExportExcel = () => {
+    const exportData = announcements.map((a) => ({
+      "Title": a.title,
+      "Content": a.content,
+      "Date": a.date,
+      "Priority": a.priority,
+      "Published": a.published ? "Yes" : "No",
+      "Author": a.author,
+    }))
+    exportToExcel(exportData, "announcements_export")
+  }
+
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -83,10 +108,24 @@ export default function AdminAnnouncementsPage() {
           <h1 className="text-xl font-display font-bold text-olive">Announcements</h1>
           <p className="text-sm text-olive/50 font-body">Create and manage school announcements</p>
         </div>
-        <button onClick={openAdd}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300">
-          <Plus className="w-4 h-4" /> New Announcement
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cream hover:bg-beige/40 text-olive text-xs font-medium border border-beige/20 transition-all shadow-soft font-body"
+          >
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
+          <button
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cream hover:bg-beige/40 text-olive text-xs font-medium border border-beige/20 transition-all shadow-soft font-body"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+          </button>
+          <button onClick={openAdd}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 font-body">
+            <Plus className="w-4 h-4" /> New Announcement
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">

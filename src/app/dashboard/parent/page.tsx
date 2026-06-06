@@ -103,10 +103,10 @@ export default function ParentDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={CalendarCheck} label="Attendance" value={`${attendanceRate}%`} sub="This month" color="bg-pistachio/10" index={0} />
+        <StatCard icon={CalendarCheck} label="Attendance" value={`${attendanceRate}%`} sub="This month" color="bg-pistachio/10" index={0} href="/dashboard/parent/attendance" />
         <StatCard icon={GraduationCap} label="Class" value={child.program} sub={child.teacher} color="bg-sage/10" index={1} />
-        <StatCard icon={Calendar} label="Next Event" value={events[0]?.title || "—"} sub={events[0]?.date ? new Date(events[0].date).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""} color="bg-cream" index={2} />
-        <StatCard icon={CreditCard} label="Fee Status" value={feeStatus} sub="Current term" color="bg-beige/30" index={3} />
+        <StatCard icon={Calendar} label="Next Event" value={events[0]?.title || "—"} sub={events[0]?.date ? new Date(events[0].date).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : ""} color="bg-cream" index={2} href="/dashboard/parent/events" />
+        <StatCard icon={CreditCard} label="Fee Status" value={feeStatus} sub="Current term" color="bg-beige/30" index={3} href="/dashboard/parent/fees" />
       </div>
 
       {/* Two column layout */}

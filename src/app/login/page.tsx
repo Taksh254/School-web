@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowRight, Leaf, Unlock, ArrowLeft, UserPlus, LogIn } from "lucide-react"
+import { ArrowRight, Unlock, ArrowLeft, UserPlus, LogIn } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
@@ -89,12 +89,6 @@ export default function LoginPage() {
       style={{ background: "linear-gradient(160deg, #F7F2E8 0%, #E8D8C3 40%, #B7C9A8 100%)" }}>
       <div className="absolute inset-0 paper-texture pointer-events-none" />
 
-      <motion.div className="absolute top-12 left-[15%] text-pistachio/20" animate={{ y: [0, -8, 0], rotate: [0, 5, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}>
-        <Leaf className="w-6 h-6" />
-      </motion.div>
-      <motion.div className="absolute bottom-20 right-[12%] text-sage/20" animate={{ y: [0, -6, 0], rotate: [0, -3, 0] }} transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}>
-        <Leaf className="w-5 h-5" />
-      </motion.div>
       <motion.div className="absolute top-1/4 left-[5%] text-pistachio/10 text-2xl" animate={{ rotate: [0, 15, 0], scale: [1, 1.1, 1] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>✦</motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}

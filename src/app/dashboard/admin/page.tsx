@@ -70,10 +70,10 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total Students" value={totalStudents} sub="All programs" color="bg-pistachio/10" index={0} />
-        <StatCard icon={CreditCard} label="Fee Collected" value={`₹${(totalCollected / 1000).toFixed(1)}K`} sub={`${collectionRate}% collected`} color="bg-sage/10" index={1} />
-        <StatCard icon={TrendingUp} label="Pending Fees" value={`₹${(totalPending / 1000).toFixed(1)}K`} sub="To be collected" color="bg-beige/30" index={2} />
-        <StatCard icon={GraduationCap} label="Programs" value={classCounts.length} sub="Active classes" color="bg-cream" index={3} />
+        <StatCard icon={Users} label="Total Students" value={totalStudents} sub="All programs" color="bg-pistachio/10" index={0} href="/dashboard/admin/students" />
+        <StatCard icon={CreditCard} label="Fee Collected" value={`₹${(totalCollected / 1000).toFixed(1)}K`} sub={`${collectionRate}% collected`} color="bg-sage/10" index={1} href="/dashboard/admin/fees" />
+        <StatCard icon={TrendingUp} label="Pending Fees" value={`₹${(totalPending / 1000).toFixed(1)}K`} sub="To be collected" color="bg-beige/30" index={2} href="/dashboard/admin/fees" />
+        <StatCard icon={GraduationCap} label="Programs" value={classCounts.length} sub="Active classes" color="bg-cream" index={3} href="/dashboard/admin/students" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
