@@ -107,17 +107,24 @@ alter table public.announcements enable row level security;
 alter table public.events enable row level security;
 alter table public.notes enable row level security;
 
+-- Helper function to check if the current user is an admin
+-- SECURITY DEFINER bypasses RLS on the profiles table to prevent infinite recursion
+create or replace function public.is_admin()
+returns boolean security definer as $$
+begin
+    return exists (
+        select 1 from public.profiles
+        where profiles.id = auth.uid() and profiles.role = 'admin'
+    );
+end;
+$$ language plpgsql;
+
 -- ── PROFILES POLICIES ────────────────────────────────────────────────
 create policy "Users can read own profile" on public.profiles
     for select using (auth.uid() = id);
 
 create policy "Admins can manage all profiles" on public.profiles
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── STUDENTS POLICIES ────────────────────────────────────────────────
 create policy "Parents can view their own child's profile" on public.students
@@ -129,12 +136,7 @@ create policy "Parents can view their own child's profile" on public.students
     );
 
 create policy "Admins have full access to students" on public.students
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── ATTENDANCE POLICIES ──────────────────────────────────────────────
 create policy "Parents can view their own child's attendance" on public.attendance
@@ -146,12 +148,7 @@ create policy "Parents can view their own child's attendance" on public.attendan
     );
 
 create policy "Admins have full access to attendance" on public.attendance
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── FEES POLICIES ────────────────────────────────────────────────────
 create policy "Parents can view their own child's fees" on public.fees
@@ -163,12 +160,7 @@ create policy "Parents can view their own child's fees" on public.fees
     );
 
 create policy "Admins have full access to fees" on public.fees
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── PAYMENTS POLICIES ────────────────────────────────────────────────
 create policy "Parents can view their own child's payments" on public.payments
@@ -180,36 +172,21 @@ create policy "Parents can view their own child's payments" on public.payments
     );
 
 create policy "Admins have full access to payments" on public.payments
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── ANNOUNCEMENTS POLICIES ───────────────────────────────────────────
 create policy "All authenticated users can view announcements" on public.announcements
     for select using (auth.uid() is not null);
 
 create policy "Admins have full access to announcements" on public.announcements
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── EVENTS POLICIES ──────────────────────────────────────────────────
 create policy "All authenticated users can view events" on public.events
     for select using (auth.uid() is not null);
 
 create policy "Admins have full access to events" on public.events
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── TEACHER NOTES POLICIES ───────────────────────────────────────────
 create policy "Parents can view notes for their child" on public.notes
@@ -221,12 +198,7 @@ create policy "Parents can view notes for their child" on public.notes
     );
 
 create policy "Admins have full access to notes" on public.notes
-    for all using (
-        exists (
-            select 1 from public.profiles 
-            where profiles.id = auth.uid() and profiles.role = 'admin'
-        )
-    );
+    for all using (public.is_admin());
 
 -- ── 9. AUTH TRIGGER FOR NEW SIGNUPS ──────────────────────────────────
 create or replace function public.handle_new_user()
