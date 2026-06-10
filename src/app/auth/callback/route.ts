@@ -1,22 +1,32 @@
 import { createServerClient } from "@supabase/ssr"
 import { type NextRequest, NextResponse } from "next/server"
 
-const ADMIN_EMAILS = ["admin@school.com", "sehrawatsonia27@gmail.com"]
+const ADMIN_EMAILS = new Set(["admin@school.com", "sehrawatsonia27@gmail.com"])
+
+function isAdminEmail(email: string): boolean {
+  const lower = email.toLowerCase()
+  return ADMIN_EMAILS.has(lower) || lower.includes("admin")
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
 
-  // No code → bail out immediately
+  // ── No code param ── (user landed here without going through Google)
   if (!code) {
+    console.warn("[auth/callback] No code param — redirecting to login error")
     return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
   }
 
-  // ── Build a response that will carry the new session cookies ──
-  // We start with a temporary redirect target; we'll override it once we know the role.
-  // IMPORTANT: we must use the SAME response object for both cookie-writing AND the final
-  // redirect, otherwise the Set-Cookie headers from exchangeCodeForSession are lost.
-  const response = NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
+  // ── Collect all cookies that Supabase wants to set ──
+  // We cannot mutate NextResponse.redirect's Location header after creation,
+  // so we collect cookies into an array and stamp them onto a fresh redirect
+  // once we know the destination.
+  const pendingCookies: Array<{
+    name: string
+    value: string
+    options: Record<string, unknown>
+  }> = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,50 +36,51 @@ export async function GET(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        // Write cookies onto `response` so they travel with the redirect
         setAll(cookiesToSet) {
+          // Accumulate; we'll apply them to the final response below
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+            pendingCookies.push({ name, value, options: options ?? {} })
           })
         },
       },
     }
   )
 
+  // ── Exchange the one-time code for a session ──
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
   if (exchangeError) {
-    console.error("[auth/callback] exchangeCodeForSession error:", exchangeError.message)
-    // response already points to error URL – return it (with any partial cookies)
-    return response
+    console.error("[auth/callback] exchangeCodeForSession failed:", exchangeError.message)
+    const errResponse = NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
+    pendingCookies.forEach(({ name, value, options }) =>
+      errResponse.cookies.set(name, value, options as Parameters<typeof errResponse.cookies.set>[2])
+    )
+    return errResponse
   }
 
-  // Session exchanged successfully — determine destination
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // ── Determine the user's role ──
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    return response // still points to error URL
+  let destination = "/dashboard/parent" // safe default
+
+  if (user?.email) {
+    // 1. Try the persisted profile first (most authoritative)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (profile?.role === "admin" || isAdminEmail(user.email)) {
+      destination = "/dashboard/admin"
+    }
   }
 
-  // Try to read the stored profile role first
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle()
+  // ── Build the final redirect with ALL session cookies attached ──
+  const finalResponse = NextResponse.redirect(`${origin}${destination}`)
+  pendingCookies.forEach(({ name, value, options }) =>
+    finalResponse.cookies.set(name, value, options as Parameters<typeof finalResponse.cookies.set>[2])
+  )
 
-  const email = (user.email || "").toLowerCase()
-  const isAdmin =
-    profile?.role === "admin" ||
-    ADMIN_EMAILS.includes(email) ||
-    email.includes("admin")
-
-  const destination = isAdmin ? "/dashboard/admin" : "/dashboard/parent"
-
-  // Override the redirect URL while keeping all cookies on the same response object
-  response.headers.set("location", `${origin}${destination}`)
-
-  return response
+  return finalResponse
 }

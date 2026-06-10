@@ -1,7 +1,16 @@
 import { createServerClient } from "@supabase/ssr"
 import { type NextRequest, NextResponse } from "next/server"
 
+/**
+ * Creates a Supabase server client that correctly refreshes session cookies
+ * and forwards them on the outgoing response.
+ *
+ * IMPORTANT: always return `supabaseResponse` (or a response that copies its
+ * cookies) — never return NextResponse.next() / NextResponse.redirect() without
+ * forwarding the cookies, otherwise token refreshes are silently lost.
+ */
 export function createClient(request: NextRequest) {
+  // Start with a pass-through response
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -13,9 +22,14 @@ export function createClient(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          // 1. Mutate the request object so later getAll() calls see fresh values
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          // 2. Rebuild supabaseResponse so it carries the new Set-Cookie headers
+          //    Keep the same { request } context so Next.js doesn't lose headers
           supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
@@ -26,13 +40,17 @@ export function createClient(request: NextRequest) {
 
 export async function getUserRole(userId: string): Promise<string | null> {
   try {
-    const { createClient } = await import("@supabase/supabase-js")
-    const adminClient = createClient(
+    const { createClient: createJsClient } = await import("@supabase/supabase-js")
+    const adminClient = createJsClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { auth: { persistSession: false } }
     )
-    const { data } = await adminClient.from("profiles").select("role").eq("id", userId).maybeSingle()
+    const { data } = await adminClient
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle()
     return data?.role || null
   } catch {
     return null
