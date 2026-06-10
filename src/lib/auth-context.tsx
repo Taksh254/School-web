@@ -416,11 +416,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: "Supabase is not configured. Google login is only available in Supabase mode." }
     }
     try {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin || "https://school-web-ebon.vercel.app"
+      // Always use the current browser origin so the redirect URL matches
+      // both local dev (http://localhost:3000) and production automatically.
+      const redirectTo = `${window.location.origin}/auth/callback`
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${siteUrl}/auth/callback`,
+          redirectTo,
         },
       })
       if (error) {
