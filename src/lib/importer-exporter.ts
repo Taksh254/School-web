@@ -86,6 +86,7 @@ export function validateStudents(
     const parentName = getVal(row, ["parentname", "parent name", "fathername", "mothername"])
     const phone = getVal(row, ["phone", "phonenumber", "parentphone", "phone number"])
     const email = getVal(row, ["email", "parentemail", "emailaddress", "email address"])
+    const rawDob = getVal(row, ["dateofbirth", "date of birth", "dob", "birthdate"])
 
     // 1. Required Fields
     if (!name) {
@@ -136,14 +137,32 @@ export function validateStudents(
     }
 
     // 5. Generate Defaults
-    let age = 4
-    if (program === "Play Group") age = 3
-    if (program === "Kindergarten") age = 5
+    function calcAge(dob: string): number {
+      if (!dob) return 0
+      const birth = new Date(dob)
+      const today = new Date()
+      let age = today.getFullYear() - birth.getFullYear()
+      const m = today.getMonth() - birth.getMonth()
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+      return age
+    }
 
-    const birthYear = 2026 - age
-    const dateOfBirth = `${birthYear}-01-01`
-    const admissionDate = new Date().toISOString().slice(0, 10)
+    let age: number
+    let dateOfBirth: string
+
+    if (rawDob) {
+      dateOfBirth = rawDob
+      age = calcAge(rawDob)
+    } else {
+      age = 4
+      if (program === "Play Group") age = 3
+      if (program === "Kindergarten") age = 5
+      const birthYear = 2026 - age
+      dateOfBirth = `${birthYear}-01-01`
+    }
+
     const section = "A"
+    const admissionNo = `ADM-${String(Date.now()).slice(-6)}`
 
     let teacher = "Ms. Anita Desai"
     if (program === "Play Group") teacher = "Ms. Priya Kapoor"
@@ -157,7 +176,7 @@ export function validateStudents(
       parentName,
       parentEmail: email,
       parentPhone: phone || "",
-      admissionDate,
+      admissionNo,
       teacher,
     })
   })

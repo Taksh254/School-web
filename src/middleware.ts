@@ -1,27 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "./lib/supabase-middleware"
+import { inferRoleFromEmail } from "./lib/types"
 
-const publicPaths = ["/login", "/", "/about", "/programs", "/gallery", "/admissions", "/contact", "/parent-corner"]
+const publicPaths = ["/login", "/auth/callback", "/", "/about", "/programs", "/gallery", "/admissions", "/contact", "/parent-corner"]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Check bypass cookie
-  const bypassCookie = request.cookies.get("hk_bypass_user")
-  let bypassUser = null
-  if (bypassCookie?.value) {
-    try {
-      bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
-    } catch {}
-  }
-
   // Allow public paths
   if (publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    // If already logged in, redirect to dashboard
+    // If already logged in and visiting /login, redirect to dashboard
     if (pathname === "/login") {
-      if (bypassUser) {
-        const target = bypassUser.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
-        return NextResponse.redirect(new URL(target, request.url))
+      const bypassCookie = request.cookies.get("hk_bypass_user")
+      if (bypassCookie?.value) {
+        try {
+          const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
+          const target = bypassUser.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+          return NextResponse.redirect(new URL(target, request.url))
+        } catch {}
       }
 
       const { supabase } = createClient(request)
@@ -34,7 +30,7 @@ export async function middleware(request: NextRequest) {
           .eq("id", user.id)
           .maybeSingle()
 
-        const role = profile?.role || (user.email?.toLowerCase().includes("admin") ? "admin" : "parent")
+        const role = profile?.role || (user.email ? inferRoleFromEmail(user.email) : "parent")
         const target = role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
         return NextResponse.redirect(new URL(target, request.url))
       }
@@ -42,19 +38,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Protect all dashboard and admin routes
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
-    let role = null
+  // Protect dashboard routes
+  if (pathname.startsWith("/dashboard")) {
+    const bypassCookie = request.cookies.get("hk_bypass_user")
+    let role: string | null = null
     let response = NextResponse.next({ request })
 
-    if (bypassUser) {
-      role = bypassUser.role
-    } else {
+    if (bypassCookie?.value) {
+      try {
+        const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
+        role = bypassUser.role
+      } catch {}
+    }
+
+    if (!role) {
       const { supabase, supabaseResponse } = createClient(request)
       response = supabaseResponse
       try {
         const { data: { user }, error } = await supabase.auth.getUser()
-
         if (!error && user) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -62,7 +63,7 @@ export async function middleware(request: NextRequest) {
             .eq("id", user.id)
             .maybeSingle()
 
-          role = profile?.role || (user.email?.toLowerCase().includes("admin") ? "admin" : "parent")
+          role = profile?.role || (user.email ? inferRoleFromEmail(user.email) : "parent")
         }
       } catch {}
     }
@@ -73,16 +74,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // Admin routes - only admins
-    if (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/admin")) {
+    // Admin routes — only admins
+    if (pathname.startsWith("/dashboard/admin")) {
       if (role !== "admin") {
         return NextResponse.redirect(new URL("/dashboard/parent", request.url))
       }
       return response
     }
 
-    // Parent routes - only parents
-    if (pathname.startsWith("/dashboard/parent") || pathname.startsWith("/parent")) {
+    // Parent routes — only parents
+    if (pathname.startsWith("/dashboard/parent")) {
       if (role !== "parent") {
         return NextResponse.redirect(new URL("/dashboard/admin", request.url))
       }
@@ -97,6 +98,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|images/.*\\.(?:mp4|jpg|jpeg|gif|png|svg|webp)$).*)",
+    "/((?!api/|_next/|favicon\\.ico|images/.*\\.(?:mp4|jpg|jpeg|gif|png|svg|webp)$).*)",
   ],
 }

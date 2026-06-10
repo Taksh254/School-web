@@ -2,6 +2,14 @@
 
 export type Role = "admin" | "parent"
 
+const ADMIN_EMAILS = ["sehrawatsonia27@gmail.com"]
+
+export function inferRoleFromEmail(email: string): Role {
+  const lower = email.toLowerCase()
+  if (lower.includes("admin") || ADMIN_EMAILS.includes(lower)) return "admin"
+  return "parent"
+}
+
 export interface User {
   id: string
   email: string
@@ -26,7 +34,7 @@ export interface Student {
   parentName: string
   parentEmail: string
   parentPhone: string
-  admissionDate: string
+  admissionNo: string
   teacher: string
   photo?: string
 }

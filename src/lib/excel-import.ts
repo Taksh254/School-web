@@ -1,0 +1,182 @@
+import * as XLSX from "xlsx"
+import type { Student, ProgramType } from "./types"
+
+export interface ImportedRow {
+  rowNumber: number
+  studentName: string
+  parentName: string
+  dob: string
+  email: string
+  phone: string
+  admissionNo: string
+  className: string
+  valid: boolean
+  errors: string[]
+}
+
+export interface ImportPreview {
+  rows: ImportedRow[]
+  totalRows: number
+  validCount: number
+  invalidCount: number
+}
+
+export function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        const workbook = XLSX.read(data, { type: "array" })
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: "" })
+        resolve(rows)
+      } catch (err) {
+        reject(err)
+      }
+    }
+    reader.onerror = () => reject(new Error("Failed to read file"))
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+function getVal(row: Record<string, unknown>, keys: string[]): string {
+  for (const k of Object.keys(row)) {
+    const normalizedK = k.toLowerCase().replace(/[\s_-]/g, "")
+    if (keys.some((key) => normalizedK === key.toLowerCase().replace(/[\s_-]/g, ""))) {
+      return String(row[k] ?? "").trim()
+    }
+  }
+  return ""
+}
+
+function parseDate(raw: string): string {
+  if (!raw) return ""
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  const parsed = new Date(raw)
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10)
+  }
+  return raw
+}
+
+const programMapping: Record<string, ProgramType> = {
+  "play group": "Play Group",
+  "playgroup": "Play Group",
+  nursery: "Nursery",
+  kindergarten: "Kindergarten",
+  kg: "Kindergarten",
+}
+
+export function generatePreview(rows: Record<string, unknown>[], existingAdmissionNos: string[]): ImportPreview {
+  const previewRows: ImportedRow[] = []
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]
+    const rowNumber = i + 2
+    const errs: string[] = []
+
+    const studentName = getVal(row, ["studentname", "student name", "name"])
+    const parentName = getVal(row, ["parentsname", "parents name", "parentname", "parent name", "fathername", "mothername"])
+    const rawDob = getVal(row, ["dateofbirth", "date of birth", "dob", "birthdate"])
+    const email = getVal(row, ["email", "emailaddress", "email address"])
+    const phone = getVal(row, ["phone", "phonenumber", "phone number", "phoneno", "phone no", "mobile"])
+    const admissionNo = getVal(row, ["admissionno", "admission no", "admissionnumber", "admission number", "rollno"])
+    const rawClass = getVal(row, ["class", "classname", "class name", "program"])
+
+    if (!studentName) errs.push("Student Name is required")
+    if (!parentName) errs.push("Parent Name is required")
+    if (!admissionNo) errs.push("Admission Number is required")
+    if (!rawClass) {
+      errs.push("Class is required")
+    } else {
+      const normalizedClass = rawClass.toLowerCase()
+      const program = programMapping[normalizedClass]
+      if (!program) {
+        errs.push(`Invalid Class '${rawClass}'. Must be: Play Group, Nursery, or Kindergarten`)
+      }
+    }
+
+    if (email && !email.includes("@")) {
+      errs.push("Invalid email format")
+    }
+
+    const normalizedAdmissionNo = String(admissionNo || "").trim().toLowerCase()
+
+    if (normalizedAdmissionNo && existingAdmissionNos.includes(normalizedAdmissionNo)) {
+      errs.push(`Duplicate admission number: ${admissionNo}`)
+    }
+
+    previewRows.push({
+      rowNumber,
+      studentName,
+      parentName,
+      dob: parseDate(rawDob),
+      email,
+      phone,
+      admissionNo,
+      className: rawClass,
+      valid: errs.length === 0,
+      errors: errs,
+    })
+
+    if (normalizedAdmissionNo) {
+      existingAdmissionNos.push(normalizedAdmissionNo)
+    }
+  }
+
+  return {
+    rows: previewRows,
+    totalRows: rows.length,
+    validCount: previewRows.filter((r) => r.valid).length,
+    invalidCount: previewRows.filter((r) => !r.valid).length,
+  }
+}
+
+function calcAge(dob: string): number {
+  if (!dob) return 0
+  const birth = new Date(dob)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
+}
+
+export function previewToStudentData(preview: ImportedRow[]): Omit<Student, "id">[] {
+  return preview.filter((r) => r.valid).map((r) => {
+    const normalizedClass = r.className.toLowerCase()
+    const program = programMapping[normalizedClass] || "Nursery"
+
+    let age: number
+    let dateOfBirth: string
+
+    if (r.dob) {
+      dateOfBirth = r.dob
+      age = calcAge(r.dob)
+    } else {
+      age = 4
+      if (program === "Play Group") age = 3
+      if (program === "Kindergarten") age = 5
+      const birthYear = 2026 - age
+      dateOfBirth = `${birthYear}-01-01`
+    }
+
+    const section = "A"
+    let teacher = "Ms. Anita Desai"
+    if (program === "Play Group") teacher = "Ms. Priya Kapoor"
+
+    return {
+      name: r.studentName,
+      age,
+      dateOfBirth,
+      program,
+      section,
+      parentName: r.parentName,
+      parentEmail: r.email || "",
+      parentPhone: r.phone || "",
+      admissionNo: r.admissionNo,
+      teacher,
+    }
+  })
+}

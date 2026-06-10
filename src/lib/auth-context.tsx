@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { User, Role } from "./types"
+import { inferRoleFromEmail } from "./types"
 import { DEMO_USERS, seedIfNeeded } from "./data-store"
 import { supabase, isSupabaseConfigured } from "./supabase"
 
@@ -87,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Infer role from email if no profile
-      const role: Role = email?.toLowerCase().includes("admin") ? "admin" : "parent"
+      const role: Role = inferRoleFromEmail(email || "")
       return {
         id: userId,
         email,
@@ -114,87 +115,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     seedIfNeeded()
 
     let active = true
+    let subscription: { unsubscribe: () => void } | null = null
 
-    // Restore from localStorage first (for fast initial load of local/bypass users)
-    try {
-      const raw = localStorage.getItem("hk_user")
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        setUser(parsed)
-        setSessionDebug({
-          hasSession: true,
-          userId: parsed.id,
-          email: parsed.email,
-          role: parsed.role,
-          provider: "localStorage",
-        })
-      }
-    } catch { /* empty */ }
-
-    if (!isSupabaseConfigured()) {
-      setLoading(false)
-      return
-    }
-
-    async function restoreSession() {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-
-        if (!active) return
-
-        if (!error && session?.user) {
-          const profile = await fetchProfile(session.user.id, session.user.email || "")
-          if (active && profile) {
-            setUser(profile)
+    async function init() {
+      // For non-Supabase mode, restore from localStorage immediately
+      if (!isSupabaseConfigured()) {
+        try {
+          const raw = localStorage.getItem("hk_user")
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            setUser(parsed)
             setSessionDebug({
               hasSession: true,
-              userId: profile.id,
-              email: profile.email,
-              role: profile.role,
-              provider: "supabase",
+              userId: parsed.id,
+              email: parsed.email,
+              role: parsed.role,
+              provider: "localStorage",
             })
           }
-        } else {
-          // If no Supabase session, keep the localStorage user if it exists
-          if (active) {
-            try {
-              const raw = localStorage.getItem("hk_user")
-              if (raw) {
-                const parsed = JSON.parse(raw)
-                setUser(parsed)
-                setSessionDebug({
-                  hasSession: true,
-                  userId: parsed.id,
-                  email: parsed.email,
-                  role: parsed.role,
-                  provider: "localStorage",
-                })
-              } else {
-                setUser(null)
-                setSessionDebug((d) => ({ ...d, hasSession: false, provider: "none" }))
-              }
-            } catch {
-              setUser(null)
-              setSessionDebug((d) => ({ ...d, hasSession: false, provider: "none" }))
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Session restore error:", err)
-      } finally {
+        } catch { /* empty */ }
         if (active) setLoading(false)
+        return
       }
+
+      // Step 1: Check existing Supabase session first
+      const { data: { session }, error } = await supabase.auth.getSession()
+
+      if (!active) return
+
+      if (!error && session?.user) {
+        const profile = await fetchProfile(session.user.id, session.user.email || "")
+        if (active && profile) {
+          setUser(profile)
+          setSessionDebug({
+            hasSession: true,
+            userId: profile.id,
+            email: profile.email,
+            role: profile.role,
+            provider: "supabase",
+          })
+          if (active) setLoading(false)
+          return
+        }
+      }
+
+      // Step 2: No Supabase session — try localStorage fallback
+      try {
+        const raw = localStorage.getItem("hk_user")
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          setUser(parsed)
+          setSessionDebug({
+            hasSession: true,
+            userId: parsed.id,
+            email: parsed.email,
+            role: parsed.role,
+            provider: "localStorage",
+          })
+        } else {
+          setUser(null)
+          setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+        }
+      } catch {
+        setUser(null)
+        setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+      }
+
+      if (active) setLoading(false)
     }
 
-    restoreSession()
+    init()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Step 3: Subscribe to future auth state changes (login / logout / token refresh)
+    const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Ignore INITIAL_SESSION — already handled by init()
+      if (event === "INITIAL_SESSION") return
+
       if (session?.user) {
         const email = session.user.email || ""
         const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "School User"
-        const role: Role = email.toLowerCase().includes("admin") ? "admin" : "parent"
-        
-        // Auto-create a profile if it doesn't exist (crucial for OAuth sign-ins)
+        const role = inferRoleFromEmail(email)
+
         await ensureProfile(session.user.id, email, name, role)
 
         const profile = await fetchProfile(session.user.id, email)
@@ -210,7 +211,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         if (active) {
-          // Keep local user if it exists
           try {
             const raw = localStorage.getItem("hk_user")
             if (raw) {
@@ -233,12 +233,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       }
-      if (active) setLoading(false)
     })
+
+    subscription = sub
 
     return () => {
       active = false
-      subscription.unsubscribe()
+      subscription?.unsubscribe()
     }
   }, [fetchProfile])
 
@@ -276,12 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   return { success: true }
                 }
 
-                if (signInErr) {
-                  return {
-                    success: false,
-                    error: "Account created! If email confirmation is enabled, please check your inbox. Otherwise, disable 'Confirm email' in Supabase Auth settings.",
-                  }
-                }
+                // Even if sign-in fails (e.g., email confirmation), fall through to localStorage fallback
               }
               // If auto-signup fails, fall through to localStorage fallback below
             }
@@ -321,7 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!matched) {
-      const role: Role = normalised.includes("admin") ? "admin" : "parent"
+      const role = inferRoleFromEmail(normalised)
       matched = {
         id: "u-custom",
         email: normalised,
@@ -342,7 +338,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: "u-bypass",
       email: normalised,
       name: normalised.includes("admin") ? "Admin" : "Parent",
-      role: (normalised.includes("admin") ? "admin" : "parent") as Role,
+      role: inferRoleFromEmail(normalised),
       childId: normalised.includes("parent") ? "s1" : undefined,
     }
     setUser(matched)
@@ -420,10 +416,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: "Supabase is not configured. Google login is only available in Supabase mode." }
     }
     try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin || "https://school-web-ebon.vercel.app"
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo: `${siteUrl}/auth/callback`,
         },
       })
       if (error) {

@@ -47,20 +47,19 @@ const K = {
 export const DEMO_USERS: User[] = [
   { id: "u1", email: "admin@school.com", name: "Principal Sunita", role: "admin" },
   { id: "u2", email: "parent@school.com", name: "Priya Sharma", role: "parent", childId: "s1" },
-  { id: "u3", email: "sehrawatsonia27@gmail.com", name: "Sonia Sehrawat", role: "admin" },
 ]
 
 // ── Seed Data ─────────────────────────────────────────────────
 
 const SEED_STUDENTS: Student[] = [
-  { id: "s1", name: "Aanya Sharma", age: 4, dateOfBirth: "2022-03-15", program: "Nursery", section: "A", parentName: "Priya Sharma", parentEmail: "priya@email.com", parentPhone: "+91 98765 43210", admissionDate: "2025-04-01", teacher: "Ms. Anita Desai" },
-  { id: "s2", name: "Arjun Verma", age: 3, dateOfBirth: "2023-06-22", program: "Play Group", section: "A", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43211", admissionDate: "2025-06-15", teacher: "Ms. Priya Kapoor" },
-  { id: "s3", name: "Riya Kapoor", age: 5, dateOfBirth: "2021-01-10", program: "Kindergarten", section: "A", parentName: "Neha Kapoor", parentEmail: "neha@email.com", parentPhone: "+91 98765 43212", admissionDate: "2024-04-01", teacher: "Ms. Anita Desai" },
-  { id: "s4", name: "Kabir Singh", age: 3, dateOfBirth: "2023-09-05", program: "Play Group", section: "B", parentName: "Harpreet Singh", parentEmail: "harpreet@email.com", parentPhone: "+91 98765 43213", admissionDate: "2025-07-01", teacher: "Ms. Priya Kapoor" },
-  { id: "s5", name: "Myra Gupta", age: 4, dateOfBirth: "2022-11-18", program: "Nursery", section: "B", parentName: "Ankit Gupta", parentEmail: "ankit@email.com", parentPhone: "+91 98765 43214", admissionDate: "2025-04-01", teacher: "Ms. Anita Desai" },
-  { id: "s6", name: "Vivaan Mehta", age: 5, dateOfBirth: "2021-07-30", program: "Kindergarten", section: "B", parentName: "Rohan Mehta", parentEmail: "rohan@email.com", parentPhone: "+91 98765 43215", admissionDate: "2024-04-01", teacher: "Mr. Rohan Joshi" },
-  { id: "s7", name: "Ishaan Reddy", age: 2, dateOfBirth: "2024-02-14", program: "Play Group", section: "A", parentName: "Srinivas Reddy", parentEmail: "srinivas@email.com", parentPhone: "+91 98765 43216", admissionDate: "2026-04-01", teacher: "Ms. Priya Kapoor" },
-  { id: "s8", name: "Anvi Patel", age: 4, dateOfBirth: "2022-05-20", program: "Nursery", section: "A", parentName: "Raj Patel", parentEmail: "raj@email.com", parentPhone: "+91 98765 43217", admissionDate: "2025-04-01", teacher: "Ms. Anita Desai" },
+  { id: "s1", name: "Aanya Sharma", age: 4, dateOfBirth: "2022-03-15", program: "Nursery", section: "A", parentName: "Priya Sharma", parentEmail: "priya@email.com", parentPhone: "+91 98765 43210", admissionNo: "ADM-001", teacher: "Ms. Anita Desai" },
+  { id: "s2", name: "Arjun Verma", age: 3, dateOfBirth: "2023-06-22", program: "Play Group", section: "A", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43211", admissionNo: "ADM-002", teacher: "Ms. Priya Kapoor" },
+  { id: "s3", name: "Riya Kapoor", age: 5, dateOfBirth: "2021-01-10", program: "Kindergarten", section: "A", parentName: "Neha Kapoor", parentEmail: "neha@email.com", parentPhone: "+91 98765 43212", admissionNo: "ADM-003", teacher: "Ms. Anita Desai" },
+  { id: "s4", name: "Kabir Singh", age: 3, dateOfBirth: "2023-09-05", program: "Play Group", section: "B", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43213", admissionNo: "ADM-004", teacher: "Ms. Priya Kapoor" },
+  { id: "s5", name: "Myra Gupta", age: 4, dateOfBirth: "2022-11-18", program: "Nursery", section: "B", parentName: "Ankit Gupta", parentEmail: "ankit@email.com", parentPhone: "+91 98765 43214", admissionNo: "ADM-005", teacher: "Ms. Anita Desai" },
+  { id: "s6", name: "Vivaan Mehta", age: 5, dateOfBirth: "2021-07-30", program: "Kindergarten", section: "B", parentName: "Rohan Mehta", parentEmail: "rohan@email.com", parentPhone: "+91 98765 43215", admissionNo: "ADM-006", teacher: "Mr. Rohan Joshi" },
+  { id: "s7", name: "Ishaan Reddy", age: 2, dateOfBirth: "2024-02-14", program: "Play Group", section: "A", parentName: "Srinivas Reddy", parentEmail: "srinivas@email.com", parentPhone: "+91 98765 43216", admissionNo: "ADM-007", teacher: "Ms. Priya Kapoor" },
+  { id: "s8", name: "Anvi Patel", age: 4, dateOfBirth: "2022-05-20", program: "Nursery", section: "A", parentName: "Raj Patel", parentEmail: "raj@email.com", parentPhone: "+91 98765 43217", admissionNo: "ADM-008", teacher: "Ms. Anita Desai" },
 ]
 
 function generateAttendance(): AttendanceRecord[] {
@@ -170,7 +169,7 @@ function mapStudentFromDb(row: any): Student {
     parentName: row.parent_name,
     parentEmail: row.parent_email,
     parentPhone: row.parent_phone,
-    admissionDate: row.admission_date,
+    admissionNo: row.admission_no,
     teacher: row.teacher,
     photo: row.photo || undefined,
   }
@@ -186,7 +185,7 @@ function mapStudentToDb(s: Omit<Student, "id"> | Partial<Student>): any {
   if (s.parentName !== undefined) row.parent_name = s.parentName
   if (s.parentEmail !== undefined) row.parent_email = s.parentEmail
   if (s.parentPhone !== undefined) row.parent_phone = s.parentPhone
-  if (s.admissionDate !== undefined) row.admission_date = s.admissionDate
+  if (s.admissionNo !== undefined) row.admission_no = s.admissionNo
   if (s.teacher !== undefined) row.teacher = s.teacher
   if (s.photo !== undefined) row.photo = s.photo
   return row

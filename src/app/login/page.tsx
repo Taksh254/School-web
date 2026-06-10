@@ -10,8 +10,8 @@ export default function LoginPage() {
   const router = useRouter()
   const { user, loading, login, bypassLogin, register, loginWithGoogle } = useAuth()
   const [mode, setMode] = useState<"login" | "signup">("login")
-  const [email, setEmail] = useState("admin@school.com")
-  const [password, setPassword] = useState("Admin@123")
+  const [email, setEmail] = useState("sehrawatsonia27@gmail.com")
+  const [password, setPassword] = useState("Saksham@123")
   const [name, setName] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -48,7 +48,11 @@ export default function LoginPage() {
     )
   }
 
-  if (user) return null
+  if (user) {
+    const target = user.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+    router.replace(target)
+    return null
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,19 +62,13 @@ export default function LoginPage() {
 
     try {
       const res = await login(email, password)
-      if (res.success) {
-        const normalised = email.toLowerCase().trim()
-        if (normalised.includes("admin") || normalised === "sehrawatsonia27@gmail.com") {
-          router.push("/dashboard/admin")
-        } else {
-          router.push("/dashboard/parent")
-        }
-      } else {
+      if (!res.success) {
         setError(res.error || "Login failed")
+        setSubmitting(false)
       }
+      // On success: user state updates via AuthContext, useEffect handles redirect
     } catch {
       setError("Login failed. Please try again.")
-    } finally {
       setSubmitting(false)
     }
   }
@@ -86,15 +84,15 @@ export default function LoginPage() {
       if (res.success) {
         if (res.error) {
           setError(res.error)
-        } else {
-          router.push("/dashboard/parent")
+          setSubmitting(false)
         }
+        // On success: user state updates via AuthContext, useEffect handles redirect
       } else {
         setError(res.error || "Registration failed")
+        setSubmitting(false)
       }
     } catch {
       setError("Registration failed. Please try again.")
-    } finally {
       setSubmitting(false)
     }
   }
@@ -218,17 +216,17 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-6 pt-5 border-t border-beige/30 space-y-3">
-            <button onClick={async () => { await bypassLogin("admin@school.com"); router.push("/dashboard/admin") }}
+            <button onClick={async () => { await bypassLogin("admin@school.com") }}
               className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border-2 border-dashed border-pistachio/40 text-sm text-pistachio-dark font-medium font-body transition-all duration-300 hover:border-pistachio hover:bg-pistachio/10 hover:shadow-glow">
               <Unlock className="w-3.5 h-3.5" />
               <span>Bypass Login (enter as Admin)</span>
             </button>
-            <button onClick={async () => { await bypassLogin("parent@school.com"); router.push("/dashboard/parent") }}
+            <button onClick={async () => { await bypassLogin("parent@school.com") }}
               className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border-2 border-dashed border-sage/40 text-sm text-olive font-medium font-body transition-all duration-300 hover:border-sage hover:bg-sage/10 hover:shadow-glow">
               <Unlock className="w-3.5 h-3.5" />
               <span>Bypass Login (enter as Parent)</span>
             </button>
-            <p className="text-xs text-beige/60 text-center font-body">Admin: admin@school.com / Admin@123</p>
+            <p className="text-xs text-beige/60 text-center font-body">Admin: sehrawatsonia27@gmail.com / Saksham@123</p>
             <p className="text-xs text-beige/60 text-center font-body mt-1">Parent: parent@school.com / (any password)</p>
           </div>
         </div>

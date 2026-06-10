@@ -14,7 +14,7 @@ create table public.students (
     parent_name text not null,
     parent_email text not null,
     parent_phone text,
-    admission_date date not null default current_date,
+    admission_no text not null,
     teacher text not null,
     photo text
 );
@@ -106,6 +106,39 @@ alter table public.payments enable row level security;
 alter table public.announcements enable row level security;
 alter table public.events enable row level security;
 alter table public.notes enable row level security;
+
+-- ── FIX: Drop recursive policies on profiles, recreate with security definer helper ──
+
+-- Drop old recursive policies first (ignore if not found)
+do $$
+begin
+    -- Drop policies that use inline subqueries on profiles (cause recursion)
+    if exists (select 1 from pg_policies where policyname = 'Admins can manage all profiles' and tablename = 'profiles') then
+        drop policy "Admins can manage all profiles" on public.profiles;
+    end if;
+    if exists (select 1 from pg_policies where policyname = 'Admins have full access to students' and tablename = 'students') then
+        drop policy "Admins have full access to students" on public.students;
+    end if;
+    if exists (select 1 from pg_policies where policyname = 'Admins have full access to attendance' and tablename = 'attendance') then
+        drop policy "Admins have full access to attendance" on public.attendance;
+    end if;
+    if exists (select 1 from pg_policies where policyname = 'Admins have full access to fees' and tablename = 'fees') then
+        drop policy "Admins have full access to fees" on public.fees;
+    end if;
+    if exists (select 1 from pg_policies where policyname = 'Admins have full access to payments' and tablename = 'payments') then
+        drop policy "Admins have full access to payments" on public.payments;
+    end if;
+    if exists (select 1 from pg_policies where policyname = 'Admins have full access to announcements' and tablename = 'announcements') then
+        drop policy "Admins have full access to announcements" on public.announcements;
+    end if;
+    if exists (select 1 from pg_policies where policyname = 'Admins have full access to events' and tablename = 'events') then
+        drop policy "Admins have full access to events" on public.events;
+    end if;
+    if exists (select 1 from pg_policies where policyname = 'Admins have full access to notes' and tablename = 'notes') then
+        drop policy "Admins have full access to notes" on public.notes;
+    end if;
+end;
+$$;
 
 -- Helper function to check if the current user is an admin
 -- SECURITY DEFINER bypasses RLS on the profiles table to prevent infinite recursion
@@ -220,6 +253,13 @@ begin
 end;
 $$ language plpgsql security definer;
 
-create trigger on_auth_user_created
-    after insert on auth.users
-    for each row execute procedure public.handle_new_user();
+-- Create trigger only if not exists
+do $$
+begin
+    if not exists (select 1 from pg_trigger where tgname = 'on_auth_user_created') then
+        create trigger on_auth_user_created
+            after insert on auth.users
+            for each row execute procedure public.handle_new_user();
+    end if;
+end;
+$$;

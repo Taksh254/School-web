@@ -11,6 +11,8 @@ interface ImportReportModalProps {
   successCount: number
   failCount: number
   errors: ImportError[]
+  totalRows?: number
+  duplicatesSkipped?: number
 }
 
 export default function ImportReportModal({
@@ -20,6 +22,8 @@ export default function ImportReportModal({
   successCount,
   failCount,
   errors,
+  totalRows,
+  duplicatesSkipped,
 }: ImportReportModalProps) {
   const isPerfect = failCount === 0 && successCount > 0
   const isFailedEntirely = successCount === 0 && failCount > 0
@@ -52,18 +56,26 @@ export default function ImportReportModal({
         </div>
 
         {/* Counts summary */}
-        <div className="grid grid-cols-2 gap-4 bg-cream/40 rounded-2xl p-4 border border-beige/10">
+        <div className="grid grid-cols-4 gap-3 bg-cream/40 rounded-2xl p-4 border border-beige/10">
           <div className="text-center">
+            <span className="text-[10px] uppercase font-bold text-olive/40 font-body block">Total Rows</span>
+            <span className="text-2xl font-display font-bold text-olive block mt-1">{totalRows ?? successCount + failCount}</span>
+          </div>
+          <div className="text-center border-l border-beige/20">
             <span className="text-[10px] uppercase font-bold text-olive/40 font-body block">Success</span>
-            <span className="text-2xl font-display font-bold text-olive block mt-1">{successCount}</span>
-            <span className="text-xs text-olive/60 font-body">records imported</span>
+            <span className="text-2xl font-display font-bold text-pistachio block mt-1">{successCount}</span>
+          </div>
+          <div className="text-center border-l border-beige/20">
+            <span className="text-[10px] uppercase font-bold text-olive/40 font-body block">Duplicates</span>
+            <span className={`text-2xl font-display font-bold block mt-1 ${(duplicatesSkipped ?? 0) > 0 ? "text-amber-500" : "text-olive/30"}`}>
+              {duplicatesSkipped ?? 0}
+            </span>
           </div>
           <div className="text-center border-l border-beige/20">
             <span className="text-[10px] uppercase font-bold text-olive/40 font-body block">Failed</span>
             <span className={`text-2xl font-display font-bold block mt-1 ${failCount > 0 ? "text-red-500" : "text-olive/30"}`}>
               {failCount}
             </span>
-            <span className="text-xs text-olive/60 font-body">records skipped</span>
           </div>
         </div>
 
