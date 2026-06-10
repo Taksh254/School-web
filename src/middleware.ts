@@ -2,6 +2,20 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "./lib/supabase-middleware"
 import { inferRoleFromEmail } from "./lib/types"
 
+/**
+ * Determine the effective role for a user.
+ * Email-based admin detection always wins over the DB profile value so that
+ * known admin emails are never accidentally downgraded to 'parent' by a
+ * stale database row.
+ */
+function resolveRole(dbRole: string | undefined | null, email: string | null | undefined): string {
+  const emailRole = email ? inferRoleFromEmail(email) : "parent"
+  // If email is a known admin, always admin — regardless of DB value
+  if (emailRole === "admin") return "admin"
+  // Otherwise trust the DB, falling back to email inference
+  return dbRole || emailRole
+}
+
 // Paths that never require authentication
 const PUBLIC_PATHS = [
   "/",
@@ -50,7 +64,7 @@ export async function middleware(request: NextRequest) {
         .eq("id", user.id)
         .maybeSingle()
 
-      const role = profile?.role || (user.email ? inferRoleFromEmail(user.email) : "parent")
+      const role = resolveRole(profile?.role, user.email)
       const target = role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
 
       // Preserve any refreshed session cookies on the redirect
@@ -99,7 +113,7 @@ export async function middleware(request: NextRequest) {
           .select("role")
           .eq("id", user.id)
           .maybeSingle()
-        role = profile?.role || (user.email ? inferRoleFromEmail(user.email) : "parent")
+        role = resolveRole(profile?.role, user.email)
       }
     } catch { /* network error — treat as unauthenticated */ }
 
