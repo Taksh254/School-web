@@ -79,7 +79,9 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
       if (url && typeof url === 'string') {
         const targetPath = url.split('?')[0].split('#')[0];
         if (targetPath !== currentPathRef.current) {
-          setIsLoading(true);
+          setTimeout(() => {
+            setIsLoading(true);
+          }, 0);
         }
       }
       return originalPushState.apply(this, args);
@@ -90,7 +92,9 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handlePopState = () => {
-      setIsLoading(true);
+      setTimeout(() => {
+        setIsLoading(true);
+      }, 0);
     };
     window.addEventListener('popstate', handlePopState);
 
