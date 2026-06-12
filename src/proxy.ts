@@ -31,27 +31,31 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // ── /auth/callback: MUST pass through untouched ──────────────────────────
-  // The route handler itself sets all session cookies via Set-Cookie. If the
-  // middleware intercepts and returns NextResponse.next() here it can strip
-  // those headers. Let Next.js serve the route handler directly.
-  if (pathname.startsWith("/auth/")) {
+  // ── Exclude system and API routes from redirects ──────────────────────────
+  if (
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico"
+  ) {
     return NextResponse.next()
   }
 
   // ── /login: if already authenticated, bounce to dashboard ────────────────
   if (pathname === "/login") {
     // Bypass cookie (demo/dev mode)
-    const bypassCookie = request.cookies.get("hk_bypass_user")
-    if (bypassCookie?.value) {
-      try {
-        const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
-        const target = bypassUser.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
-        return NextResponse.redirect(new URL(target, request.url))
-      } catch { /* malformed cookie — ignore */ }
+    if (process.env.NODE_ENV === "development") {
+      const bypassCookie = request.cookies.get("hk_bypass_user")
+      if (bypassCookie?.value) {
+        try {
+          const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
+          const target = bypassUser.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+          return NextResponse.redirect(new URL(target, request.url))
+        } catch { /* malformed cookie — ignore */ }
+      }
     }
 
     const { supabase, supabaseResponse } = createClient(request)
@@ -86,20 +90,22 @@ export async function middleware(request: NextRequest) {
   // ── Protected: /dashboard/* ───────────────────────────────────────────────
   if (pathname.startsWith("/dashboard")) {
     // Bypass cookie (demo/dev mode) — check first, no Supabase call needed
-    const bypassCookie = request.cookies.get("hk_bypass_user")
-    if (bypassCookie?.value) {
-      try {
-        const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
-        const role: string = bypassUser.role
+    if (process.env.NODE_ENV === "development") {
+      const bypassCookie = request.cookies.get("hk_bypass_user")
+      if (bypassCookie?.value) {
+        try {
+          const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
+          const role: string = bypassUser.role
 
-        if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
-          return NextResponse.redirect(new URL("/dashboard/parent", request.url))
-        }
-        if (pathname.startsWith("/dashboard/parent") && role !== "parent") {
-          return NextResponse.redirect(new URL("/dashboard/admin", request.url))
-        }
-        return NextResponse.next()
-      } catch { /* malformed cookie — fall through to Supabase check */ }
+          if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
+            return NextResponse.redirect(new URL("/dashboard/parent", request.url))
+          }
+          if (pathname.startsWith("/dashboard/parent") && role !== "parent") {
+            return NextResponse.redirect(new URL("/dashboard/admin", request.url))
+          }
+          return NextResponse.next()
+        } catch { /* malformed cookie — fall through to Supabase check */ }
+      }
     }
 
     const { supabase, supabaseResponse } = createClient(request)

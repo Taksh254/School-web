@@ -5,6 +5,7 @@ import type { User, Role } from "./types"
 import { inferRoleFromEmail } from "./types"
 import { DEMO_USERS, seedIfNeeded } from "./data-store"
 import { supabase, isSupabaseConfigured } from "./supabase"
+import { useRouter } from "next/navigation"
 
 interface AuthState {
   user: User | null
@@ -42,22 +43,29 @@ const AuthContext = createContext<AuthState>({
   logout: async () => {},
 })
 
-// Auto-create profile helper
+// Ensure profile exists with the correct role (upsert)
 async function ensureProfile(userId: string, email: string, name: string, role: Role) {
   try {
     const { data: existing } = await supabase
       .from("profiles")
-      .select("id")
+      .select("id, role")
       .eq("id", userId)
       .maybeSingle()
 
-    if (!existing) {
+    if (existing) {
+      // Update role if it differs from what we expect
+      if (existing.role !== role) {
+        await supabase.from("profiles").update({ email, name, role }).eq("id", userId)
+        console.log(`[ensureProfile] Updated role for ${email}: ${existing.role} → ${role}`)
+      }
+    } else {
       await supabase.from("profiles").insert({
         id: userId,
         email,
         name,
         role,
       })
+      console.log(`[ensureProfile] Created profile for ${email} with role ${role}`)
     }
   } catch (err) {
     console.error("Profile creation error:", err)
@@ -65,12 +73,14 @@ async function ensureProfile(userId: string, email: string, name: string, role: 
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [sessionDebug, setSessionDebug] = useState(defaultDebug)
 
   const fetchProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
     try {
+      const normalizedEmail = email?.trim().toLowerCase() || ""
       const { data, error } = await supabase
         .from("profiles")
         .select("name, role, child_id")
@@ -80,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!error && data) {
         return {
           id: userId,
-          email: email,
+          email: normalizedEmail,
           name: data.name || "School User",
           role: data.role as Role,
           childId: data.child_id || undefined,
@@ -88,13 +98,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Infer role from email if no profile
-      const role: Role = inferRoleFromEmail(email || "")
+      const role: Role = inferRoleFromEmail(normalizedEmail)
       return {
         id: userId,
-        email,
+        email: normalizedEmail,
         name: role === "admin" ? "Admin User" : "Parent User",
         role,
-        childId: role === "parent" ? "s1" : undefined,
+        // Do NOT default childId — unlinked parents should see the "no student linked" state
+        childId: undefined,
       }
     } catch {
       return null
@@ -104,7 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user) {
       localStorage.setItem("hk_user", JSON.stringify(user))
-      document.cookie = `hk_bypass_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400; SameSite=Lax`
+      const isProd = process.env.NODE_ENV === "production"
+      document.cookie = `hk_bypass_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400; SameSite=Lax${isProd ? "; Secure" : ""}`
     } else {
       localStorage.removeItem("hk_user")
       document.cookie = "hk_bypass_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
@@ -144,8 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return
 
       if (!error && session?.user) {
-        const profile = await fetchProfile(session.user.id, session.user.email || "")
+        const email = session.user.email?.trim().toLowerCase() || ""
+        const correctRole: Role = inferRoleFromEmail(email)
+        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split("@")[0] || "School User"
+        await ensureProfile(session.user.id, email, name, correctRole)
+
+        const profile = await fetchProfile(session.user.id, email)
         if (active && profile) {
+          // Override role with correct value in case profile had stale data
+          profile.role = correctRole
           setUser(profile)
           setSessionDebug({
             hasSession: true,
@@ -159,24 +178,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Step 2: No Supabase session — try localStorage fallback
-      try {
-        const raw = localStorage.getItem("hk_user")
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          setUser(parsed)
-          setSessionDebug({
-            hasSession: true,
-            userId: parsed.id,
-            email: parsed.email,
-            role: parsed.role,
-            provider: "localStorage",
-          })
-        } else {
+      // Step 2: No Supabase session — try localStorage fallback ONLY in offline/demo mode
+      if (!isSupabaseConfigured()) {
+        try {
+          const raw = localStorage.getItem("hk_user")
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            setUser(parsed)
+            setSessionDebug({
+              hasSession: true,
+              userId: parsed.id,
+              email: parsed.email,
+              role: parsed.role,
+              provider: "localStorage",
+            })
+          } else {
+            setUser(null)
+            setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+          }
+        } catch {
           setUser(null)
           setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
         }
-      } catch {
+      } else {
+        // Supabase IS configured but no session — user is genuinely logged out
         setUser(null)
         setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
       }
@@ -191,8 +216,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Ignore INITIAL_SESSION — already handled by init()
       if (event === "INITIAL_SESSION") return
 
+      if (event === "SIGNED_OUT") {
+        setUser(null)
+        setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+        localStorage.removeItem("hk_user")
+        return
+      }
+
       if (session?.user) {
-        const email = session.user.email || ""
+        const email = session.user.email?.trim().toLowerCase() || ""
         const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "School User"
         const role = inferRoleFromEmail(email)
 
@@ -200,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const profile = await fetchProfile(session.user.id, email)
         if (active && profile) {
+          profile.role = role
           setUser(profile)
           setSessionDebug({
             hasSession: true,
@@ -317,6 +350,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!matched) {
+      if (isSupabaseConfigured()) {
+        return { success: false, error: "Invalid login credentials" }
+      }
       const role = inferRoleFromEmail(normalised)
       matched = {
         id: "u-custom",
@@ -333,6 +369,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile])
 
   const bypassLogin = useCallback(async (email: string) => {
+    // Bypass login is only available in development mode
+    if (process.env.NODE_ENV !== 'development') {
+      console.warn('[bypassLogin] Not available in production')
+      return { success: false }
+    }
     const normalised = email.toLowerCase().trim()
     const matched = DEMO_USERS.find((u) => u.email === normalised) || {
       id: "u-bypass",
@@ -423,6 +464,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         provider: "google",
         options: {
           redirectTo,
+          queryParams: {
+            prompt: "select_account",
+          },
         },
       })
       if (error) {
@@ -435,6 +479,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(async () => {
+    setUser(null)
+    setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+    localStorage.removeItem("hk_user")
+    document.cookie = "hk_bypass_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+
     if (isSupabaseConfigured()) {
       try {
         await supabase.auth.signOut()
@@ -442,10 +491,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Supabase signout error:", err)
       }
     }
-    setUser(null)
-    setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
-    localStorage.removeItem("hk_user")
-  }, [])
+    router.push("/login")
+  }, [router])
 
   return (
     <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, loginWithGoogle, logout }}>

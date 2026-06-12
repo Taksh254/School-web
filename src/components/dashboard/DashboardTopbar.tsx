@@ -22,9 +22,8 @@ export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
     return () => window.removeEventListener("storage", handler)
   }, [])
 
-  const handleLogout = () => {
-    logout()
-    router.push("/login")
+  const handleLogout = async () => {
+    await logout()
   }
 
   const displayName = user?.role === "admin" ? principal.name : user?.name

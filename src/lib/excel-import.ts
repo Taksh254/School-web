@@ -41,12 +41,26 @@ export function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
 }
 
 function getVal(row: Record<string, unknown>, keys: string[]): string {
-  for (const k of Object.keys(row)) {
-    const normalizedK = k.toLowerCase().replace(/[\s_-]/g, "")
-    if (keys.some((key) => normalizedK === key.toLowerCase().replace(/[\s_-]/g, ""))) {
-      return String(row[k] ?? "").trim()
-    }
+  const rowKeys = Object.keys(row)
+  const normalizedRow = rowKeys.map(k => ({
+    original: k,
+    normalized: k.toLowerCase().replace(/[\s_-]/g, "")
+  }))
+
+  const normalizedKeys = keys.map(k => k.toLowerCase().replace(/[\s_-]/g, ""))
+
+  // 1. Exact match pass
+  for (const targetKey of normalizedKeys) {
+    const found = normalizedRow.find(rk => rk.normalized === targetKey)
+    if (found) return String(row[found.original] ?? "").trim()
   }
+
+  // 2. Partial match pass
+  for (const targetKey of normalizedKeys) {
+    const found = normalizedRow.find(rk => rk.normalized.includes(targetKey) || targetKey.includes(rk.normalized))
+    if (found) return String(row[found.original] ?? "").trim()
+  }
+
   return ""
 }
 

@@ -41,14 +41,20 @@ export default function AdminReportsPage() {
         const presentDays = workingDays.filter((a) => a.status === "present")
         const avgAttendance = workingDays.length > 0 ? Math.round((presentDays.length / workingDays.length) * 100) : 0
 
-        // Monthly fee data (mock for chart)
-        const monthlyFees = [
-          { month: "Jan", collected: 180000, pending: 22000 },
-          { month: "Feb", collected: 175000, pending: 28000 },
-          { month: "Mar", collected: 190000, pending: 15000 },
-          { month: "Apr", collected: totalPaid, pending: totalFees - totalPaid },
-          { month: "May", collected: Math.round(totalPaid * 0.9), pending: Math.round((totalFees - totalPaid) * 1.2) },
-        ]
+        // Monthly fee data — aggregate from real records by createdAt month
+        const monthMap: Record<string, { collected: number; pending: number }> = {}
+        fees.forEach((f) => {
+          const dateStr = f.createdAt || f.dueDate || ""
+          if (!dateStr) return
+          const monthKey = dateStr.slice(0, 7) // "YYYY-MM"
+          const label = new Date(dateStr + "-01").toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
+          if (!monthMap[label]) monthMap[label] = { collected: 0, pending: 0 }
+          monthMap[label].collected += f.paidAmount
+          monthMap[label].pending += f.amount - f.paidAmount
+        })
+        const monthlyFees = Object.entries(monthMap)
+          .slice(-5)
+          .map(([month, vals]) => ({ month, ...vals }))
 
         setData({
           totalStudents: students.length,

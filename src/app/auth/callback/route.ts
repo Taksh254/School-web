@@ -5,21 +5,14 @@ const ADMIN_EMAILS = new Set(["admin@school.com", "sehrawatsonia27@gmail.com"])
 
 function isAdminEmail(email: string): boolean {
   const lower = email.toLowerCase()
-  const bySet = ADMIN_EMAILS.has(lower)
-  const byName = lower.includes("admin")
-  console.log(`[auth/callback] isAdminEmail("${lower}") → bySet=${bySet} byName=${byName}`)
-  return bySet || byName
+  return ADMIN_EMAILS.has(lower) || lower.includes("admin")
 }
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
 
-  console.log(`[auth/callback] Incoming — code present: ${!!code}`)
-  console.log(`[auth/callback] Incoming cookies: ${request.cookies.getAll().map(c => c.name).join(", ") || "none"}`)
-
   if (!code) {
-    console.warn("[auth/callback] No code — bail")
     return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
   }
 
@@ -37,7 +30,6 @@ export async function GET(request: NextRequest) {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            console.log(`[auth/callback] setAll: setting cookie "${name}"`)
             pendingCookies.push({ name, value, options: options ?? {} })
           })
         },
@@ -48,7 +40,7 @@ export async function GET(request: NextRequest) {
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
   if (exchangeError) {
-    console.error("[auth/callback] exchangeCodeForSession FAILED:", exchangeError.message, exchangeError)
+    console.error("[auth/callback] exchangeCodeForSession FAILED:", exchangeError.message)
     const errResponse = NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
     pendingCookies.forEach(({ name, value, options }) =>
       errResponse.cookies.set(name, value, options as Parameters<typeof errResponse.cookies.set>[2])
@@ -56,33 +48,40 @@ export async function GET(request: NextRequest) {
     return errResponse
   }
 
-  console.log(`[auth/callback] exchangeCodeForSession OK — cookies to forward: ${pendingCookies.length}`)
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-  console.log(`[auth/callback] getUser → id="${user?.id}" email="${user?.email}" userError="${userError?.message}"`)
+  const { data: { user } } = await supabase.auth.getUser()
 
   let destination = "/dashboard/parent"
 
   if (user?.email) {
-    const { data: profile, error: profileError } = await supabase
+    const email = user.email.trim().toLowerCase()
+    const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0]
+    const correctRole = isAdminEmail(email) ? "admin" : "parent"
+
+    // Ensure profile has the correct role (create or update)
+    const { data: existingProfile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .maybeSingle()
 
-    console.log(`[auth/callback] profile → role="${profile?.role}" profileError="${profileError?.message}"`)
+    if (!existingProfile) {
+      await supabase.from("profiles").insert({
+        id: user.id,
+        email,
+        name,
+        role: correctRole,
+      })
+    } else if (existingProfile.role !== correctRole) {
+      await supabase
+        .from("profiles")
+        .update({ email, name, role: correctRole })
+        .eq("id", user.id)
+    }
 
-    const adminByEmail = isAdminEmail(user.email)
-    const adminByProfile = profile?.role === "admin"
-    console.log(`[auth/callback] adminByEmail=${adminByEmail} adminByProfile=${adminByProfile}`)
-
-    if (adminByProfile || adminByEmail) {
+    if (correctRole === "admin") {
       destination = "/dashboard/admin"
     }
   }
-
-  console.log(`[auth/callback] Final destination: ${origin}${destination}`)
 
   const finalResponse = NextResponse.redirect(`${origin}${destination}`)
   pendingCookies.forEach(({ name, value, options }) =>

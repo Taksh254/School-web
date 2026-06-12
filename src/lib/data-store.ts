@@ -478,7 +478,7 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
           // Add payment row
           const { data: paymentsList } = await supabase.from("payments").select("id")
           const count = paymentsList ? paymentsList.length : 0
-          const receiptNo = `HK-2026-${String(count + 1).padStart(3, "0")}`
+          const receiptNo = `HK-2026-${String(count + 1).padStart(3, "0")}-${Math.floor(1000 + Math.random() * 9000)}`
           
           await supabase.from("payments").insert([{
             fee_id: feeId,
@@ -516,7 +516,7 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
     amount: remaining,
     date: new Date().toISOString().slice(0, 10),
     method,
-    receiptNo: `HK-2026-${String(getLocalPayments().length + 1).padStart(3, "0")}`,
+    receiptNo: `HK-2026-${String(getLocalPayments().length + 1).padStart(3, "0")}-${Math.floor(1000 + Math.random() * 9000)}`,
     description: `${fee.term} Tuition Fee`,
   }
   const payments = getLocalPayments()
@@ -737,5 +737,99 @@ export async function bulkAddAttendance(dataList: Omit<AttendanceRecord, "id">[]
   const updated = [...filteredList, ...newRecords]
   set(K.attendance, updated)
   return newRecords
+}
+
+export async function linkParentToStudent(studentId: string, parentEmail: string): Promise<boolean> {
+  const email = parentEmail.trim().toLowerCase()
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ child_id: studentId })
+        .eq("email", email)
+      if (!error) return true
+      console.warn("Supabase parent link failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase error:", err)
+    }
+  }
+
+  // Fallback to local storage (demo mode)
+  const matchedDemo = DEMO_USERS.find(u => u.email === email)
+  if (matchedDemo) {
+    matchedDemo.childId = studentId
+    if (typeof window !== "undefined") {
+      const rawUser = localStorage.getItem("hk_user")
+      if (rawUser) {
+        const currentUser = JSON.parse(rawUser)
+        if (currentUser.email === email) {
+          currentUser.childId = studentId
+          localStorage.setItem("hk_user", JSON.stringify(currentUser))
+        }
+      }
+    }
+    return true
+  }
+
+  if (typeof window !== "undefined") {
+    const existing = localStorage.getItem("hk_registered_users")
+    if (existing) {
+      const users: User[] = JSON.parse(existing)
+      const userIdx = users.findIndex(u => u.email === email)
+      if (userIdx > -1) {
+        users[userIdx].childId = studentId
+        localStorage.setItem("hk_registered_users", JSON.stringify(users))
+        const rawUser = localStorage.getItem("hk_user")
+        if (rawUser) {
+          const currentUser = JSON.parse(rawUser)
+          if (currentUser.email === email) {
+            currentUser.childId = studentId
+            localStorage.setItem("hk_user", JSON.stringify(currentUser))
+          }
+        }
+        return true
+      }
+    }
+  }
+  return false
+}
+
+export async function addNote(data: Omit<TeacherNote, "id" | "date">): Promise<TeacherNote> {
+  const date = new Date().toISOString().slice(0, 10)
+  if (isSupabaseConfigured()) {
+    try {
+      const dbRow = {
+        student_id: data.studentId,
+        teacher_name: data.teacherName,
+        date,
+        message: data.message,
+        category: data.category,
+      }
+      const { data: inserted, error } = await supabase.from("notes").insert([dbRow]).select().single()
+      if (!error && inserted) return mapNoteFromDb(inserted)
+      console.warn("Supabase insert note failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase error:", err)
+    }
+  }
+  const notes = get<TeacherNote[]>(K.notes, [])
+  const note: TeacherNote = { ...data, id: uid(), date }
+  notes.unshift(note)
+  set(K.notes, notes)
+  return note
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { error } = await supabase.from("notes").delete().eq("id", id)
+      if (!error) return
+      console.warn("Supabase delete note failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase error:", err)
+    }
+  }
+  const notes = get<TeacherNote[]>(K.notes, [])
+  set(K.notes, notes.filter((n) => n.id !== id))
 }
 

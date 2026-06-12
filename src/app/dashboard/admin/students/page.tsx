@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import { getStudents, addStudent, updateStudent, deleteStudent, bulkAddStudents } from "@/lib/data-store"
+import { getStudents, addStudent, updateStudent, deleteStudent, bulkAddStudents, linkParentToStudent } from "@/lib/data-store"
 import type { Student, ProgramType } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
@@ -11,7 +11,7 @@ import ImportReportModal from "@/components/dashboard/ImportReportModal"
 import { parseExcelFile, generatePreview, previewToStudentData } from "@/lib/excel-import"
 import type { ImportedRow } from "@/lib/excel-import"
 import { exportStudentsCSV, exportStudentsExcel } from "@/lib/excel-export"
-import { Users, Plus, Pencil, Trash2, GraduationCap, Upload, Download, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from "lucide-react"
+import { Users, Plus, Pencil, Trash2, GraduationCap, Upload, Download, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft, Link2 } from "lucide-react"
 
 const PROGRAMS: ProgramType[] = ["Play Group", "Nursery", "Kindergarten"]
 
@@ -22,7 +22,7 @@ function calculateAge(dob: string): number {
   let age = today.getFullYear() - birth.getFullYear()
   const m = today.getMonth() - birth.getMonth()
   if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
-  return age
+  return Math.max(0, age)
 }
 
 const emptyForm = {
@@ -39,6 +39,14 @@ export default function AdminStudentsPage() {
   const [filter, setFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
+  const [errorBanner, setErrorBanner] = useState<string | null>(null)
+
+  // Linking parent state
+  const [linkParentStudent, setLinkParentStudent] = useState<Student | null>(null)
+  const [linkingEmail, setLinkingEmail] = useState("")
+  const [linkLoading, setLinkLoading] = useState(false)
+  const [linkSuccess, setLinkSuccess] = useState<string | null>(null)
+  const [linkError, setLinkError] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importReport, setImportReport] = useState<{
@@ -58,11 +66,20 @@ export default function AdminStudentsPage() {
   } | null>(null)
   const [previewFile, setPreviewFile] = useState<File | null>(null)
 
+  useEffect(() => {
+    if (linkParentStudent) {
+      setLinkingEmail(linkParentStudent.parentEmail || "")
+      setLinkSuccess(null)
+      setLinkError(null)
+    }
+  }, [linkParentStudent])
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setImporting(true)
+    setErrorBanner(null)
     try {
       const parsedRows = await parseExcelFile(file)
       const existingAdmissionNos = students.map((s) => String(s.admissionNo || "").trim().toLowerCase()).filter(Boolean)
@@ -71,7 +88,7 @@ export default function AdminStudentsPage() {
       setPreviewFile(file)
     } catch (err: any) {
       console.error("Parse error:", err)
-      alert("Failed to parse file: " + (err.message || err))
+      setErrorBanner("Failed to parse file: " + (err.message || err))
     } finally {
       setImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -82,6 +99,7 @@ export default function AdminStudentsPage() {
     if (!preview || !previewFile) return
 
     setImporting(true)
+    setErrorBanner(null)
     const validRows = preview.rows.filter((r) => r.valid)
     const duplicateRows = preview.rows.filter((r) => !r.valid && r.errors.some((e) => e.startsWith("Duplicate")))
     const invalidRows = preview.rows.filter((r) => !r.valid && !r.errors.some((e) => e.startsWith("Duplicate")))
@@ -108,7 +126,7 @@ export default function AdminStudentsPage() {
       setPreviewFile(null)
     } catch (err: any) {
       console.error("Import error:", err)
-      alert("Failed to import: " + (err.message || err))
+      setErrorBanner("Failed to import students: " + (err.message || err))
     } finally {
       setImporting(false)
     }
@@ -163,19 +181,56 @@ export default function AdminStudentsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (editing) {
-      await updateStudent(editing.id, form)
-    } else {
-      await addStudent(form)
+    setErrorBanner(null)
+    try {
+      if (editing) {
+        await updateStudent(editing.id, form)
+      } else {
+        await addStudent(form)
+      }
+      setModalOpen(false)
+      refresh()
+    } catch (err: any) {
+      setErrorBanner(err?.message || "Failed to save student profile.")
     }
-    setModalOpen(false)
-    refresh()
   }
 
   const handleDelete = async (id: string) => {
-    await deleteStudent(id)
-    setDeleteConfirm(null)
-    refresh()
+    setErrorBanner(null)
+    try {
+      await deleteStudent(id)
+      setDeleteConfirm(null)
+      refresh()
+    } catch (err: any) {
+      setErrorBanner(err?.message || "Failed to remove student.")
+      setDeleteConfirm(null)
+    }
+  }
+
+  const handleLinkParent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!linkParentStudent) return
+    setLinkLoading(true)
+    setLinkSuccess(null)
+    setLinkError(null)
+    try {
+      const ok = await linkParentToStudent(linkParentStudent.id, linkingEmail)
+      if (ok) {
+        setLinkSuccess("Parent account linked successfully!")
+        // Update local student info if parent email changed
+        if (linkingEmail.trim().toLowerCase() !== (linkParentStudent.parentEmail || "").trim().toLowerCase()) {
+          await updateStudent(linkParentStudent.id, { parentEmail: linkingEmail })
+          refresh()
+        }
+        setTimeout(() => setLinkParentStudent(null), 1500)
+      } else {
+        setLinkError("Could not link parent account. Please verify that a profile with this email exists.")
+      }
+    } catch (err: any) {
+      setLinkError(err?.message || "Failed to link parent account")
+    } finally {
+      setLinkLoading(false)
+    }
   }
 
   if (loading && students.length === 0 && !preview) {
@@ -250,6 +305,14 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
+      {/* Error banner */}
+      {errorBanner && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-sm text-red-700 flex justify-between items-center font-body">
+          <span>{errorBanner}</span>
+          <button onClick={() => setErrorBanner(null)} className="text-red-500 hover:text-red-700 font-bold ml-2">×</button>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Users} label="Total Students" value={students.length} color="bg-pistachio/10" index={0} />
@@ -288,10 +351,13 @@ export default function AdminStudentsPage() {
             const student = row as unknown as Student
             return (
               <div className="flex items-center gap-1">
-                <button onClick={() => openEdit(student)} className="p-1.5 rounded-lg hover:bg-cream text-olive/40 hover:text-olive transition-colors" aria-label="Edit">
+                <button onClick={() => openEdit(student)} className="p-1.5 rounded-lg hover:bg-cream text-olive/40 hover:text-olive transition-colors" title="Edit Student" aria-label="Edit">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => setDeleteConfirm(student.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-olive/40 hover:text-red-500 transition-colors" aria-label="Delete">
+                <button onClick={() => setLinkParentStudent(student)} className="p-1.5 rounded-lg hover:bg-cream text-olive/40 hover:text-olive transition-colors" title="Link Parent Account" aria-label="Link Parent">
+                  <Link2 className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => setDeleteConfirm(student.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-olive/40 hover:text-red-500 transition-colors" title="Delete Student" aria-label="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -419,6 +485,15 @@ export default function AdminStudentsPage() {
               </select>
             </div>
             <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Section *</label>
+              <select value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body">
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-xs font-medium text-olive mb-1 font-body">Teacher</label>
               <input type="text" value={form.teacher} onChange={(e) => setForm({ ...form, teacher: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
@@ -479,6 +554,57 @@ export default function AdminStudentsPage() {
             Remove Student
           </button>
         </div>
+      </Modal>
+
+      {/* Link Parent Modal */}
+      <Modal open={!!linkParentStudent} onClose={() => setLinkParentStudent(null)} title="Link Parent Account" maxWidth="max-w-md">
+        <form onSubmit={handleLinkParent} className="space-y-4">
+          <p className="text-sm text-olive/60 font-body">
+            Link a parent&apos;s registration/auth email to <span className="font-semibold text-olive">{linkParentStudent?.name}</span> to grant them access to this student&apos;s records.
+          </p>
+
+          <div>
+            <label className="block text-xs font-medium text-olive mb-1 font-body">Parent Email Address *</label>
+            <input
+              type="email"
+              required
+              value={linkingEmail}
+              onChange={(e) => setLinkingEmail(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body"
+              placeholder="parent@school.com"
+            />
+          </div>
+
+          {linkSuccess && (
+            <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-xs text-green-700 font-body text-center">
+              {linkSuccess}
+            </div>
+          )}
+
+          {linkError && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-body text-center">
+              {linkError}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setLinkParentStudent(null)}
+              disabled={linkLoading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-cream text-olive/60 text-sm font-medium hover:bg-beige/30 transition-colors font-body disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={linkLoading}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift transition-all font-body disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {linkLoading ? "Linking..." : "Link Profile"}
+            </button>
+          </div>
+        </form>
       </Modal>
 
       {/* Import Report Modal */}

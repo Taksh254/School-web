@@ -14,7 +14,7 @@ create table public.students (
     parent_name text not null,
     parent_email text not null,
     parent_phone text,
-    admission_no text not null,
+    admission_no text not null unique,
     teacher text not null,
     photo text
 );
@@ -143,7 +143,7 @@ $$;
 -- Helper function to check if the current user is an admin
 -- SECURITY DEFINER bypasses RLS on the profiles table to prevent infinite recursion
 create or replace function public.is_admin()
-returns boolean security definer as $$
+returns boolean security definer set search_path = public as $$
 begin
     return exists (
         select 1 from public.profiles
@@ -235,14 +235,17 @@ create policy "Admins have full access to notes" on public.notes
 
 -- ── 9. AUTH TRIGGER FOR NEW SIGNUPS ──────────────────────────────────
 create or replace function public.handle_new_user()
-returns trigger as $$
+returns trigger set search_path = public as $$
 begin
     insert into public.profiles (id, email, name, role, child_id)
     values (
         new.id,
         new.email,
         coalesce(new.raw_user_meta_data->>'name', 'New Parent'),
-        coalesce(new.raw_user_meta_data->>'role', 'parent'),
+        case 
+            when lower(new.email) in ('admin@school.com', 'sehrawatsonia27@gmail.com') then 'admin'
+            else coalesce(new.raw_user_meta_data->>'role', 'parent')
+        end,
         case 
             when new.raw_user_meta_data->>'child_id' is not null 
             then (new.raw_user_meta_data->>'child_id')::uuid 

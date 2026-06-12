@@ -29,6 +29,7 @@ const adminLinks = [
   { href: "/dashboard/admin/students", label: "Students", icon: Users },
   { href: "/dashboard/admin/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/dashboard/admin/fees", label: "Fee Management", icon: CreditCard },
+  { href: "/dashboard/admin/notes", label: "Teacher Notes", icon: MessageCircle },
   { href: "/dashboard/admin/announcements", label: "Announcements", icon: Bell },
   { href: "/dashboard/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/dashboard/admin/principal", label: "Profile", icon: Crown },

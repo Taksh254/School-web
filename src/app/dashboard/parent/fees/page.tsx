@@ -12,15 +12,18 @@ import { CreditCard, CheckCircle, Clock, FileText, Download } from "lucide-react
 
 export default function ParentFeesPage() {
   const { user } = useAuth()
-  const childId = user?.childId || "s1"
+  const childId = user?.childId
   const [fees, setFees] = useState<FeeRecord[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
-
   const [loading, setLoading] = useState(true)
   const [child, setChild] = useState<any>(null)
 
   useEffect(() => {
+    if (!childId) {
+      setLoading(false)
+      return
+    }
     const fetchFeesData = async () => {
       setLoading(true)
       try {
@@ -48,6 +51,21 @@ export default function ParentFeesPage() {
       </div>
     )
   }
+
+  if (!childId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-display font-bold text-olive">Fees & Payments</h1>
+          <p className="text-sm text-olive/50 font-body">Track your fee status and payment history</p>
+        </div>
+        <div className="bg-cream border border-beige/40 rounded-3xl p-6 text-center shadow-soft">
+          <p className="text-sm text-olive/60 font-body">No student profile is linked to this account. Please link a student profile to view fee structures and payment history.</p>
+        </div>
+      </div>
+    )
+  }
+
   const totalFees = fees.reduce((sum, f) => sum + f.amount, 0)
   const paidFees = fees.reduce((sum, f) => sum + f.paidAmount, 0)
   const pendingFees = totalFees - paidFees

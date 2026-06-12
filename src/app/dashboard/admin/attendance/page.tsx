@@ -6,9 +6,10 @@ import { getAttendance, getStudents, bulkAddAttendance } from "@/lib/data-store"
 import type { AttendanceRecord, Student, AttendanceStatus } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
+import Modal from "@/components/dashboard/Modal"
 import ImportReportModal from "@/components/dashboard/ImportReportModal"
 import { parseCsvFile, validateAttendance, exportToCSV, exportToExcel } from "@/lib/importer-exporter"
-import { CalendarCheck, CheckCircle, XCircle, Clock, Upload, Download, FileSpreadsheet } from "lucide-react"
+import { CalendarCheck, CheckCircle, XCircle, Clock, Upload, Download, FileSpreadsheet, Plus, Calendar, Filter } from "lucide-react"
 
 interface AttendanceRow {
   id: string
@@ -24,6 +25,13 @@ export default function AdminAttendancePage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+
+  // Mark attendance modal state
+  const [markModalOpen, setMarkModalOpen] = useState(false)
+  const [attendanceDate, setAttendanceDate] = useState("")
+  const [studentStatuses, setStudentStatuses] = useState<Record<string, AttendanceStatus>>({})
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importReport, setImportReport] = useState<{
@@ -32,6 +40,7 @@ export default function AdminAttendancePage() {
     failCount: number
     errors: { row: number; error: string }[]
   } | null>(null)
+  const [errorBanner, setErrorBanner] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -51,6 +60,18 @@ export default function AdminAttendancePage() {
 
   useEffect(() => { refresh() }, [refresh])
 
+  // Reset/initialize student statuses when opening Mark modal
+  useEffect(() => {
+    if (markModalOpen) {
+      const initial: Record<string, AttendanceStatus> = {}
+      students.forEach((s) => {
+        initial[s.id] = "present"
+      })
+      setStudentStatuses(initial)
+      setAttendanceDate(new Date().toISOString().slice(0, 10))
+    }
+  }, [markModalOpen, students])
+
   // Combine attendance with student names and programs
   const rows: AttendanceRow[] = attendance.map((a) => {
     const student = students.find((s) => s.id === a.studentId)
@@ -64,10 +85,13 @@ export default function AdminAttendancePage() {
     }
   })
 
-  // Filter rows
-  const filteredRows = statusFilter === "all"
-    ? rows
-    : rows.filter((r) => r.status === statusFilter)
+  // Filter rows by status and date range
+  const filteredRows = rows.filter((r) => {
+    const matchesStatus = statusFilter === "all" || r.status === statusFilter
+    const matchesStartDate = !startDate || r.date >= startDate
+    const matchesEndDate = !endDate || r.date <= endDate
+    return matchesStatus && matchesStartDate && matchesEndDate
+  })
 
   // Compute stats
   const total = attendance.length
@@ -97,7 +121,7 @@ export default function AdminAttendancePage() {
       })
     } catch (err: any) {
       console.error("Import error:", err)
-      alert("Failed to parse CSV file: " + (err.message || err))
+      setErrorBanner("Failed to parse CSV file: " + (err.message || err))
     } finally {
       setLoading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -120,6 +144,33 @@ export default function AdminAttendancePage() {
       "Status": r.status,
     }))
     exportToExcel(exportData, "attendance_export")
+  }
+
+  const handleMarkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorBanner(null)
+
+    // F-02: Duplicate date check
+    const alreadyExists = attendance.some((a) => a.date === attendanceDate)
+    if (alreadyExists) {
+      const proceed = window.confirm(
+        `Attendance for ${attendanceDate} has already been recorded. Submitting will add duplicate records. Continue anyway?`
+      )
+      if (!proceed) return
+    }
+
+    const records = Object.entries(studentStatuses).map(([studentId, status]) => ({
+      studentId,
+      date: attendanceDate,
+      status,
+    }))
+    try {
+      await bulkAddAttendance(records)
+      setMarkModalOpen(false)
+      refresh()
+    } catch (err: any) {
+      setErrorBanner("Failed to save attendance: " + (err.message || err))
+    }
   }
 
   if (loading && attendance.length === 0) {
@@ -199,8 +250,22 @@ export default function AdminAttendancePage() {
           >
             <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
           </button>
+          <button
+            onClick={() => setMarkModalOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <Plus className="w-4 h-4" /> Mark Attendance
+          </button>
         </div>
       </div>
+
+      {/* Error banner */}
+      {errorBanner && (
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-sm text-red-700 flex justify-between items-center font-body">
+          <span>{errorBanner}</span>
+          <button onClick={() => setErrorBanner(null)} className="text-red-500 hover:text-red-700 font-bold ml-2">×</button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -210,27 +275,55 @@ export default function AdminAttendancePage() {
         <StatCard icon={Clock} label="Leaves" value={leaves} color="bg-cream" index={3} />
       </div>
 
-      {/* Filter Buttons */}
-      <div className="flex gap-2 flex-wrap">
-        {[
-          { key: "all", label: "All Statuses" },
-          { key: "present", label: "Present" },
-          { key: "absent", label: "Absent" },
-          { key: "leave", label: "Leave" },
-          { key: "holiday", label: "Holiday" },
-        ].map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setStatusFilter(f.key)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all font-body ${
-              statusFilter === f.key
-                ? "bg-pistachio/15 text-olive shadow-[inset_0_0_0_1px_rgba(183,201,168,0.3)]"
-                : "bg-cream text-olive/50 hover:text-olive"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      {/* Date Range & Status Filters */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-soft-white p-4 rounded-3xl border border-beige/20 shadow-soft">
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { key: "all", label: "All Statuses" },
+            { key: "present", label: "Present" },
+            { key: "absent", label: "Absent" },
+            { key: "leave", label: "Leave" },
+            { key: "holiday", label: "Holiday" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all font-body ${
+                statusFilter === f.key
+                  ? "bg-pistachio/15 text-olive shadow-[inset_0_0_0_1px_rgba(183,201,168,0.3)]"
+                  : "bg-cream text-olive/50 hover:text-olive"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-olive/60 font-body">
+          <Calendar className="w-3.5 h-3.5 text-olive/40" />
+          <span>Date range:</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg bg-cream border border-beige/15 text-olive outline-none focus:border-pistachio transition-all"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg bg-cream border border-beige/15 text-olive outline-none focus:border-pistachio transition-all"
+          />
+          {(startDate || endDate) && (
+            <button
+              onClick={() => { setStartDate(""); setEndDate("") }}
+              className="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors font-medium"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table container */}
@@ -246,9 +339,80 @@ export default function AdminAttendancePage() {
           searchKeys={["studentName", "date", "status"]}
           searchPlaceholder="Search by student, date, or status..."
           emptyTitle="No attendance records found"
-          emptyDescription="Import a CSV file to add records"
+          emptyDescription="Import a CSV file or mark attendance manually"
         />
       </motion.div>
+
+      {/* Mark Attendance Modal */}
+      <Modal open={markModalOpen} onClose={() => setMarkModalOpen(false)} title="Mark Attendance" maxWidth="max-w-2xl">
+        <form onSubmit={handleMarkSubmit} className="space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-beige/15">
+            <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Attendance Date *</label>
+              <input
+                type="date"
+                required
+                value={attendanceDate}
+                onChange={(e) => setAttendanceDate(e.target.value)}
+                className="px-3.5 py-2 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio transition-all font-body"
+              />
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-olive/40 font-body">Total students: {students.length}</span>
+            </div>
+          </div>
+
+          <div className="max-h-[350px] overflow-y-auto divide-y divide-beige/10 pr-1">
+            {students.length === 0 ? (
+              <p className="text-sm text-olive/40 font-body py-8 text-center">No students added to the system yet.</p>
+            ) : (
+              students.map((student) => (
+                <div key={student.id} className="py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-olive">{student.name}</p>
+                    <p className="text-xs text-olive/40 font-body">{student.program} · Section {student.section}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {(["present", "absent", "leave"] as AttendanceStatus[]).map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => setStudentStatuses(prev => ({ ...prev, [student.id]: status }))}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-medium font-body transition-all border capitalize ${
+                          studentStatuses[student.id] === status
+                            ? status === "present" ? "bg-pistachio/20 border-pistachio text-olive" :
+                              status === "absent" ? "bg-red-50 border-red-200 text-red-600" :
+                              "bg-amber-50 border-amber-200 text-amber-600"
+                            : "bg-cream border-transparent text-olive/40 hover:text-olive hover:bg-beige/10"
+                        }`}
+                      >
+                        {status}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-3 border-t border-beige/15">
+            <button
+              type="button"
+              onClick={() => setMarkModalOpen(false)}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-cream text-olive/60 text-sm font-medium hover:bg-beige/30 transition-colors font-body"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={students.length === 0}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift transition-all font-body disabled:opacity-50"
+            >
+              Save Attendance
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Import Report Modal */}
       {importReport && (

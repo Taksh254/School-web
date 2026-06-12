@@ -2,6 +2,7 @@
 
 export type Role = "admin" | "parent"
 
+// Admin email list.
 const ADMIN_EMAILS = ["admin@school.com", "sehrawatsonia27@gmail.com"]
 
 export function inferRoleFromEmail(email: string): Role {

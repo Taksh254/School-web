@@ -17,12 +17,15 @@ const categoryConfig: Record<string, { icon: typeof Star; color: string; label: 
 
 export default function ParentNotesPage() {
   const { user } = useAuth()
-  const childId = user?.childId || "s1"
+  const childId = user?.childId
   const [notes, setNotes] = useState<TeacherNote[]>([])
-
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!childId) {
+      setLoading(false)
+      return
+    }
     const fetchNotes = async () => {
       setLoading(true)
       try {
@@ -41,6 +44,20 @@ export default function ParentNotesPage() {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
         <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (!childId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-display font-bold text-olive">Teacher Notes</h1>
+          <p className="text-sm text-olive/50 font-body">Messages and observations from your child&apos;s teachers</p>
+        </div>
+        <div className="bg-cream border border-beige/40 rounded-3xl p-6 text-center shadow-soft">
+          <p className="text-sm text-olive/60 font-body">No student profile is linked to this account. Please link a student profile to view notes.</p>
+        </div>
       </div>
     )
   }

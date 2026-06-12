@@ -13,14 +13,17 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 
 export default function AttendancePage() {
   const { user } = useAuth()
-  const childId = user?.childId || "s1"
+  const childId = user?.childId
   const [records, setRecords] = useState<AttendanceRecord[]>([])
-  const [month, setMonth] = useState(4) // May (0-indexed)
-  const [year, setYear] = useState(2026)
-
+  const [month, setMonth] = useState(new Date().getMonth())
+  const [year, setYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!childId) {
+      setLoading(false)
+      return
+    }
     const fetchAttendance = async () => {
       setLoading(true)
       try {
@@ -67,6 +70,20 @@ export default function AttendancePage() {
     return (
       <div className="flex items-center justify-center min-h-[300px]">
         <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (!childId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-display font-bold text-olive">Attendance</h1>
+          <p className="text-sm text-olive/50 font-body">Monthly attendance overview</p>
+        </div>
+        <div className="bg-cream border border-beige/40 rounded-3xl p-6 text-center shadow-soft">
+          <p className="text-sm text-olive/60 font-body">No student profile is linked to this account. Please link a student profile to view attendance.</p>
+        </div>
       </div>
     )
   }
