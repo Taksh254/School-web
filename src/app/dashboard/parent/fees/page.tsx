@@ -74,7 +74,9 @@ export default function ParentFeesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-display font-bold text-olive">Fees & Payments</h1>
-        <p className="text-sm text-olive/50 font-body">Track your fee status and payment history</p>
+        <p className="text-sm text-olive/50 font-body">
+          {child ? `Track fee status and payment history for ${child.name}` : "Track your fee status and payment history"}
+        </p>
       </div>
 
       {/* Stats */}

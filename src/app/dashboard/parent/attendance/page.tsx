@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { motion } from "framer-motion"
 import { useAuth } from "@/lib/auth-context"
-import { getAttendance } from "@/lib/data-store"
+import { getAttendance, getStudent } from "@/lib/data-store"
 import type { AttendanceRecord } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import { CalendarCheck, CheckCircle, XCircle, ChevronLeft, ChevronRight } from "lucide-react"
@@ -18,6 +18,7 @@ export default function AttendancePage() {
   const [month, setMonth] = useState(new Date().getMonth())
   const [year, setYear] = useState(new Date().getFullYear())
   const [loading, setLoading] = useState(true)
+  const [child, setChild] = useState<any>(null)
 
   useEffect(() => {
     if (!childId) {
@@ -27,8 +28,12 @@ export default function AttendancePage() {
     const fetchAttendance = async () => {
       setLoading(true)
       try {
-        const data = await getAttendance(childId)
+        const [data, studentData] = await Promise.all([
+          getAttendance(childId),
+          getStudent(childId),
+        ])
         setRecords(data)
+        setChild(studentData || null)
       } catch (err) {
         console.error("Attendance fetch error:", err)
       } finally {
@@ -104,7 +109,9 @@ export default function AttendancePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-display font-bold text-olive">Attendance</h1>
-        <p className="text-sm text-olive/50 font-body">Monthly attendance overview</p>
+        <p className="text-sm text-olive/50 font-body">
+          {child ? `Monthly attendance overview for ${child.name}` : "Monthly attendance overview"}
+        </p>
       </div>
 
       {/* Stats */}

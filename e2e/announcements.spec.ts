@@ -98,7 +98,7 @@ test.describe("Announcements — Admin", () => {
   })
 
   test("shows announcement author", async ({ page }) => {
-    await expect(page.getByText("Principal Sunita")).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText("Principal Sunita").first()).toBeVisible({ timeout: 10000 })
   })
 })
 

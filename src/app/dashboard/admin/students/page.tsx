@@ -460,33 +460,33 @@ export default function AdminStudentsPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-olive mb-1 font-body">Student Name *</label>
-              <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+              <label htmlFor="student-name-input" className="block text-xs font-medium text-olive mb-1 font-body">Student Name *</label>
+              <input id="student-name-input" type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-olive mb-1 font-body">Date of Birth *</label>
-              <input type="date" required value={form.dateOfBirth} onChange={(e) => {
+              <label htmlFor="student-dob-input" className="block text-xs font-medium text-olive mb-1 font-body">Date of Birth *</label>
+              <input id="student-dob-input" type="date" required value={form.dateOfBirth} onChange={(e) => {
                 const dob = e.target.value
                 setForm({ ...form, dateOfBirth: dob, age: calculateAge(dob) })
               }}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-olive mb-1 font-body">Age</label>
-              <input type="number" disabled value={form.age}
+              <label htmlFor="student-age-input" className="block text-xs font-medium text-olive mb-1 font-body">Age</label>
+              <input id="student-age-input" type="number" disabled value={form.age}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive/50 outline-none font-body cursor-not-allowed" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-olive mb-1 font-body">Program *</label>
-              <select value={form.program} onChange={(e) => setForm({ ...form, program: e.target.value as ProgramType })}
+              <label htmlFor="student-program-select" className="block text-xs font-medium text-olive mb-1 font-body">Program *</label>
+              <select id="student-program-select" value={form.program} onChange={(e) => setForm({ ...form, program: e.target.value as ProgramType })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body">
                 {PROGRAMS.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-olive mb-1 font-body">Section *</label>
-              <select value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })}
+              <label htmlFor="student-section-select" className="block text-xs font-medium text-olive mb-1 font-body">Section *</label>
+              <select id="student-section-select" value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body">
                 <option value="A">A</option>
                 <option value="B">B</option>
@@ -494,8 +494,8 @@ export default function AdminStudentsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-olive mb-1 font-body">Teacher</label>
-              <input type="text" value={form.teacher} onChange={(e) => setForm({ ...form, teacher: e.target.value })}
+              <label htmlFor="student-teacher-input" className="block text-xs font-medium text-olive mb-1 font-body">Teacher</label>
+              <input id="student-teacher-input" type="text" value={form.teacher} onChange={(e) => setForm({ ...form, teacher: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
             </div>
           </div>
@@ -504,23 +504,23 @@ export default function AdminStudentsPage() {
             <h4 className="text-xs font-medium text-olive/60 mb-3 font-body uppercase tracking-wider">Parent Information</h4>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-olive mb-1 font-body">Parent Name *</label>
-                <input type="text" required value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })}
+                <label htmlFor="parent-name-input" className="block text-xs font-medium text-olive mb-1 font-body">Parent Name *</label>
+                <input id="parent-name-input" type="text" required value={form.parentName} onChange={(e) => setForm({ ...form, parentName: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-olive mb-1 font-body">Parent Email</label>
-                <input type="email" value={form.parentEmail} onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
+                <label htmlFor="parent-email-input" className="block text-xs font-medium text-olive mb-1 font-body">Parent Email</label>
+                <input id="parent-email-input" type="email" value={form.parentEmail} onChange={(e) => setForm({ ...form, parentEmail: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-olive mb-1 font-body">Parent Phone</label>
-                <input type="tel" value={form.parentPhone} onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
+                <label htmlFor="parent-phone-input" className="block text-xs font-medium text-olive mb-1 font-body">Parent Phone</label>
+                <input id="parent-phone-input" type="tel" value={form.parentPhone} onChange={(e) => setForm({ ...form, parentPhone: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-olive mb-1 font-body">Admission No.</label>
-                <input type="text" value={form.admissionNo} onChange={(e) => setForm({ ...form, admissionNo: e.target.value })}
+                <label htmlFor="student-admission-input" className="block text-xs font-medium text-olive mb-1 font-body">Admission No.</label>
+                <input id="student-admission-input" type="text" value={form.admissionNo} onChange={(e) => setForm({ ...form, admissionNo: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
               </div>
             </div>

@@ -40,11 +40,8 @@ test.describe("Attendance — Admin", () => {
   })
 
   test("shows attendance status indicators (present/absent)", async ({ page }) => {
-    const presentText = page.getByText(/present/i).first()
-    const absentText = page.getByText(/absent/i).first()
-    const hasPresent = await presentText.isVisible({ timeout: 5000 }).catch(() => false)
-    const hasAbsent = await absentText.isVisible({ timeout: 5000 }).catch(() => false)
-    expect(hasPresent || hasAbsent).toBe(true)
+    // Wait for at least one status text to be visible to handle table animation delays
+    await expect(page.getByText(/present|absent/i).first()).toBeVisible({ timeout: 10000 })
   })
 
   test("shows a date selector or month navigation", async ({ page }) => {
