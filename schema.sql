@@ -145,9 +145,9 @@ $$;
 create or replace function public.is_admin()
 returns boolean security definer set search_path = public as $$
 begin
-    return exists (
-        select 1 from public.profiles
-        where profiles.id = auth.uid() and profiles.role = 'admin'
+    return coalesce(
+        lower(auth.jwt() ->> 'email') in ('admin@school.com', 'sehrawatsonia27@gmail.com'),
+        false
     );
 end;
 $$ language plpgsql;
@@ -244,7 +244,7 @@ begin
         coalesce(new.raw_user_meta_data->>'name', 'New Parent'),
         case 
             when lower(new.email) in ('admin@school.com', 'sehrawatsonia27@gmail.com') then 'admin'
-            else coalesce(new.raw_user_meta_data->>'role', 'parent')
+            else 'parent'
         end,
         case 
             when new.raw_user_meta_data->>'child_id' is not null 

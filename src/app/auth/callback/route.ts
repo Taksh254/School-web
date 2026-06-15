@@ -1,11 +1,10 @@
 import { createServerClient } from "@supabase/ssr"
 import { type NextRequest, NextResponse } from "next/server"
-
-const ADMIN_EMAILS = new Set(["admin@school.com", "sehrawatsonia27@gmail.com"])
+import { ADMIN_EMAILS } from "@/lib/types"
 
 function isAdminEmail(email: string): boolean {
   const lower = email.toLowerCase()
-  return ADMIN_EMAILS.has(lower) || lower.includes("admin")
+  return ADMIN_EMAILS.includes(lower)
 }
 
 export async function GET(request: NextRequest) {

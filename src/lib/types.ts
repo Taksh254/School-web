@@ -3,11 +3,11 @@
 export type Role = "admin" | "parent"
 
 // Admin email list.
-const ADMIN_EMAILS = ["admin@school.com", "sehrawatsonia27@gmail.com"]
+export const ADMIN_EMAILS = ["admin@school.com", "sehrawatsonia27@gmail.com", "admin01@gmail.com"]
 
 export function inferRoleFromEmail(email: string): Role {
   const lower = email.toLowerCase()
-  if (lower.includes("admin") || ADMIN_EMAILS.includes(lower)) return "admin"
+  if (ADMIN_EMAILS.includes(lower)) return "admin"
   return "parent"
 }
 

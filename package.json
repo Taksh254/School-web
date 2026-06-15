@@ -6,7 +6,15 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest",
+    "test:unit": "jest __tests__/unit",
+    "test:components": "jest __tests__/components",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.2",
@@ -26,14 +34,22 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.4.11",
     "typescript": "^5"
   }
 }

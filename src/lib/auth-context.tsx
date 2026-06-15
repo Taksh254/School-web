@@ -113,6 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (loading) return
+
     if (user) {
       localStorage.setItem("hk_user", JSON.stringify(user))
       const isProd = process.env.NODE_ENV === "production"
@@ -121,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("hk_user")
       document.cookie = "hk_bypass_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
     }
-  }, [user])
+  }, [user, loading])
 
   useEffect(() => {
     seedIfNeeded()
@@ -178,8 +180,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Step 2: No Supabase session — try localStorage fallback ONLY in offline/demo mode
-      if (!isSupabaseConfigured()) {
+      // Step 2: No Supabase session — try localStorage fallback in offline/demo mode OR dev mode
+      const isDev = process.env.NODE_ENV === "development"
+      if (!isSupabaseConfigured() || isDev) {
         try {
           const raw = localStorage.getItem("hk_user")
           if (raw) {
@@ -201,7 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
         }
       } else {
-        // Supabase IS configured but no session — user is genuinely logged out
+        // Supabase IS configured, not in dev mode, and no session — user is genuinely logged out
         setUser(null)
         setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
       }
@@ -210,6 +213,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     init()
+
+    if (!isSupabaseConfigured()) {
+      return () => {
+        active = false
+      }
+    }
 
     // Step 3: Subscribe to future auth state changes (login / logout / token refresh)
     const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event, session) => {

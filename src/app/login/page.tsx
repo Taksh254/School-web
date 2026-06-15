@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowRight, Unlock, ArrowLeft, UserPlus, LogIn } from "lucide-react"
+import { ArrowRight, Unlock, ArrowLeft, UserPlus, LogIn, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
 
@@ -42,7 +43,7 @@ export default function LoginPage() {
   if (loading) {
     return (
       <div className="relative min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(160deg, #F7F2E8 0%, #E8D8C3 40%, #B7C9A8 100%)" }}>
+        style={{ background: "linear-gradient(160deg, rgba(247, 242, 232, 0.6) 0%, rgba(232, 216, 195, 0.6) 40%, rgba(183, 201, 168, 0.6) 100%)" }}>
         <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
       </div>
     )
@@ -99,7 +100,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden"
-      style={{ background: "linear-gradient(160deg, #F7F2E8 0%, #E8D8C3 40%, #B7C9A8 100%)" }}>
+      style={{ background: "linear-gradient(160deg, rgba(247, 242, 232, 0.6) 0%, rgba(232, 216, 195, 0.6) 40%, rgba(183, 201, 168, 0.6) 100%)" }}>
       <div className="absolute inset-0 paper-texture pointer-events-none" />
 
       <motion.div className="absolute top-1/4 left-[5%] text-pistachio/10 text-2xl" animate={{ rotate: [0, 15, 0], scale: [1, 1.1, 1] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>✦</motion.div>
@@ -132,16 +133,22 @@ export default function LoginPage() {
             {mode === "login" ? (
               <motion.form key="login" onSubmit={handleLogin} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.2 }} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Email Address</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required
+                  <label htmlFor="login-email" className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Email Address</label>
+                  <input id="login-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required
                     className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
                     style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Password</label>
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required
-                    className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
-                    style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                  <label htmlFor="login-password" className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Password</label>
+                  <div className="relative">
+                    <input id="login-password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required
+                      className="w-full px-5 py-3.5 pr-12 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                      style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-olive/40 hover:text-olive transition-colors">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
                 <motion.button type="submit" disabled={submitting} whileHover={!submitting ? { scale: 1.02, y: -1 } : {}} whileTap={!submitting ? { scale: 0.98 } : {}}
                   className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] hover:shadow-[0_6px_24px_rgba(183,201,168,0.35)]">
@@ -152,22 +159,28 @@ export default function LoginPage() {
             ) : (
               <motion.form key="signup" onSubmit={handleSignup} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Full Name</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required
+                  <label htmlFor="signup-name" className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Full Name</label>
+                  <input id="signup-name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required
                     className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
                     style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Email Address</label>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required
+                  <label htmlFor="signup-email" className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Email Address</label>
+                  <input id="signup-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required
                     className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
                     style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Password</label>
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a password" required
-                    className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
-                    style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                  <label htmlFor="signup-password" className="block text-sm font-medium text-olive mb-1.5 text-left font-body">Password</label>
+                  <div className="relative">
+                    <input id="signup-password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Create a password" required
+                      className="w-full px-5 py-3.5 pr-12 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                      style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-olive/40 hover:text-olive transition-colors">
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
                 <motion.button type="submit" disabled={submitting} whileHover={!submitting ? { scale: 1.02, y: -1 } : {}} whileTap={!submitting ? { scale: 0.98 } : {}}
                   className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] hover:shadow-[0_6px_24px_rgba(183,201,168,0.35)]">

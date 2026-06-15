@@ -46,6 +46,7 @@ const K = {
 
 export const DEMO_USERS: User[] = [
   { id: "u1", email: "admin@school.com", name: "Principal Sunita", role: "admin" },
+  { id: "u3", email: "admin01@gmail.com", name: "Admin User", role: "admin" },
   { id: "u2", email: "parent@school.com", name: "Priya Sharma", role: "parent", childId: "s1" },
 ]
 
@@ -136,22 +137,41 @@ const SEED_NOTES: TeacherNote[] = [
 
 // ── LocalStorage Getters/Setters ───────────────────────────────
 
-function getLocalStudents() { return get<Student[]>(K.students, []) }
+function conditionallySeed() {
+  if (process.env.NODE_ENV !== "test") {
+    seedIfNeeded()
+  }
+}
+
+function getLocalStudents() {
+  conditionallySeed()
+  return get<Student[]>(K.students, [])
+}
 function getLocalAttendance(studentId?: string) {
+  conditionallySeed()
   const records = get<AttendanceRecord[]>(K.attendance, [])
   return studentId ? records.filter((a) => a.studentId === studentId) : records
 }
 function getLocalFees(studentId?: string) {
+  conditionallySeed()
   const records = get<FeeRecord[]>(K.fees, [])
   return studentId ? records.filter((f) => f.studentId === studentId) : records
 }
 function getLocalPayments(studentId?: string) {
+  conditionallySeed()
   const records = get<Payment[]>(K.payments, [])
   return studentId ? records.filter((p) => p.studentId === studentId) : records
 }
-function getLocalAnnouncements() { return get<Announcement[]>(K.announcements, []) }
-function getLocalEvents() { return get<SchoolEvent[]>(K.events, []) }
+function getLocalAnnouncements() {
+  conditionallySeed()
+  return get<Announcement[]>(K.announcements, [])
+}
+function getLocalEvents() {
+  conditionallySeed()
+  return get<SchoolEvent[]>(K.events, [])
+}
 function getLocalNotes(studentId?: string) {
+  conditionallySeed()
   const records = get<TeacherNote[]>(K.notes, [])
   return studentId ? records.filter((n) => n.studentId === studentId) : records
 }
