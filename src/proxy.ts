@@ -34,6 +34,8 @@ function isPublicPath(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  console.log(`[middleware] Incoming request for path: ${pathname}`)
+
   // ── Exclude system and API routes from redirects ──────────────────────────
   if (
     pathname.startsWith("/auth/") ||
@@ -41,6 +43,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico"
   ) {
+    console.log(`[middleware] Excluded system/API route: ${pathname}`)
     return NextResponse.next()
   }
 
@@ -53,6 +56,7 @@ export async function proxy(request: NextRequest) {
         try {
           const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
           const target = bypassUser.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+          console.log(`[middleware] Bypass cookie found for role ${bypassUser.role}. Redirecting to: ${target}`)
           return NextResponse.redirect(new URL(target, request.url))
         } catch { /* malformed cookie — ignore */ }
       }
@@ -60,6 +64,8 @@ export async function proxy(request: NextRequest) {
 
     const { supabase, supabaseResponse } = createClient(request)
     const { data: { user }, error } = await supabase.auth.getUser()
+
+    console.log(`[middleware] /login check — User: ${user ? user.email : "none"}, Error: ${error?.message || "none"}`)
 
     if (!error && user) {
       const { data: profile } = await supabase
@@ -70,6 +76,8 @@ export async function proxy(request: NextRequest) {
 
       const role = resolveRole(profile?.role, user.email)
       const target = role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+
+      console.log(`[middleware] Authenticated user ${user.email} (role: ${role}) visiting /login. Redirecting to dashboard: ${target}`)
 
       // Preserve any refreshed session cookies on the redirect
       const redirectResponse = NextResponse.redirect(new URL(target, request.url))
@@ -84,6 +92,7 @@ export async function proxy(request: NextRequest) {
 
   // ── Other public paths ────────────────────────────────────────────────────
   if (isPublicPath(pathname)) {
+    console.log(`[middleware] Public path: ${pathname}`)
     return NextResponse.next()
   }
 
@@ -96,11 +105,14 @@ export async function proxy(request: NextRequest) {
         try {
           const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
           const role: string = bypassUser.role
+          console.log(`[middleware] Dashboard bypass cookie found (role: ${role}) for path: ${pathname}`)
 
           if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
+            console.log(`[middleware] Bypass redirect: Admin role required for path ${pathname}. Redirecting to /dashboard/parent`)
             return NextResponse.redirect(new URL("/dashboard/parent", request.url))
           }
           if (pathname.startsWith("/dashboard/parent") && role !== "parent") {
+            console.log(`[middleware] Bypass redirect: Parent role required for path ${pathname}. Redirecting to /dashboard/admin`)
             return NextResponse.redirect(new URL("/dashboard/admin", request.url))
           }
           return NextResponse.next()
@@ -111,32 +123,42 @@ export async function proxy(request: NextRequest) {
     const { supabase, supabaseResponse } = createClient(request)
 
     let role: string | null = null
+    let userObject: any = null
     try {
       const { data: { user }, error } = await supabase.auth.getUser()
+      console.log(`[middleware] Protected route check — Path: ${pathname}, User: ${user ? user.email : "none"}, Error: ${error?.message || "none"}`)
       if (!error && user) {
+        userObject = user
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .maybeSingle()
         role = resolveRole(profile?.role, user.email)
+        console.log(`[middleware] Profile role: ${profile?.role || "none"}, Resolved role: ${role}`)
       }
-    } catch { /* network error — treat as unauthenticated */ }
+    } catch (err: any) {
+      console.error(`[middleware] Network or Supabase error checking session for path ${pathname}:`, err?.message)
+    }
 
     if (!role) {
       const loginUrl = new URL("/login", request.url)
       loginUrl.searchParams.set("redirect", pathname)
+      console.log(`[middleware] Unauthenticated or no role resolved for ${pathname}. Redirecting to login: ${loginUrl.toString()}`)
       return NextResponse.redirect(loginUrl)
     }
 
     // Role-based access control
     if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
+      console.log(`[middleware] RBAC violation: ${userObject?.email} (role: ${role}) accessed ${pathname}. Redirecting to /dashboard/parent`)
       return NextResponse.redirect(new URL("/dashboard/parent", request.url))
     }
     if (pathname.startsWith("/dashboard/parent") && role !== "parent") {
+      console.log(`[middleware] RBAC violation: ${userObject?.email} (role: ${role}) accessed ${pathname}. Redirecting to /dashboard/admin`)
       return NextResponse.redirect(new URL("/dashboard/admin", request.url))
     }
 
+    console.log(`[middleware] Access granted to ${userObject?.email} (role: ${role}) for path: ${pathname}`)
     // Always return supabaseResponse so refreshed tokens are forwarded
     return supabaseResponse
   }

@@ -2,7 +2,10 @@ import { test, expect, Page } from "@playwright/test"
 
 async function loginAsAdmin(page: Page) {
   await page.goto("/login")
-  await page.evaluate(() => localStorage.setItem("hk_seeded", "1"))
+  await page.evaluate(() => {
+    localStorage.setItem("hk_force_local", "1")
+    localStorage.setItem("hk_seeded", "1")
+  })
   await page.getByRole("button", { name: /bypass login \(enter as admin\)/i }).click()
   await page.waitForURL("**/dashboard/admin**", { timeout: 15000, waitUntil: "domcontentloaded" })
 }

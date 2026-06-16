@@ -50,9 +50,12 @@ export default function LoginPage() {
   }
 
   if (user) {
-    const target = user.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
-    router.replace(target)
-    return null
+    return (
+      <div className="relative min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(160deg, rgba(247, 242, 232, 0.6) 0%, rgba(232, 216, 195, 0.6) 40%, rgba(183, 201, 168, 0.6) 100%)" }}>
+        <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
+      </div>
+    )
   }
 
   const handleLogin = async (e: React.FormEvent) => {

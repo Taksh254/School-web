@@ -12,7 +12,10 @@ async function clearAuth(page: Page) {
 // Helper: login as admin via dev bypass button
 async function loginAsAdmin(page: Page) {
   await page.goto("/login")
-  await page.evaluate(() => localStorage.setItem("hk_seeded", "1"))
+  await page.evaluate(() => {
+    localStorage.setItem("hk_force_local", "1")
+    localStorage.setItem("hk_seeded", "1")
+  })
   // Click the admin bypass button (only visible in development mode)
   await page.getByRole("button", { name: /bypass login \(enter as admin\)/i }).click()
   await page.waitForURL("**/dashboard/admin**", { timeout: 15000, waitUntil: "domcontentloaded" })
@@ -21,7 +24,10 @@ async function loginAsAdmin(page: Page) {
 // Helper: login as parent via dev bypass button
 async function loginAsParent(page: Page) {
   await page.goto("/login")
-  await page.evaluate(() => localStorage.setItem("hk_seeded", "1"))
+  await page.evaluate(() => {
+    localStorage.setItem("hk_force_local", "1")
+    localStorage.setItem("hk_seeded", "1")
+  })
   await page.getByRole("button", { name: /bypass login \(enter as parent\)/i }).click()
   await page.waitForURL("**/dashboard/parent**", { timeout: 15000, waitUntil: "domcontentloaded" })
 }

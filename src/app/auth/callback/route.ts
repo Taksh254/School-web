@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
 
+  console.log(`[auth/callback] GET request received. Origin: ${origin}, Code present: ${!!code}`)
+
   if (!code) {
+    console.warn("[auth/callback] Missing code. Redirecting to login with error.")
     return NextResponse.redirect(`${origin}/login?error=auth_callback_error`)
   }
 
@@ -29,6 +32,7 @@ export async function GET(request: NextRequest) {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            console.log(`[auth/callback] Cookie to set: ${name}`)
             pendingCookies.push({ name, value, options: options ?? {} })
           })
         },
@@ -36,6 +40,7 @@ export async function GET(request: NextRequest) {
     }
   )
 
+  console.log("[auth/callback] Exchanging OAuth code for session...")
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
   if (exchangeError) {
@@ -48,6 +53,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data: { user } } = await supabase.auth.getUser()
+  console.log(`[auth/callback] User authenticated successfully: ${user ? user.email : "none"} (ID: ${user ? user.id : "none"})`)
 
   let destination = "/dashboard/parent"
 
@@ -56,6 +62,8 @@ export async function GET(request: NextRequest) {
     const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0]
     const correctRole = isAdminEmail(email) ? "admin" : "parent"
 
+    console.log(`[auth/callback] Resolving role for ${email}. Email matches admin: ${isAdminEmail(email)}`)
+
     // Ensure profile has the correct role (create or update)
     const { data: existingProfile } = await supabase
       .from("profiles")
@@ -63,7 +71,10 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle()
 
+    console.log(`[auth/callback] Existing DB profile:`, existingProfile)
+
     if (!existingProfile) {
+      console.log(`[auth/callback] Creating profile for user ${user.id} with role ${correctRole}`)
       await supabase.from("profiles").insert({
         id: user.id,
         email,
@@ -71,6 +82,7 @@ export async function GET(request: NextRequest) {
         role: correctRole,
       })
     } else if (existingProfile.role !== correctRole) {
+      console.log(`[auth/callback] Updating profile role for user ${user.id} from ${existingProfile.role} to ${correctRole}`)
       await supabase
         .from("profiles")
         .update({ email, name, role: correctRole })
@@ -82,6 +94,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  console.log(`[auth/callback] Redirecting user to destination: ${destination}`)
   const finalResponse = NextResponse.redirect(`${origin}${destination}`)
   pendingCookies.forEach(({ name, value, options }) =>
     finalResponse.cookies.set(name, value, options as Parameters<typeof finalResponse.cookies.set>[2])

@@ -5,7 +5,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
 
 export const isSupabaseConfigured = (): boolean => {
   if (typeof window !== "undefined") {
-    if (localStorage.getItem("hk_seeded") === "1" || localStorage.getItem("hk_force_local") === "1") {
+    if (localStorage.getItem("hk_force_local") === "1") {
       return false
     }
   }

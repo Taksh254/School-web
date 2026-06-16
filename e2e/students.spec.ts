@@ -54,6 +54,12 @@ test.describe("Student Management (Admin)", () => {
     const nameInput = page.getByLabel(/student name|name/i).first()
     await nameInput.fill("E2E Test Child")
 
+    // Fill date of birth
+    const dobInput = page.getByLabel(/date of birth/i).first()
+    if (await dobInput.isVisible()) {
+      await dobInput.fill("2022-01-15")
+    }
+
     // Try to find parent name field
     const parentInput = page.getByLabel(/parent name/i).first()
     if (await parentInput.isVisible()) {
@@ -67,7 +73,7 @@ test.describe("Student Management (Admin)", () => {
     }
 
     // Submit
-    const submitBtn = page.getByRole("button", { name: /save|add|submit/i }).first()
+    const submitBtn = page.locator('form button[type="submit"]')
     if (await submitBtn.isVisible()) {
       await submitBtn.click()
       await page.waitForTimeout(1000)
