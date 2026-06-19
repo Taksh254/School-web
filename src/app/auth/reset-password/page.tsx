@@ -22,29 +22,78 @@ export default function ResetPasswordPage() {
   const [verifyingSession, setVerifyingSession] = useState(true)
   const [sessionValid, setSessionValid] = useState(false)
 
-  // Verify active recovery session on mount
+  // Verify active recovery session on mount.
+  //
+  // WHY onAuthStateChange instead of getSession():
+  //   Supabase password-reset links carry tokens in the URL hash (#access_token=...&type=recovery).
+  //   The JS client exchanges those tokens asynchronously and fires onAuthStateChange with
+  //   event=PASSWORD_RECOVERY when it is done. Calling getSession() immediately on mount
+  //   races against that exchange — getSession() returns null before the tokens are consumed,
+  //   so the page always reported "invalid link" and kept spinning.
   useEffect(() => {
-    async function checkSession() {
-      if (isSupabaseConfigured()) {
-        try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-          if (sessionError || !session) {
-            setError("Invalid or expired password reset link. Please request a new link.")
-            setSessionValid(false)
-          } else {
-            setSessionValid(true)
-          }
-        } catch {
-          setError("Failed to verify authentication session.")
-          setSessionValid(false)
-        }
-      } else {
-        // Local fallback is always valid
-        setSessionValid(true)
-      }
+    if (!isSupabaseConfigured()) {
+      // Offline / local-fallback mode: skip token verification entirely.
+      setSessionValid(true)
+      setVerifyingSession(false)
+      return
+    }
+
+    let settled = false
+
+    function settle(valid: boolean, err?: string) {
+      if (settled) return
+      settled = true
+      console.log("[reset-password] settle called — valid:", valid, "error:", err ?? "none")
+      if (!valid && err) setError(err)
+      setSessionValid(valid)
       setVerifyingSession(false)
     }
-    checkSession()
+
+    // Log current URL for debugging
+    console.log("[reset-password] Current URL:", typeof window !== "undefined" ? window.location.href : "SSR")
+
+    // Primary: listen for the PASSWORD_RECOVERY auth event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[reset-password] onAuthStateChange event:", event, "session:", session ? "present" : "null")
+      if (event === "PASSWORD_RECOVERY") {
+        console.log("[reset-password] PASSWORD_RECOVERY received — session valid")
+        settle(true)
+      } else if (event === "SIGNED_IN" && session) {
+        // Some Supabase versions emit SIGNED_IN instead of PASSWORD_RECOVERY for recovery links
+        console.log("[reset-password] SIGNED_IN with session — treating as valid recovery session")
+        settle(true)
+      } else if (event === "SIGNED_OUT") {
+        settle(false, "Session expired. Please request a new password reset link.")
+      }
+    })
+
+    // Secondary: check if a session already exists (e.g. user refreshed the page after tokens were exchanged)
+    async function secondaryCheck() {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log("[reset-password] getSession() result — session:", session ? "present" : "null", "error:", sessionError?.message ?? "none")
+        if (session && !sessionError) {
+          settle(true)
+        }
+        // If null, we wait for onAuthStateChange — don't settle false here
+      } catch (err: any) {
+        console.error("[reset-password] getSession() threw:", err?.message)
+        // Don't settle — still wait for onAuthStateChange
+      }
+    }
+    secondaryCheck()
+
+    // Hard timeout: if neither the event nor an existing session resolves within 5 s,
+    // the link is genuinely invalid / expired.
+    const timeout = setTimeout(() => {
+      console.warn("[reset-password] 5 s timeout reached without PASSWORD_RECOVERY event — link likely expired")
+      settle(false, "Invalid or expired password reset link. Please request a new one.")
+    }, 5000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
