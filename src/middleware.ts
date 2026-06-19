@@ -31,7 +31,7 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   console.log(`[middleware] Incoming request for path: ${pathname}`)
@@ -47,47 +47,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── /login: if already authenticated, bounce to dashboard ────────────────
+  // ── /login: let client-side handle dashboard redirects to avoid logout loops ────────────────
   if (pathname === "/login") {
-    // Bypass cookie (demo/dev mode)
-    if (process.env.NODE_ENV === "development") {
-      const bypassCookie = request.cookies.get("hk_bypass_user")
-      if (bypassCookie?.value) {
-        try {
-          const bypassUser = JSON.parse(decodeURIComponent(bypassCookie.value))
-          const target = bypassUser.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
-          console.log(`[middleware] Bypass cookie found for role ${bypassUser.role}. Redirecting to: ${target}`)
-          return NextResponse.redirect(new URL(target, request.url))
-        } catch { /* malformed cookie — ignore */ }
-      }
-    }
-
-    const { supabase, supabaseResponse } = createClient(request)
-    const { data: { user }, error } = await supabase.auth.getUser()
-
-    console.log(`[middleware] /login check — User: ${user ? user.email : "none"}, Error: ${error?.message || "none"}`)
-
-    if (!error && user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle()
-
-      const role = resolveRole(profile?.role, user.email)
-      const target = role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
-
-      console.log(`[middleware] Authenticated user ${user.email} (role: ${role}) visiting /login. Redirecting to dashboard: ${target}`)
-
-      // Preserve any refreshed session cookies on the redirect
-      const redirectResponse = NextResponse.redirect(new URL(target, request.url))
-      supabaseResponse.cookies.getAll().forEach(({ name, value, ...rest }) => {
-        redirectResponse.cookies.set(name, value, rest)
-      })
-      return redirectResponse
-    }
-
-    return supabaseResponse
+    console.log(`[middleware] /login route accessed — letting client-side handle authentication redirect.`)
+    return NextResponse.next()
   }
 
   // ── Other public paths ────────────────────────────────────────────────────

@@ -176,6 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Step 1: Check existing Supabase session first
       const { data: { session }, error } = await supabase.auth.getSession()
 
+      console.log(`[auth-context] init — checking Supabase session. Session found:`, !!session, `Error:`, error?.message || "none")
+
       if (!active) return
 
       if (!error && session?.user) {
@@ -185,6 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await ensureProfile(session.user.id, email, name, correctRole)
 
         const profile = await fetchProfile(session.user.id, email)
+        console.log(`[auth-context] init — fetched profile for ${email}:`, profile)
         if (active && profile) {
           // Override role with correct value in case profile had stale data
           profile.role = correctRole
@@ -216,10 +219,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Step 2: No Supabase session — try localStorage fallback in offline/demo mode OR dev mode
       const isDev = process.env.NODE_ENV === "development"
       if (!isSupabaseConfigured() || isDev) {
+        console.log(`[auth-context] init — falling back to localStorage check`)
         try {
           const raw = localStorage.getItem("hk_user")
           if (raw) {
             const parsed = JSON.parse(raw)
+            console.log(`[auth-context] init — found user in localStorage:`, parsed.email)
             setUser((prev) => {
               if (
                 prev &&
@@ -241,15 +246,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               provider: "localStorage",
             })
           } else {
+            console.log(`[auth-context] init — no localStorage session, user set to null`)
             setUser(null)
             setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
           }
-        } catch {
+        } catch (err: any) {
+          console.error(`[auth-context] init — localStorage read failed:`, err?.message)
           setUser(null)
           setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
         }
       } else {
-        // Supabase IS configured, not in dev mode, and no session — user is genuinely logged out
+        console.log(`[auth-context] init (production) — no Supabase session, fallback blocked, user set to null`)
         setUser(null)
         setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
       }
@@ -271,6 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "INITIAL_SESSION") return
 
       if (event === "SIGNED_OUT") {
+        console.log(`[auth-context] onAuthStateChange — SIGNED_OUT event received. Clearing user state.`)
         setUser(null)
         setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
         localStorage.removeItem("hk_user")
@@ -282,6 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "School User"
         const role = inferRoleFromEmail(email)
 
+        console.log(`[auth-context] onAuthStateChange — ${event} event received for ${email}. Resolved role: ${role}`)
         await ensureProfile(session.user.id, email, name, role)
 
         const profile = await fetchProfile(session.user.id, email)
@@ -310,35 +319,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         if (active) {
-          try {
-            const raw = localStorage.getItem("hk_user")
-            if (raw) {
-              const parsed = JSON.parse(raw)
-              setUser((prev) => {
-                if (
-                  prev &&
-                  prev.id === parsed.id &&
-                  prev.email === parsed.email &&
-                  prev.name === parsed.name &&
-                  prev.role === parsed.role &&
-                  prev.childId === parsed.childId
-                ) {
-                  return prev
-                }
-                return parsed
-              })
-              setSessionDebug({
-                hasSession: true,
-                userId: parsed.id,
-                email: parsed.email,
-                role: parsed.role,
-                provider: "localStorage",
-              })
-            } else {
+          const isDev = process.env.NODE_ENV === "development"
+          if (!isSupabaseConfigured() || isDev) {
+            console.log(`[auth-context] onAuthStateChange — no Supabase session. Attempting localStorage recovery.`)
+            try {
+              const raw = localStorage.getItem("hk_user")
+              if (raw) {
+                const parsed = JSON.parse(raw)
+                console.log(`[auth-context] onAuthStateChange — recovered localStorage user:`, parsed.email)
+                setUser((prev) => {
+                  if (
+                    prev &&
+                    prev.id === parsed.id &&
+                    prev.email === parsed.email &&
+                    prev.name === parsed.name &&
+                    prev.role === parsed.role &&
+                    prev.childId === parsed.childId
+                  ) {
+                    return prev
+                  }
+                  return parsed
+                })
+                setSessionDebug({
+                  hasSession: true,
+                  userId: parsed.id,
+                  email: parsed.email,
+                  role: parsed.role,
+                  provider: "localStorage",
+                })
+              } else {
+                console.log(`[auth-context] onAuthStateChange — no localStorage user found. User set to null.`)
+                setUser(null)
+                setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+              }
+            } catch (err: any) {
+              console.error(`[auth-context] onAuthStateChange — localStorage read failed:`, err?.message)
               setUser(null)
               setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
             }
-          } catch {
+          } else {
+            console.log(`[auth-context] onAuthStateChange (production) — no Supabase session, fallback blocked, user set to null`)
             setUser(null)
             setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
           }
