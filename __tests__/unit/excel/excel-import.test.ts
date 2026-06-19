@@ -35,21 +35,21 @@ describe("generatePreview", () => {
       expect(preview.rows[0].rowNumber).toBe(2)
     })
 
-    it("accepts all valid program types: Play Group, Nursery, Kindergarten", () => {
-      const programs = ["Play Group", "Nursery", "Kindergarten"]
+    it("accepts all valid program types: Play group, Nursery, LKG, UKG", () => {
+      const programs = ["Play group", "Nursery", "LKG", "UKG"]
       const rows = programs.map((cls, i) =>
         makeRow({ "Class": cls, "Admission No.": `ADM-${i}` })
       )
       const preview = generatePreview(rows, [])
-      expect(preview.validCount).toBe(3)
+      expect(preview.validCount).toBe(4)
     })
 
-    it("accepts 'KG' as a valid alias for Kindergarten", () => {
+    it("accepts 'KG' as a valid alias for UKG", () => {
       const preview = generatePreview([makeRow({ "Class": "kg" })], [])
       expect(preview.rows[0].valid).toBe(true)
     })
 
-    it("accepts 'playgroup' as a valid alias for Play Group", () => {
+    it("accepts 'playgroup' as a valid alias for Play group", () => {
       const preview = generatePreview([makeRow({ "Class": "playgroup" })], [])
       expect(preview.rows[0].valid).toBe(true)
     })
@@ -157,7 +157,7 @@ describe("previewToStudentData", () => {
   })
 
   it("sets default age by program when DOB is missing", () => {
-    const rows = [makeValidRow({ dob: "", className: "Play Group" })]
+    const rows = [makeValidRow({ dob: "", className: "Play group" })]
     const result = previewToStudentData(rows)
     expect(result[0].age).toBe(3)
   })
@@ -165,11 +165,11 @@ describe("previewToStudentData", () => {
   it("maps className to ProgramType correctly", () => {
     const rows = [
       makeValidRow({ className: "play group", admissionNo: "ADM-001" }),
-      makeValidRow({ className: "Kindergarten", admissionNo: "ADM-002" }),
+      makeValidRow({ className: "LKG", admissionNo: "ADM-002" }),
     ]
     const result = previewToStudentData(rows)
-    expect(result[0].program).toBe("Play Group")
-    expect(result[1].program).toBe("Kindergarten")
+    expect(result[0].program).toBe("Play group")
+    expect(result[1].program).toBe("LKG")
   })
 
   it("assigns correct teacher based on program", () => {

@@ -5,10 +5,11 @@ import { Baby, Sprout, TreePine, Music, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 const programs = [
-  { icon: Baby, title: "Play Group", age: "2-3 Years", desc: "A gentle introduction to school life through sensory play, music, and guided exploration in a warm environment.", color: "bg-pistachio/10 text-olive" },
+  { icon: Baby, title: "Play group", age: "2-3 Years", desc: "A gentle introduction to school life through sensory play, music, and guided exploration in a warm environment.", color: "bg-pistachio/10 text-olive" },
   { icon: Sprout, title: "Nursery", age: "3-4 Years", desc: "Building independence and curiosity through structured play, creative arts, and early language concepts.", color: "bg-sage/10 text-olive" },
-  { icon: TreePine, title: "Kindergarten", age: "4-6 Years", desc: "Preparing confident learners for primary school with a balanced approach to academics and social skills.", color: "bg-cream text-olive" },
-  { icon: Music, title: "Activity Classes", age: "2-6 Years", desc: "Enrichment programs including art, music, dance, and yoga that nurture individual talents.", color: "bg-beige/20 text-olive" },
+  { icon: TreePine, title: "LKG", age: "4-5 Years", desc: "Nurturing reading, writing, and early mathematical skills through hands-on worksheets and collaborative activities.", color: "bg-cream text-olive" },
+  { icon: TreePine, title: "UKG", age: "5-6 Years", desc: "Fostering academic confidence, arithmetic readiness, and social maturity for a seamless primary school transition.", color: "bg-beige/20 text-olive" },
+  { icon: Music, title: "Activity Classes", age: "2-6 Years", desc: "Enrichment programs including art, music, dance, and yoga that nurture individual talents.", color: "bg-cream text-olive" },
 ]
 
 export default function ProgramsSection() {

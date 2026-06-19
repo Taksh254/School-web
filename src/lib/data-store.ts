@@ -54,12 +54,12 @@ export const DEMO_USERS: User[] = [
 
 const SEED_STUDENTS: Student[] = [
   { id: "s1", name: "Aanya Sharma", age: 4, dateOfBirth: "2022-03-15", program: "Nursery", section: "A", parentName: "Priya Sharma", parentEmail: "priya@email.com", parentPhone: "+91 98765 43210", admissionNo: "ADM-001", teacher: "Ms. Anita Desai" },
-  { id: "s2", name: "Arjun Verma", age: 3, dateOfBirth: "2023-06-22", program: "Play Group", section: "A", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43211", admissionNo: "ADM-002", teacher: "Ms. Priya Kapoor" },
-  { id: "s3", name: "Riya Kapoor", age: 5, dateOfBirth: "2021-01-10", program: "Kindergarten", section: "A", parentName: "Neha Kapoor", parentEmail: "neha@email.com", parentPhone: "+91 98765 43212", admissionNo: "ADM-003", teacher: "Ms. Anita Desai" },
-  { id: "s4", name: "Kabir Singh", age: 3, dateOfBirth: "2023-09-05", program: "Play Group", section: "B", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43213", admissionNo: "ADM-004", teacher: "Ms. Priya Kapoor" },
+  { id: "s2", name: "Arjun Verma", age: 3, dateOfBirth: "2023-06-22", program: "Play group", section: "A", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43211", admissionNo: "ADM-002", teacher: "Ms. Priya Kapoor" },
+  { id: "s3", name: "Riya Kapoor", age: 5, dateOfBirth: "2021-01-10", program: "LKG", section: "A", parentName: "Neha Kapoor", parentEmail: "neha@email.com", parentPhone: "+91 98765 43212", admissionNo: "ADM-003", teacher: "Ms. Anita Desai" },
+  { id: "s4", name: "Kabir Singh", age: 3, dateOfBirth: "2023-09-05", program: "Play group", section: "B", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43213", admissionNo: "ADM-004", teacher: "Ms. Priya Kapoor" },
   { id: "s5", name: "Myra Gupta", age: 4, dateOfBirth: "2022-11-18", program: "Nursery", section: "B", parentName: "Ankit Gupta", parentEmail: "ankit@email.com", parentPhone: "+91 98765 43214", admissionNo: "ADM-005", teacher: "Ms. Anita Desai" },
-  { id: "s6", name: "Vivaan Mehta", age: 5, dateOfBirth: "2021-07-30", program: "Kindergarten", section: "B", parentName: "Rohan Mehta", parentEmail: "rohan@email.com", parentPhone: "+91 98765 43215", admissionNo: "ADM-006", teacher: "Mr. Rohan Joshi" },
-  { id: "s7", name: "Ishaan Reddy", age: 2, dateOfBirth: "2024-02-14", program: "Play Group", section: "A", parentName: "Srinivas Reddy", parentEmail: "srinivas@email.com", parentPhone: "+91 98765 43216", admissionNo: "ADM-007", teacher: "Ms. Priya Kapoor" },
+  { id: "s6", name: "Vivaan Mehta", age: 5, dateOfBirth: "2021-07-30", program: "UKG", section: "B", parentName: "Rohan Mehta", parentEmail: "rohan@email.com", parentPhone: "+91 98765 43215", admissionNo: "ADM-006", teacher: "Mr. Rohan Joshi" },
+  { id: "s7", name: "Ishaan Reddy", age: 2, dateOfBirth: "2024-02-14", program: "Play group", section: "A", parentName: "Srinivas Reddy", parentEmail: "srinivas@email.com", parentPhone: "+91 98765 43216", admissionNo: "ADM-007", teacher: "Ms. Priya Kapoor" },
   { id: "s8", name: "Anvi Patel", age: 4, dateOfBirth: "2022-05-20", program: "Nursery", section: "A", parentName: "Raj Patel", parentEmail: "raj@email.com", parentPhone: "+91 98765 43217", admissionNo: "ADM-008", teacher: "Ms. Anita Desai" },
 ]
 

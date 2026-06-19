@@ -9,7 +9,7 @@ create table public.students (
     name text not null,
     age integer not null check (age >= 0),
     date_of_birth date not null,
-    program text not null check (program in ('Play Group', 'Nursery', 'Kindergarten')),
+    program text not null check (program in ('Play group', 'Nursery', 'LKG', 'UKG')),
     section text not null default 'A',
     parent_name text not null,
     parent_email text not null,

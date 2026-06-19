@@ -46,7 +46,7 @@ export const mockStudent2: Student = {
   name: "Arjun Verma",
   age: 3,
   dateOfBirth: "2023-06-22",
-  program: "Play Group",
+  program: "Play group",
   section: "A",
   parentName: "Rohit Verma",
   parentEmail: "rohit@email.com",

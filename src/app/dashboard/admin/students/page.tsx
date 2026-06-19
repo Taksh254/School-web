@@ -13,7 +13,7 @@ import type { ImportedRow } from "@/lib/excel-import"
 import { exportStudentsCSV, exportStudentsExcel } from "@/lib/excel-export"
 import { Users, Plus, Pencil, Trash2, GraduationCap, Upload, Download, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft, Link2 } from "lucide-react"
 
-const PROGRAMS: ProgramType[] = ["Play Group", "Nursery", "Kindergarten"]
+const PROGRAMS: ProgramType[] = ["Play group", "Nursery", "LKG", "UKG"]
 
 function calculateAge(dob: string): number {
   if (!dob) return 0

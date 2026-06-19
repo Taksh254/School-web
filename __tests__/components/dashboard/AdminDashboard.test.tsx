@@ -19,8 +19,8 @@ const mockGetAnnouncements = dataStore.getAnnouncements as jest.MockedFunction<t
 beforeEach(() => {
   mockGetStudents.mockResolvedValue([
     { id: "s1", name: "Aanya", age: 4, dateOfBirth: "2022-03-15", program: "Nursery", section: "A", parentName: "P1", parentEmail: "p1@e.com", parentPhone: "1234", admissionNo: "A001", teacher: "T1" },
-    { id: "s2", name: "Arjun", age: 3, dateOfBirth: "2023-01-01", program: "Play Group", section: "A", parentName: "P2", parentEmail: "p2@e.com", parentPhone: "5678", admissionNo: "A002", teacher: "T2" },
-    { id: "s3", name: "Riya", age: 5, dateOfBirth: "2021-06-01", program: "Kindergarten", section: "A", parentName: "P3", parentEmail: "p3@e.com", parentPhone: "9012", admissionNo: "A003", teacher: "T3" },
+    { id: "s2", name: "Arjun", age: 3, dateOfBirth: "2023-01-01", program: "Play group", section: "A", parentName: "P2", parentEmail: "p2@e.com", parentPhone: "5678", admissionNo: "A002", teacher: "T2" },
+    { id: "s3", name: "Riya", age: 5, dateOfBirth: "2021-06-01", program: "LKG", section: "A", parentName: "P3", parentEmail: "p3@e.com", parentPhone: "9012", admissionNo: "A003", teacher: "T3" },
   ])
 
   mockGetFees.mockResolvedValue([
@@ -105,8 +105,8 @@ describe("AdminDashboard", () => {
       render(<AdminDashboard />)
       await waitFor(() => {
         expect(screen.getByText("Nursery")).toBeInTheDocument()
-        expect(screen.getByText("Play Group")).toBeInTheDocument()
-        expect(screen.getByText("Kindergarten")).toBeInTheDocument()
+        expect(screen.getByText("Play group")).toBeInTheDocument()
+        expect(screen.getByText("LKG")).toBeInTheDocument()
       })
     })
 

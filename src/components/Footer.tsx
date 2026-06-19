@@ -39,9 +39,10 @@ export default function Footer() {
               { label: "Contact", href: "/contact" },
             ]},
             { title: "Programs", links: [
-              { label: "Play Group (2-3 yrs)", href: "/programs" },
+              { label: "Play group (2-3 yrs)", href: "/programs" },
               { label: "Nursery (3-4 yrs)", href: "/programs" },
-              { label: "Kindergarten (4-6 yrs)", href: "/programs" },
+              { label: "LKG (4-5 yrs)", href: "/programs" },
+              { label: "UKG (5-6 yrs)", href: "/programs" },
               { label: "Activity Classes", href: "/programs" },
             ]},
           ].map((group) => (

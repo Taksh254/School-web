@@ -6,7 +6,7 @@ import { Baby, Sprout, TreePine, Music, Clock, Users, BookOpen, Sun, ChevronDown
 import Link from "next/link"
 
 const programs = [
-  { id: "pg", icon: Baby, title: "Play Group", age: "2-3 Years", ratio: "1:6", timing: "9AM-12PM", color: "bg-pistachio/10 text-olive",
+  { id: "pg", icon: Baby, title: "Play group", age: "2-3 Years", ratio: "1:6", timing: "9AM-12PM", color: "bg-pistachio/10 text-olive",
     desc: "A gentle, loving introduction to school life through sensory-rich activities, free play, and guided exploration. Your child will build confidence, social skills, and a love for learning.",
     highlights: ["Sensory play with natural materials", "Music and movement sessions", "Story time with puppets", "Outdoor nature exploration", "Art and messy play", "Social skills through group activities"],
     schedule: "Half-day (3 hours)" },
@@ -14,9 +14,13 @@ const programs = [
     desc: "Building on the foundation of play, introducing more structured learning in language, numeracy, and creative expression through hands-on activities.",
     highlights: ["Early literacy through phonics", "Number concepts with Montessori materials", "Creative arts and crafts", "Show and tell for confidence", "Writing readiness", "Collaborative projects"],
     schedule: "Extended half-day (4 hours)" },
-  { id: "kinder", icon: TreePine, title: "Kindergarten", age: "4-6 Years", ratio: "1:10", timing: "8:30AM-2:30PM", color: "bg-cream text-olive",
-    desc: "Preparing children for primary school with a balanced curriculum combining academic readiness with social-emotional development. Children graduate as confident, curious learners.",
-    highlights: ["Advanced phonics & reading", "Mathematics through manipulatives", "Science experiments", "Public speaking skills", "Writing & communication", "Independent problem solving"],
+  { id: "lkg", icon: TreePine, title: "LKG", age: "4-5 Years", ratio: "1:10", timing: "8:30AM-1:30PM", color: "bg-cream text-olive",
+    desc: "Introducing formal language, math concepts, and science exploration while maintaining active play-based learning. Prepares children for the transition to advanced pre-primary education.",
+    highlights: ["Introduction to reading & writing", "Structured mathematics concepts", "Sensory science experiments", "Interactive public speaking", "Cognitive skill games", "Creative building & construction"],
+    schedule: "Extended day (5 hours)" },
+  { id: "ukg", icon: TreePine, title: "UKG", age: "5-6 Years", ratio: "1:12", timing: "8:30AM-2:30PM", color: "bg-beige/20 text-olive",
+    desc: "Focused on school readiness and advanced pre-primary curriculum. Ensuring smooth transition to primary schools with strong language, mathematical, and social skills.",
+    highlights: ["Advanced phonics & spelling", "Basic arithmetic & operations", "Environmental science & botany", "Independent reading programs", "Creative writing & journal keeping", "Primary school readiness curriculum"],
     schedule: "Full-day (6 hours)" },
   { id: "activities", icon: Music, title: "Activity Classes", age: "2-6 Years", ratio: "1:8", timing: "Varies", color: "bg-beige/30 text-olive",
     desc: "Enrichment programs that help children discover their unique talents through art, music, dance, and yoga. Each class is a new adventure.",
