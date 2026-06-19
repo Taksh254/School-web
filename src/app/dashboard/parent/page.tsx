@@ -62,7 +62,7 @@ export default function ParentDashboard() {
     }
 
     loadData()
-  }, [user])
+  }, [user?.id, user?.childId])
 
   if (loadingData) {
     return (

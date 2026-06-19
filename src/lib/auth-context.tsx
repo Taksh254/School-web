@@ -142,7 +142,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const raw = localStorage.getItem("hk_user")
           if (raw) {
             const parsed = JSON.parse(raw)
-            setUser(parsed)
+            setUser((prev) => {
+              if (
+                prev &&
+                prev.id === parsed.id &&
+                prev.email === parsed.email &&
+                prev.name === parsed.name &&
+                prev.role === parsed.role &&
+                prev.childId === parsed.childId
+              ) {
+                return prev
+              }
+              return parsed
+            })
             setSessionDebug({
               hasSession: true,
               userId: parsed.id,
@@ -171,7 +183,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (active && profile) {
           // Override role with correct value in case profile had stale data
           profile.role = correctRole
-          setUser(profile)
+          setUser((prev) => {
+            if (
+              prev &&
+              prev.id === profile.id &&
+              prev.email === profile.email &&
+              prev.name === profile.name &&
+              prev.role === profile.role &&
+              prev.childId === profile.childId
+            ) {
+              return prev
+            }
+            return profile
+          })
           setSessionDebug({
             hasSession: true,
             userId: profile.id,
@@ -191,7 +215,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const raw = localStorage.getItem("hk_user")
           if (raw) {
             const parsed = JSON.parse(raw)
-            setUser(parsed)
+            setUser((prev) => {
+              if (
+                prev &&
+                prev.id === parsed.id &&
+                prev.email === parsed.email &&
+                prev.name === parsed.name &&
+                prev.role === parsed.role &&
+                prev.childId === parsed.childId
+              ) {
+                return prev
+              }
+              return parsed
+            })
             setSessionDebug({
               hasSession: true,
               userId: parsed.id,
@@ -246,7 +282,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profile = await fetchProfile(session.user.id, email)
         if (active && profile) {
           profile.role = role
-          setUser(profile)
+          setUser((prev) => {
+            if (
+              prev &&
+              prev.id === profile.id &&
+              prev.email === profile.email &&
+              prev.name === profile.name &&
+              prev.role === profile.role &&
+              prev.childId === profile.childId
+            ) {
+              return prev
+            }
+            return profile
+          })
           setSessionDebug({
             hasSession: true,
             userId: profile.id,
@@ -261,7 +309,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const raw = localStorage.getItem("hk_user")
             if (raw) {
               const parsed = JSON.parse(raw)
-              setUser(parsed)
+              setUser((prev) => {
+                if (
+                  prev &&
+                  prev.id === parsed.id &&
+                  prev.email === parsed.email &&
+                  prev.name === parsed.name &&
+                  prev.role === parsed.role &&
+                  prev.childId === parsed.childId
+                ) {
+                  return prev
+                }
+                return parsed
+              })
               setSessionDebug({
                 hasSession: true,
                 userId: parsed.id,
@@ -573,12 +633,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     setUser(null)
     setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+    
+    // Clear custom user keys from storage and cookies
     localStorage.removeItem("hk_user")
     document.cookie = "hk_bypass_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
 
+    // Clear all Supabase client-side storage keys to prevent auto-login
+    if (typeof window !== "undefined") {
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i)
+          if (key && (key.startsWith("sb-") || key.includes("supabase"))) {
+            localStorage.removeItem(key)
+          }
+        }
+      } catch (e) {
+        console.error("Error clearing localStorage:", e)
+      }
+
+      try {
+        const cookies = document.cookie.split(";")
+        for (const cookie of cookies) {
+          const eqPos = cookie.indexOf("=")
+          const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim()
+          if (name.startsWith("sb-") || name.includes("supabase")) {
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+          }
+        }
+      } catch (e) {
+        console.error("Error clearing cookies:", e)
+      }
+    }
+
     if (isSupabaseConfigured()) {
       try {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: "local" })
       } catch (err) {
         console.error("Supabase signout error:", err)
       }
