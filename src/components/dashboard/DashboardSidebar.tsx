@@ -17,6 +17,7 @@ import {
   FileText,
   X,
   Crown,
+  User,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -42,6 +43,7 @@ const parentLinks = [
   { href: "/dashboard/parent/announcements", label: "Announcements", icon: Bell },
   { href: "/dashboard/parent/events", label: "Events", icon: Calendar },
   { href: "/dashboard/parent/notes", label: "Teacher Notes", icon: MessageCircle },
+  { href: "/dashboard/parent/profile", label: "Profile", icon: User },
 ]
 
 export default function DashboardSidebar({ open, onClose }: SidebarProps) {

@@ -22,6 +22,8 @@ interface AuthState {
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
+  forgotPassword: (email: string) => Promise<{ success: boolean; error?: string }>
+  updatePassword: (password: string) => Promise<{ success: boolean; error?: string }>
 }
 
 const defaultDebug: AuthState["sessionDebug"] = {
@@ -41,6 +43,8 @@ const AuthContext = createContext<AuthState>({
   register: async () => ({ success: false }),
   loginWithGoogle: async () => ({ success: false }),
   logout: async () => {},
+  forgotPassword: async () => ({ success: false }),
+  updatePassword: async () => ({ success: false }),
 })
 
 // Ensure profile exists with the correct role (upsert)
@@ -358,6 +362,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       matched = registered.find((u) => u.email === normalised)
     }
 
+    if (matched) {
+      try {
+        const passwordsRaw = localStorage.getItem("hk_mock_passwords")
+        const passwords = passwordsRaw ? JSON.parse(passwordsRaw) : {}
+        const savedPassword = passwords[normalised]
+        if (savedPassword && savedPassword !== password) {
+          return { success: false, error: "Invalid login credentials" }
+        }
+      } catch { /* empty */ }
+    }
+
     if (!matched) {
       if (isSupabaseConfigured()) {
         return { success: false, error: "Invalid login credentials" }
@@ -456,6 +471,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     users.push(newUser)
     localStorage.setItem("hk_registered_users", JSON.stringify(users))
+
+    try {
+      const passwordsRaw = localStorage.getItem("hk_mock_passwords")
+      const passwords = passwordsRaw ? JSON.parse(passwordsRaw) : {}
+      passwords[normalised] = password
+      localStorage.setItem("hk_mock_passwords", JSON.stringify(passwords))
+    } catch { /* empty */ }
+
     setUser(newUser)
     localStorage.setItem("hk_user", JSON.stringify(newUser))
     return { success: true }
@@ -487,6 +510,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const forgotPassword = useCallback(async (email: string) => {
+    const normalised = email.toLowerCase().trim()
+
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(normalised, {
+          redirectTo: `${window.location.origin}/login?mode=reset`,
+        })
+        if (error) {
+          return { success: false, error: error.message }
+        }
+        return { success: true }
+      } catch (err: any) {
+        return { success: false, error: err?.message || "An error occurred" }
+      }
+    }
+
+    // LocalStorage fallback mode
+    const matched = DEMO_USERS.find((u) => u.email === normalised) || (() => {
+      const existing = localStorage.getItem("hk_registered_users")
+      const registered: User[] = existing ? JSON.parse(existing) : []
+      return registered.find((u) => u.email === normalised)
+    })()
+
+    if (!matched) {
+      return { success: false, error: "No account found with this email address" }
+    }
+
+    return { success: true }
+  }, [])
+
+  const updatePassword = useCallback(async (password: string) => {
+    if (isSupabaseConfigured()) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password })
+        if (error) {
+          return { success: false, error: error.message }
+        }
+        return { success: true }
+      } catch (err: any) {
+        return { success: false, error: err?.message || "An error occurred" }
+      }
+    }
+
+    // LocalStorage fallback mode
+    let emailToUpdate = user?.email?.toLowerCase().trim()
+
+    if (!emailToUpdate) {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search)
+        emailToUpdate = params.get("email")?.toLowerCase().trim()
+      }
+    }
+
+    if (!emailToUpdate) {
+      return { success: false, error: "Unable to identify the user for password update" }
+    }
+
+    try {
+      const passwordsRaw = localStorage.getItem("hk_mock_passwords")
+      const passwords = passwordsRaw ? JSON.parse(passwordsRaw) : {}
+      passwords[emailToUpdate] = password
+      localStorage.setItem("hk_mock_passwords", JSON.stringify(passwords))
+      return { success: true }
+    } catch {
+      return { success: false, error: "Failed to update password locally" }
+    }
+  }, [user])
+
   const logout = useCallback(async () => {
     setUser(null)
     setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
@@ -504,7 +596,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, loginWithGoogle, logout, forgotPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

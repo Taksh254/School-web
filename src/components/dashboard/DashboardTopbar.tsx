@@ -28,7 +28,7 @@ export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
 
   const displayName = user?.role === "admin" ? principal.name : user?.name
   const displayPhoto = user?.role === "admin" ? principal.photoUrl : ""
-  const profileLink = user?.role === "admin" ? "/dashboard/admin/principal" : "/dashboard/parent"
+  const profileLink = user?.role === "admin" ? "/dashboard/admin/principal" : "/dashboard/parent/profile"
 
   return (
     <header className="sticky top-0 z-40 bg-cream/80 backdrop-blur-md border-b border-beige/20">

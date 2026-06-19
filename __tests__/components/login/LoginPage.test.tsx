@@ -6,6 +6,8 @@ const mockLogin = jest.fn()
 const mockRegister = jest.fn()
 const mockLoginWithGoogle = jest.fn()
 const mockBypassLogin = jest.fn()
+const mockForgotPassword = jest.fn()
+const mockUpdatePassword = jest.fn()
 const mockRouterReplace = jest.fn()
 
 // We control what user state is returned via this variable
@@ -19,6 +21,8 @@ jest.mock("@/lib/auth-context", () => ({
     register: mockRegister,
     loginWithGoogle: mockLoginWithGoogle,
     bypassLogin: mockBypassLogin,
+    forgotPassword: mockForgotPassword,
+    updatePassword: mockUpdatePassword,
     logout: jest.fn(),
   }),
 }))
@@ -35,6 +39,8 @@ beforeEach(() => {
   mockLogin.mockReset()
   mockRegister.mockReset()
   mockLoginWithGoogle.mockReset()
+  mockForgotPassword.mockReset()
+  mockUpdatePassword.mockReset()
   mockRouterReplace.mockReset()
   mockAuthUser = null // reset to unauthenticated
 })
@@ -231,6 +237,35 @@ describe("LoginPage", () => {
       render(<LoginPage />)
       await waitFor(() => {
         expect(mockRouterReplace).toHaveBeenCalledWith("/dashboard/parent")
+      })
+    })
+  })
+
+  describe("Forgot/Reset Password flow", () => {
+    it("renders 'Forgot Password?' link and switches to forgot mode on click", async () => {
+      const user = userEvent.setup({ delay: null })
+      render(<LoginPage />)
+      const link = screen.getByRole("button", { name: /forgot password\?/i })
+      await user.click(link)
+      await waitFor(() => {
+        expect(screen.getByText("Reset your password")).toBeInTheDocument()
+        expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: /send reset link/i })).toBeInTheDocument()
+      })
+    })
+
+    it("calls forgotPassword() with email when forgot form is submitted", async () => {
+      mockForgotPassword.mockResolvedValue({ success: true })
+      const user = userEvent.setup({ delay: null })
+      render(<LoginPage />)
+      
+      await user.click(screen.getByRole("button", { name: /forgot password\?/i }))
+      const emailInput = await screen.findByPlaceholderText("you@example.com")
+      await user.type(emailInput, "test@example.com")
+      await user.click(screen.getByRole("button", { name: /send reset link/i }))
+
+      await waitFor(() => {
+        expect(mockForgotPassword).toHaveBeenCalledWith("test@example.com")
       })
     })
   })
