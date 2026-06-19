@@ -7,8 +7,71 @@ import type {
   SchoolEvent,
   TeacherNote,
   User,
+  ParentAccountResult,
 } from "./types"
 import { supabase, isSupabaseConfigured } from "./supabase"
+
+// ── Parent Account Helpers ─────────────────────────────────────
+
+/**
+ * Derives a default password from a child's date of birth.
+ * Format: DDMMYYYY  e.g. 2021-08-15 → "15082021"
+ * Falls back to a static default when DOB is missing or unparseable.
+ */
+export function generatePasswordFromDob(dob: string): string {
+  if (!dob) return "School@123"
+  const d = new Date(dob)
+  if (isNaN(d.getTime())) return "School@123"
+  const dd = String(d.getDate()).padStart(2, "0")
+  const mm = String(d.getMonth() + 1).padStart(2, "0")
+  const yyyy = String(d.getFullYear())
+  return `${dd}${mm}${yyyy}`
+}
+
+/**
+ * Calls the server-side /api/create-parent-account route to provision a
+ * Supabase Auth user for a parent. Safe to call multiple times for the
+ * same email — duplicate accounts are skipped automatically.
+ *
+ * NOTE: The generated password is returned here for the admin to note.
+ *       It is NEVER stored in any database table.
+ */
+export async function createParentAccount(
+  studentId: string,
+  parentEmail: string,
+  parentName: string,
+  dob: string
+): Promise<ParentAccountResult> {
+  const email = parentEmail.trim().toLowerCase()
+  if (!email || !email.includes("@")) {
+    return { email, created: false, skipped: true, error: "Invalid or missing email" }
+  }
+
+  const defaultPassword = generatePasswordFromDob(dob)
+
+  try {
+    const res = await fetch("/api/create-parent-account", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: defaultPassword, studentId, parentName }),
+    })
+    const json = await res.json()
+
+    if (!res.ok) {
+      console.error("[createParentAccount] API error:", json.error)
+      return { email, created: false, skipped: false, error: json.error || "API error" }
+    }
+
+    if (json.skipped) {
+      return { email, created: false, skipped: true }
+    }
+
+    return { email, defaultPassword, created: true, skipped: false }
+  } catch (err: any) {
+    console.error("[createParentAccount] fetch failed:", err?.message)
+    return { email, created: false, skipped: false, error: err?.message || "Network error" }
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -380,22 +443,50 @@ export async function getStudent(id: string): Promise<Student | undefined> {
   return getLocalStudents().find((s) => s.id === id)
 }
 
-export async function addStudent(data: Omit<Student, "id">): Promise<Student> {
+export async function addStudent(
+  data: Omit<Student, "id">
+): Promise<{ student: Student; parentAccount: ParentAccountResult | null }> {
+  let student: Student
+
   if (isSupabaseConfigured()) {
     try {
       const dbRow = mapStudentToDb(data)
       const { data: inserted, error } = await supabase.from("students").insert([dbRow]).select().single()
-      if (!error && inserted) return mapStudentFromDb(inserted)
-      console.warn("Supabase insert failed, fallback to local storage:", error)
+      if (!error && inserted) {
+        student = mapStudentFromDb(inserted)
+      } else {
+        console.warn("Supabase insert failed, fallback to local storage:", error)
+        const localStudents = getLocalStudents()
+        student = { ...data, id: uid() }
+        localStudents.push(student)
+        set(K.students, localStudents)
+      }
     } catch (err) {
       console.error("Supabase error:", err)
+      const localStudents = getLocalStudents()
+      student = { ...data, id: uid() }
+      localStudents.push(student)
+      set(K.students, localStudents)
     }
+  } else {
+    const localStudents = getLocalStudents()
+    student = { ...data, id: uid() }
+    localStudents.push(student)
+    set(K.students, localStudents)
   }
-  const students = getLocalStudents()
-  const student: Student = { ...data, id: uid() }
-  students.push(student)
-  set(K.students, students)
-  return student
+
+  // Auto-provision parent account when Supabase is active and email is provided
+  let parentAccount: ParentAccountResult | null = null
+  if (isSupabaseConfigured() && data.parentEmail?.trim()) {
+    parentAccount = await createParentAccount(
+      student.id,
+      data.parentEmail,
+      data.parentName,
+      data.dateOfBirth
+    )
+  }
+
+  return { student, parentAccount }
 }
 
 export async function updateStudent(id: string, data: Partial<Student>): Promise<void> {
@@ -700,30 +791,60 @@ export async function getNotes(studentId?: string): Promise<TeacherNote[]> {
 
 // ── Bulk Importers ─────────────────────────────────────────────
 
-export async function bulkAddStudents(dataList: Omit<Student, "id">[]): Promise<Student[]> {
-  if (dataList.length === 0) return []
+export async function bulkAddStudents(
+  dataList: Omit<Student, "id">[]
+): Promise<{ students: Student[]; parentAccounts: ParentAccountResult[] }> {
+  if (dataList.length === 0) return { students: [], parentAccounts: [] }
+
+  let insertedStudents: Student[]
 
   if (isSupabaseConfigured()) {
     try {
       const dbRows = dataList.map(mapStudentToDb)
       const { data: inserted, error } = await supabase.from("students").insert(dbRows).select()
       if (!error && inserted) {
-        return inserted.map(mapStudentFromDb)
+        insertedStudents = inserted.map(mapStudentFromDb)
+      } else {
+        console.warn("Supabase bulk insert failed, fallback to local storage:", error)
+        const localStudents = getLocalStudents()
+        insertedStudents = dataList.map((data) => ({ ...data, id: uid() }))
+        localStudents.push(...insertedStudents)
+        set(K.students, localStudents)
       }
-      console.warn("Supabase bulk insert failed, fallback to local storage:", error)
     } catch (err) {
       console.error("Supabase bulk error:", err)
+      const localStudents = getLocalStudents()
+      insertedStudents = dataList.map((data) => ({ ...data, id: uid() }))
+      localStudents.push(...insertedStudents)
+      set(K.students, localStudents)
+    }
+  } else {
+    const localStudents = getLocalStudents()
+    insertedStudents = dataList.map((data) => ({ ...data, id: uid() }))
+    localStudents.push(...insertedStudents)
+    set(K.students, localStudents)
+  }
+
+  // Auto-provision parent accounts for each student when Supabase is active
+  const parentAccounts: ParentAccountResult[] = []
+  if (isSupabaseConfigured()) {
+    // Deduplicate by email so we don't call the API twice for the same parent
+    const seenEmails = new Set<string>()
+    for (const [i, student] of insertedStudents.entries()) {
+      const email = student.parentEmail?.trim().toLowerCase()
+      if (!email || !email.includes("@") || seenEmails.has(email)) continue
+      seenEmails.add(email)
+      const result = await createParentAccount(
+        student.id,
+        student.parentEmail,
+        student.parentName,
+        dataList[i]?.dateOfBirth ?? student.dateOfBirth
+      )
+      parentAccounts.push(result)
     }
   }
 
-  const students = getLocalStudents()
-  const insertedStudents: Student[] = dataList.map((data) => ({
-    ...data,
-    id: uid(),
-  }))
-  students.push(...insertedStudents)
-  set(K.students, students)
-  return insertedStudents
+  return { students: insertedStudents, parentAccounts }
 }
 
 export async function bulkAddFees(dataList: Omit<FeeRecord, "id" | "createdAt">[]): Promise<FeeRecord[]> {

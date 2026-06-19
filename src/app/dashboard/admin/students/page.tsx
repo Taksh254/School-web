@@ -56,6 +56,19 @@ export default function AdminStudentsPage() {
     duplicatesSkipped: number
     failCount: number
     errors: { row: number; error: string }[]
+    parentCreatedCount?: number
+    parentSkippedCount?: number
+    parentErrorCount?: number
+    parentAccounts?: any[]
+  } | null>(null)
+
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    studentName: string
+    parentEmail: string
+    parentPassword?: string
+    created: boolean
+    skipped: boolean
+    error?: string
   } | null>(null)
 
   const [preview, setPreview] = useState<{
@@ -105,11 +118,17 @@ export default function AdminStudentsPage() {
     const invalidRows = preview.rows.filter((r) => !r.valid && !r.errors.some((e) => e.startsWith("Duplicate")))
 
     try {
+      let parentAccountsList: any[] = []
       if (validRows.length > 0) {
         const data = previewToStudentData(validRows)
-        await bulkAddStudents(data)
+        const result = await bulkAddStudents(data)
+        parentAccountsList = result.parentAccounts || []
         await refresh()
       }
+
+      const pCreated = parentAccountsList.filter((p) => p.created).length
+      const pSkipped = parentAccountsList.filter((p) => p.skipped).length
+      const pError = parentAccountsList.filter((p) => p.error).length
 
       setImportReport({
         open: true,
@@ -121,6 +140,10 @@ export default function AdminStudentsPage() {
           row: r.rowNumber,
           error: r.errors.join("; "),
         })),
+        parentCreatedCount: pCreated,
+        parentSkippedCount: pSkipped,
+        parentErrorCount: pError,
+        parentAccounts: parentAccountsList,
       })
       setPreview(null)
       setPreviewFile(null)
@@ -185,11 +208,23 @@ export default function AdminStudentsPage() {
     try {
       if (editing) {
         await updateStudent(editing.id, form)
+        setModalOpen(false)
+        refresh()
       } else {
-        await addStudent(form)
+        const { student, parentAccount } = await addStudent(form)
+        setModalOpen(false)
+        refresh()
+        if (parentAccount) {
+          setCreatedCredentials({
+            studentName: student.name,
+            parentEmail: parentAccount.email,
+            parentPassword: parentAccount.defaultPassword,
+            created: parentAccount.created,
+            skipped: parentAccount.skipped,
+            error: parentAccount.error,
+          })
+        }
       }
-      setModalOpen(false)
-      refresh()
     } catch (err: any) {
       setErrorBanner(err?.message || "Failed to save student profile.")
     }
@@ -607,6 +642,51 @@ export default function AdminStudentsPage() {
         </form>
       </Modal>
 
+      {/* Created Credentials Modal */}
+      <Modal open={!!createdCredentials} onClose={() => setCreatedCredentials(null)} title="Parent Login Credentials" maxWidth="max-w-md">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-3 bg-pistachio/10 rounded-2xl text-olive">
+            <CheckCircle className="w-5 h-5 text-pistachio shrink-0" />
+            <p className="text-xs font-body">
+              Processed parent account for <span className="font-semibold">{createdCredentials?.studentName}</span>.
+            </p>
+          </div>
+
+          {createdCredentials?.created && (
+            <div className="space-y-3 bg-cream/40 rounded-2xl p-4 border border-beige/15 text-sm">
+              <div className="flex justify-between border-b border-beige/10 pb-2">
+                <span className="text-olive/50 font-body">Parent Email</span>
+                <span className="font-mono font-medium text-olive select-all">{createdCredentials.parentEmail}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-olive/50 font-body">Default Password</span>
+                <span className="font-mono font-bold text-olive select-all">{createdCredentials.parentPassword}</span>
+              </div>
+              <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200/40 font-body leading-relaxed mt-1">
+                Please copy these credentials and share them with the parent. They will be prompted to change their password on first login.
+              </p>
+            </div>
+          )}
+
+          {createdCredentials?.skipped && (
+            <div className="p-3 rounded-2xl bg-cream/30 border border-beige/15 text-xs text-olive/60 font-body">
+              An account for <span className="font-semibold text-olive">{createdCredentials.parentEmail}</span> already exists. It was linked to this student record.
+            </div>
+          )}
+
+          {createdCredentials?.error && (
+            <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 font-body">
+              Failed to auto-create parent auth account: {createdCredentials.error}
+            </div>
+          )}
+
+          <button onClick={() => setCreatedCredentials(null)}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift transition-all font-body text-center block">
+            Close
+          </button>
+        </div>
+      </Modal>
+
       {/* Import Report Modal */}
       {importReport && (
         <ImportReportModal
@@ -618,6 +698,10 @@ export default function AdminStudentsPage() {
           duplicatesSkipped={importReport.duplicatesSkipped}
           failCount={importReport.failCount}
           errors={importReport.errors}
+          parentCreatedCount={importReport.parentCreatedCount}
+          parentSkippedCount={importReport.parentSkippedCount}
+          parentErrorCount={importReport.parentErrorCount}
+          parentAccounts={importReport.parentAccounts}
         />
       )}
     </div>

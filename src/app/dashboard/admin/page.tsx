@@ -6,6 +6,7 @@ import { getStudents, getFees, getAnnouncements } from "@/lib/data-store"
 import StatCard from "@/components/dashboard/StatCard"
 import { Users, CreditCard, BarChart3, GraduationCap, Bell, TrendingUp, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { supabase, isSupabaseConfigured } from "@/lib/supabase"
 
 export default function AdminDashboard() {
   const [totalStudents, setTotalStudents] = useState(0)
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
   const [recentAnnouncements, setRecentAnnouncements] = useState<{ title: string; date: string }[]>([])
 
   const [loading, setLoading] = useState(true)
+  const [pendingParents, setPendingParents] = useState<{ email: string; name: string }[]>([])
 
   useEffect(() => {
     const loadAdminData = async () => {
@@ -42,6 +44,23 @@ export default function AdminDashboard() {
 
         // Recent announcements
         setRecentAnnouncements(announcements.slice(0, 4).map((a) => ({ title: a.title, date: a.date })))
+
+        // Fetch pending parents
+        if (isSupabaseConfigured()) {
+          const { data: profiles, error: profileErr } = await supabase
+            .from("profiles")
+            .select("email, name")
+            .eq("role", "parent")
+            .eq("must_change_password", true)
+
+          if (!profileErr && profiles) {
+            setPendingParents(profiles.map((p) => ({ email: p.email, name: p.name || "" })))
+          }
+        } else {
+          setPendingParents([
+            { email: "parent@school.com", name: "Demo Parent" }
+          ])
+        }
       } catch (err) {
         console.error("Admin dashboard load error:", err)
       } finally {
@@ -175,6 +194,36 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+          </motion.div>
+
+          {/* Pending Parent Accounts */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-soft-white rounded-3xl p-6 border border-beige/20 shadow-soft"
+          >
+            <h3 className="text-base font-display font-semibold text-olive mb-1">Parent Credentials</h3>
+            <p className="text-xs text-olive/40 font-body mb-4">
+              Parents who must change their password on first login.
+            </p>
+            {pendingParents.length > 0 ? (
+              <div className="space-y-2.5 max-h-[180px] overflow-y-auto pr-1">
+                {pendingParents.map((parent, idx) => (
+                  <div key={idx} className="p-3 bg-cream/40 rounded-2xl border border-beige/10 flex flex-col gap-1 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-olive font-body">{parent.name || "Parent User"}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-50 text-[10px] text-amber-700 border border-amber-200/50 font-body font-medium">Pending Change</span>
+                    </div>
+                    <span className="text-olive/50 font-mono select-all break-all">{parent.email}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-xs text-olive/30 font-body">
+                All parent accounts are active and verified.
+              </div>
+            )}
           </motion.div>
         </div>
       </div>

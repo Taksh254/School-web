@@ -34,7 +34,7 @@ describe("Student CRUD — localStorage mode", () => {
 
   describe("addStudent", () => {
     it("adds a student and returns it with a generated id", async () => {
-      const added = await addStudent(mockNewStudentData)
+      const { student: added } = await addStudent(mockNewStudentData)
       expect(added.id).toBeDefined()
       expect(added.id.length).toBeGreaterThan(0)
       expect(added.name).toBe("Test Child")
@@ -125,15 +125,16 @@ describe("Student CRUD — localStorage mode", () => {
   })
 
   describe("bulkAddStudents", () => {
-    it("returns empty array when given empty input", async () => {
-      const result = await bulkAddStudents([])
-      expect(result).toEqual([])
+    it("returns empty arrays when given empty input", async () => {
+      const { students, parentAccounts } = await bulkAddStudents([])
+      expect(students).toEqual([])
+      expect(parentAccounts).toEqual([])
     })
 
     it("inserts multiple students and assigns each a unique id", async () => {
-      const result = await bulkAddStudents([mockNewStudentData, { ...mockNewStudentData, name: "Second Child", admissionNo: "ADM-TEST-002" }])
-      expect(result).toHaveLength(2)
-      expect(result[0].id).not.toBe(result[1].id)
+      const { students } = await bulkAddStudents([mockNewStudentData, { ...mockNewStudentData, name: "Second Child", admissionNo: "ADM-TEST-002" }])
+      expect(students).toHaveLength(2)
+      expect(students[0].id).not.toBe(students[1].id)
     })
 
     it("all inserted students are retrievable via getStudents", async () => {

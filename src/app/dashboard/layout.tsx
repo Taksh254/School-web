@@ -8,7 +8,7 @@ import DashboardTopbar from "@/components/dashboard/DashboardTopbar"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, loading } = useAuth()
+  const { user, loading, mustChangePassword } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -16,6 +16,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!loading) {
       if (!user) {
         router.replace("/login")
+      } else if (mustChangePassword) {
+        router.replace("/auth/change-password")
       } else {
         const isWrongAdmin = pathname.startsWith("/dashboard/admin") && user.role !== "admin"
         const isWrongParent = pathname.startsWith("/dashboard/parent") && user.role !== "parent"
@@ -26,14 +28,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       }
     }
-  }, [user, loading, router, pathname])
+  }, [user, loading, mustChangePassword, router, pathname])
 
   const isWrongRole = user && (
     (pathname.startsWith("/dashboard/admin") && user.role !== "admin") ||
     (pathname.startsWith("/dashboard/parent") && user.role !== "parent")
   )
 
-  if (loading || isWrongRole) {
+  if (loading || isWrongRole || (user && mustChangePassword)) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />

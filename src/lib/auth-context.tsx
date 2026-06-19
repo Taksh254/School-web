@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 interface AuthState {
   user: User | null
   loading: boolean
+  mustChangePassword: boolean
   sessionDebug: {
     hasSession: boolean
     userId: string | null
@@ -37,6 +38,7 @@ const defaultDebug: AuthState["sessionDebug"] = {
 const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
+  mustChangePassword: false,
   sessionDebug: defaultDebug,
   login: async () => ({ success: false }),
   bypassLogin: async () => ({ success: false }),
@@ -80,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mustChangePassword, setMustChangePassword] = useState(false)
   const [sessionDebug, setSessionDebug] = useState(defaultDebug)
 
   const fetchProfile = useCallback(async (userId: string, email: string): Promise<User | null> => {
@@ -87,11 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedEmail = email?.trim().toLowerCase() || ""
       const { data, error } = await supabase
         .from("profiles")
-        .select("name, role, child_id")
+        .select("name, role, child_id, must_change_password")
         .eq("id", userId)
         .maybeSingle()
 
       if (!error && data) {
+        // Surface the must_change_password flag so login() can act on it
+        setMustChangePassword(!!data.must_change_password)
         return {
           id: userId,
           email: normalizedEmail,
@@ -404,6 +409,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (data.user) {
           const profile = await fetchProfile(data.user.id, data.user.email || "")
           setUser(profile)
+
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("must_change_password")
+            .eq("id", data.user.id)
+            .maybeSingle()
+
+          if (profileData?.must_change_password) {
+            setMustChangePassword(true)
+            router.replace("/auth/change-password")
+            return { success: true }
+          }
+          setMustChangePassword(false)
           return { success: true }
         } else {
           // No error but no user either - fall through to localStorage
@@ -676,7 +694,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, loginWithGoogle, logout, forgotPassword, updatePassword }}>
+    <AuthContext.Provider value={{ user, loading, mustChangePassword, sessionDebug, login, bypassLogin, register, loginWithGoogle, logout, forgotPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

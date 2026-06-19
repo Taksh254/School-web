@@ -106,6 +106,25 @@ export interface SchoolEvent {
   type: "academic" | "cultural" | "sports" | "holiday" | "meeting"
 }
 
+// ── Parent Account Provisioning ───────────────────────────────
+
+/**
+ * Returned by createParentAccount() and bulkAddStudents() to describe
+ * the outcome for each parent email processed.
+ *
+ * - created: new Supabase Auth user was made
+ * - skipped: email already had an auth account (idempotent)
+ * - error:   something went wrong (message included)
+ */
+export interface ParentAccountResult {
+  email: string
+  /** DDMMYYYY — only present when created=true; must NOT be stored in the DB */
+  defaultPassword?: string
+  created: boolean
+  skipped: boolean
+  error?: string
+}
+
 // ── Teacher Notes ─────────────────────────────────────────────
 
 export interface TeacherNote {
