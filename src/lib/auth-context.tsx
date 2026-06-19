@@ -500,8 +500,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Supabase signout error:", err)
       }
     }
-    router.push("/login")
-  }, [router])
+    window.location.href = "/login"
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, loading, sessionDebug, login, bypassLogin, register, loginWithGoogle, logout }}>
