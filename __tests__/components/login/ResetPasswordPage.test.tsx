@@ -53,9 +53,9 @@ describe("ResetPasswordPage", () => {
     mockGetSession.mockResolvedValue({ data: { session: null }, error: null })
     render(<ResetPasswordPage />)
 
-    // Advance past the 5 s hard timeout
+    // Advance past the 8 s hard timeout
     await act(async () => {
-      jest.advanceTimersByTime(5100)
+      jest.advanceTimersByTime(8100)
     })
 
     expect(await screen.findByText(/Invalid or expired password reset link/i)).toBeInTheDocument()

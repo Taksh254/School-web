@@ -22,17 +22,28 @@ export default function ResetPasswordPage() {
   const [verifyingSession, setVerifyingSession] = useState(true)
   const [sessionValid, setSessionValid] = useState(false)
 
-  // Verify active recovery session on mount.
+  // ── Session verification ───────────────────────────────────────────────────
   //
-  // WHY onAuthStateChange instead of getSession():
-  //   Supabase password-reset links carry tokens in the URL hash (#access_token=...&type=recovery).
-  //   The JS client exchanges those tokens asynchronously and fires onAuthStateChange with
-  //   event=PASSWORD_RECOVERY when it is done. Calling getSession() immediately on mount
-  //   races against that exchange — getSession() returns null before the tokens are consumed,
-  //   so the page always reported "invalid link" and kept spinning.
+  // Supabase password reset works in two modes depending on the project settings:
+  //
+  // MODE A — PKCE (default for @supabase/ssr):
+  //   Email link → /auth/callback?code=XXX&next=/auth/reset-password
+  //   The callback route calls exchangeCodeForSession(), sets the session cookie,
+  //   then redirects HERE. By the time we render, getSession() already returns a
+  //   valid session. We just need to call getSession() and show the form.
+  //
+  // MODE B — Implicit (legacy):
+  //   Email link → /auth/reset-password#access_token=...&type=recovery
+  //   The Supabase JS client parses the hash, fires onAuthStateChange with
+  //   event=PASSWORD_RECOVERY, and getSession() returns the recovery session.
+  //
+  // Strategy:
+  //   1. Log everything for debugging.
+  //   2. Call getSession() immediately — covers MODE A and page-refresh after MODE B.
+  //   3. Simultaneously listen via onAuthStateChange — covers MODE B first-load.
+  //   4. Hard 8 s timeout — if neither resolves, the link is genuinely invalid.
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      // Offline / local-fallback mode: skip token verification entirely.
       setSessionValid(true)
       setVerifyingSession(false)
       return
@@ -43,52 +54,61 @@ export default function ResetPasswordPage() {
     function settle(valid: boolean, err?: string) {
       if (settled) return
       settled = true
-      console.log("[reset-password] settle called — valid:", valid, "error:", err ?? "none")
+      console.log("[reset-password] settle →", valid, err ?? "")
       if (!valid && err) setError(err)
       setSessionValid(valid)
       setVerifyingSession(false)
     }
 
-    // Log current URL for debugging
-    console.log("[reset-password] Current URL:", typeof window !== "undefined" ? window.location.href : "SSR")
+    // ── Debug: log current URL and hash ──────────────────────────────────────
+    if (typeof window !== "undefined") {
+      console.log("[reset-password] href  :", window.location.href)
+      console.log("[reset-password] hash  :", window.location.hash || "(empty)")
+      console.log("[reset-password] search:", window.location.search || "(empty)")
+    }
 
-    // Primary: listen for the PASSWORD_RECOVERY auth event
+    // ── Step 1: onAuthStateChange (covers implicit/MODE B, and PKCE refresh) ─
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[reset-password] onAuthStateChange event:", event, "session:", session ? "present" : "null")
+      console.log("[reset-password] onAuthStateChange →", event, session ? "session present" : "no session")
       if (event === "PASSWORD_RECOVERY") {
-        console.log("[reset-password] PASSWORD_RECOVERY received — session valid")
+        console.log("[reset-password] PASSWORD_RECOVERY — showing form")
         settle(true)
       } else if (event === "SIGNED_IN" && session) {
-        // Some Supabase versions emit SIGNED_IN instead of PASSWORD_RECOVERY for recovery links
-        console.log("[reset-password] SIGNED_IN with session — treating as valid recovery session")
+        // Some Supabase versions fire SIGNED_IN for recovery sessions on this page
+        console.log("[reset-password] SIGNED_IN with session — showing form")
         settle(true)
       } else if (event === "SIGNED_OUT") {
         settle(false, "Session expired. Please request a new password reset link.")
       }
     })
 
-    // Secondary: check if a session already exists (e.g. user refreshed the page after tokens were exchanged)
-    async function secondaryCheck() {
+    // ── Step 2: getSession() check (covers MODE A / PKCE after callback) ─────
+    async function checkExistingSession() {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        console.log("[reset-password] getSession() result — session:", session ? "present" : "null", "error:", sessionError?.message ?? "none")
+        console.log(
+          "[reset-password] getSession() →",
+          session ? `session present (user: ${session.user?.email})` : "null",
+          sessionError ? `error: ${sessionError.message}` : ""
+        )
         if (session && !sessionError) {
           settle(true)
         }
-        // If null, we wait for onAuthStateChange — don't settle false here
+        // If null — don't fail yet; wait for onAuthStateChange or timeout
       } catch (err: any) {
         console.error("[reset-password] getSession() threw:", err?.message)
-        // Don't settle — still wait for onAuthStateChange
       }
     }
-    secondaryCheck()
+    checkExistingSession()
 
-    // Hard timeout: if neither the event nor an existing session resolves within 5 s,
-    // the link is genuinely invalid / expired.
+    // ── Step 3: Timeout fallback ──────────────────────────────────────────────
+    // 8 s is generous enough for slow connections. If PKCE exchange was done
+    // by the callback route, getSession() resolves in <100 ms. If the user
+    // is arriving via an implicit hash, onAuthStateChange fires in <500 ms.
     const timeout = setTimeout(() => {
-      console.warn("[reset-password] 5 s timeout reached without PASSWORD_RECOVERY event — link likely expired")
+      console.warn("[reset-password] 8 s timeout — no valid recovery session detected. Link is likely expired or invalid.")
       settle(false, "Invalid or expired password reset link. Please request a new one.")
-    }, 5000)
+    }, 8000)
 
     return () => {
       subscription.unsubscribe()
@@ -119,7 +139,7 @@ export default function ResetPasswordPage() {
       if (res.success) {
         setSuccess("Password updated successfully!")
         
-        // Log out the temporary recovery session to prevent lingering access
+        // Sign out the temporary recovery session so the user must re-login
         if (isSupabaseConfigured()) {
           await supabase.auth.signOut()
         }

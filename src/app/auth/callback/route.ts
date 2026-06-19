@@ -10,8 +10,12 @@ function isAdminEmail(email: string): boolean {
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
+  // `next` is set when Supabase redirects via PKCE and we need to send the user
+  // somewhere other than the dashboard (e.g. password reset).
+  const next = searchParams.get("next") ?? ""
+  const type = searchParams.get("type") ?? ""
 
-  console.log(`[auth/callback] GET request received. Origin: ${origin}, Code present: ${!!code}`)
+  console.log(`[auth/callback] GET request received. Origin: ${origin}, Code present: ${!!code}, type: ${type}, next: ${next}`)
 
   if (!code) {
     console.warn("[auth/callback] Missing code. Redirecting to login with error.")
@@ -52,6 +56,29 @@ export async function GET(request: NextRequest) {
     return errResponse
   }
 
+  // ── Password-recovery flow ────────────────────────────────────────────────
+  // When a user clicks a password-reset link, Supabase exchanges the PKCE code
+  // here and then the user must be sent to /auth/reset-password (NOT the
+  // dashboard) so they can choose a new password.
+  //
+  // Supabase signals a recovery flow in two ways:
+  //   1. `type=recovery` query param on the callback URL  (some versions)
+  //   2. `next` param contains "/auth/reset-password"     (when redirectTo is set)
+  //
+  // We check both so the flow works regardless of Supabase version.
+  const isRecovery = type === "recovery" || next.startsWith("/auth/reset-password")
+
+  if (isRecovery) {
+    console.log("[auth/callback] Recovery flow detected — redirecting to /auth/reset-password")
+    const recoveryUrl = `${origin}/auth/reset-password`
+    const recoveryResponse = NextResponse.redirect(recoveryUrl)
+    pendingCookies.forEach(({ name, value, options }) =>
+      recoveryResponse.cookies.set(name, value, options as Parameters<typeof recoveryResponse.cookies.set>[2])
+    )
+    return recoveryResponse
+  }
+
+  // ── Normal sign-in / OAuth flow ───────────────────────────────────────────
   const { data: { user } } = await supabase.auth.getUser()
   console.log(`[auth/callback] User authenticated successfully: ${user ? user.email : "none"} (ID: ${user ? user.id : "none"})`)
 
@@ -92,6 +119,11 @@ export async function GET(request: NextRequest) {
     if (correctRole === "admin") {
       destination = "/dashboard/admin"
     }
+  }
+
+  // Honor a safe `next` redirect if provided (and it's not a recovery path)
+  if (next && next.startsWith("/") && !next.startsWith("/auth/reset-password")) {
+    destination = next
   }
 
   console.log(`[auth/callback] Redirecting user to destination: ${destination}`)
