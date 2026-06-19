@@ -12,7 +12,6 @@ const testimonials = [
 export default function TestimonialsSection() {
   return (
     <section className="py-20 md:py-28 relative overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-soft-white to-transparent pointer-events-none" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-soft-white rounded-3xl border border-beige/30 shadow-soft p-8 md:p-12">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}

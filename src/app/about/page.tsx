@@ -66,7 +66,7 @@ export default function AboutPage() {
             <SectionHeader
               label="About Us"
               title="A Little Story About Our Little School"
-              description="Little Blossoms was born from a simple belief — that early childhood should be filled with wonder, warmth, and the joy of discovery."
+              description="Tiny Mind Play School was born from a simple belief — that early childhood should be filled with wonder, warmth, and the joy of discovery."
             />
           </AnimatedElement>
 
@@ -87,18 +87,18 @@ export default function AboutPage() {
 
             <AnimatedElement direction="right" delay={0.1}>
               <div className="space-y-4">
-                <p className="text-navy/70 leading-relaxed">
-                  Founded in 2015, Little Blossoms Preschool started with a small group of six
+                <p className="text-olive/70 leading-relaxed">
+                  Founded in 2015, Tiny Mind Play School started with a small group of six
                   children in a sunlit room filled with books, blocks, and laughter. Today, we are a
                   thriving community of over 120 families who trust us with their most precious
                   little ones.
                 </p>
-                <p className="text-navy/70 leading-relaxed">
+                <p className="text-olive/70 leading-relaxed">
                   Our approach is inspired by Montessori philosophy and Scandinavian preschool
                   design — clean, warm, and child-centered. We believe in learning through play,
                   exploration, and meaningful relationships.
                 </p>
-                <p className="text-navy/70 leading-relaxed">
+                <p className="text-olive/70 leading-relaxed">
                   Every corner of our school is designed to spark curiosity. From our cozy reading
                   nooks to our garden classroom, children are free to explore, create, and grow at
                   their own pace.

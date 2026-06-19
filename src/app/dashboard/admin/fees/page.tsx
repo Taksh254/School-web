@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import { getFees, getStudents, addFee, markFeePaid, deleteFee, bulkAddFees } from "@/lib/data-store"
+import { getFees, getStudents, addFee, markFeePaid, deleteFee, updateFee, bulkAddFees } from "@/lib/data-store"
 import type { FeeRecord, Student } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
@@ -149,11 +149,11 @@ export default function AdminFeesPage() {
     if (!editingFee) return
     setErrorBanner(null)
     try {
-      const { error } = await (await import("@/lib/supabase")).supabase
-        .from("fees")
-        .update({ term: editForm.term, amount: editForm.amount, due_date: editForm.dueDate })
-        .eq("id", editingFee.id)
-      if (error) throw new Error(error.message)
+      await updateFee(editingFee.id, {
+        term: editForm.term,
+        amount: editForm.amount,
+        dueDate: editForm.dueDate,
+      })
       setEditModal(false)
       setEditingFee(null)
       refresh()

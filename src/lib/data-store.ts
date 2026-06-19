@@ -557,6 +557,33 @@ export async function deleteFee(id: string): Promise<void> {
   set(K.fees, getLocalFees().filter((f) => f.id !== id))
 }
 
+export async function updateFee(id: string, data: Partial<Pick<FeeRecord, "term" | "amount" | "dueDate">>): Promise<void> {
+  if (isSupabaseConfigured()) {
+    try {
+      const dbRow: Record<string, unknown> = {}
+      if (data.term !== undefined) dbRow.term = data.term
+      if (data.amount !== undefined) dbRow.amount = data.amount
+      if (data.dueDate !== undefined) dbRow.due_date = data.dueDate
+      const { error } = await supabase.from("fees").update(dbRow).eq("id", id)
+      if (!error) return
+      console.warn("Supabase update failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase error:", err)
+    }
+  }
+  const fees = getLocalFees().map((f) =>
+    f.id === id
+      ? {
+          ...f,
+          ...(data.term !== undefined ? { term: data.term } : {}),
+          ...(data.amount !== undefined ? { amount: data.amount } : {}),
+          ...(data.dueDate !== undefined ? { dueDate: data.dueDate } : {}),
+        }
+      : f
+  )
+  set(K.fees, fees)
+}
+
 // ── Payments ──────────────────────────────────────────────────
 
 export async function getPayments(studentId?: string): Promise<Payment[]> {
