@@ -55,13 +55,8 @@ export default function DashboardSidebar({ open, onClose }: SidebarProps) {
     <div className="flex flex-col h-full bg-soft-white border-r border-beige/20">
       {/* Logo */}
       <div className="p-5 flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pistachio to-sage flex items-center justify-center shrink-0">
-          <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
-            <path d="M20 4C16 8 12 12 8 18C4 24 4 30 8 34C12 38 18 38 24 34C30 30 34 24 34 20C34 16 30 12 26 8C22 4 20 4 20 4Z" fill="white" fillOpacity="0.4" />
-            <circle cx="16" cy="20" r="1.5" fill="white" />
-            <circle cx="24" cy="20" r="1.5" fill="white" />
-            <path d="M18 26C19 27 21 27 22 26" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-          </svg>
+        <div className="w-9 h-9 rounded-full overflow-hidden border border-beige/25 flex items-center justify-center shrink-0 shadow-soft">
+          <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
         </div>
         <div className="min-w-0">
           <span className="text-base font-display font-bold text-olive block leading-tight">Tiny Mind Play School</span>

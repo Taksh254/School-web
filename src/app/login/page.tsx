@@ -206,13 +206,8 @@ export default function LoginPage() {
             Back to Home
           </a>
           <div className="text-center mb-8">
-            <div className="w-[88px] h-[88px] mx-auto mb-5 rounded-full bg-gradient-to-br from-pistachio to-sage flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)]">
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                <path d="M20 4C16 8 12 12 8 18C4 24 4 30 8 34C12 38 18 38 24 34C30 30 34 24 34 20C34 16 30 12 26 8C22 4 20 4 20 4Z" fill="white" fillOpacity="0.3" />
-                <circle cx="16" cy="20" r="1.5" fill="white" />
-                <circle cx="24" cy="20" r="1.5" fill="white" />
-                <path d="M18 26C19 27 21 27 22 26" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-              </svg>
+            <div className="w-[88px] h-[88px] mx-auto mb-5 rounded-full overflow-hidden border border-white/60 flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)] bg-gradient-to-br from-pistachio to-sage">
+              <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5">Tiny Mind Play School</h1>
             <p className="text-olive/60 text-sm font-body">

@@ -8,13 +8,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 40 40" fill="none">
-                  <path d="M20 4C16 8 12 12 8 18C4 24 4 30 8 34C12 38 18 38 24 34C30 30 34 24 34 20C34 16 30 12 26 8C22 4 20 4 20 4Z" fill="white" fillOpacity="0.4"/>
-                  <circle cx="16" cy="20" r="1.5" fill="white"/>
-                  <circle cx="24" cy="20" r="1.5" fill="white"/>
-                  <path d="M18 26C19 27 21 27 22 26" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
-                </svg>
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-white/5">
+                <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <span className="text-xl font-display font-bold text-white">Tiny Mind</span>
             </div>
