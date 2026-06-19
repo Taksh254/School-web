@@ -241,32 +241,12 @@ describe("LoginPage", () => {
     })
   })
 
-  describe("Forgot/Reset Password flow", () => {
-    it("renders 'Forgot Password?' link and switches to forgot mode on click", async () => {
-      const user = userEvent.setup({ delay: null })
+  describe("Forgot Password Link", () => {
+    it("renders 'Forgot Password?' link pointing to /forgot-password", () => {
       render(<LoginPage />)
-      const link = screen.getByRole("button", { name: /forgot password\?/i })
-      await user.click(link)
-      await waitFor(() => {
-        expect(screen.getByText("Reset your password")).toBeInTheDocument()
-        expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument()
-        expect(screen.getByRole("button", { name: /send reset link/i })).toBeInTheDocument()
-      })
-    })
-
-    it("calls forgotPassword() with email when forgot form is submitted", async () => {
-      mockForgotPassword.mockResolvedValue({ success: true })
-      const user = userEvent.setup({ delay: null })
-      render(<LoginPage />)
-      
-      await user.click(screen.getByRole("button", { name: /forgot password\?/i }))
-      const emailInput = await screen.findByPlaceholderText("you@example.com")
-      await user.type(emailInput, "test@example.com")
-      await user.click(screen.getByRole("button", { name: /send reset link/i }))
-
-      await waitFor(() => {
-        expect(mockForgotPassword).toHaveBeenCalledWith("test@example.com")
-      })
+      const link = screen.getByRole("link", { name: /forgot password\?/i })
+      expect(link).toBeInTheDocument()
+      expect(link).toHaveAttribute("href", "/forgot-password")
     })
   })
 })

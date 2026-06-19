@@ -516,7 +516,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isSupabaseConfigured()) {
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(normalised, {
-          redirectTo: `${window.location.origin}/login?mode=reset`,
+          redirectTo: `${window.location.origin}/auth/reset-password`,
         })
         if (error) {
           return { success: false, error: error.message }
@@ -528,16 +528,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // LocalStorage fallback mode
-    const matched = DEMO_USERS.find((u) => u.email === normalised) || (() => {
-      const existing = localStorage.getItem("hk_registered_users")
-      const registered: User[] = existing ? JSON.parse(existing) : []
-      return registered.find((u) => u.email === normalised)
-    })()
-
-    if (!matched) {
-      return { success: false, error: "No account found with this email address" }
-    }
-
+    // To prevent email enumeration, we always return success: true
     return { success: true }
   }, [])
 
