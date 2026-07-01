@@ -507,13 +507,12 @@ export async function updateStudent(id: string, data: Partial<Student>): Promise
 
 export async function deleteStudent(id: string): Promise<void> {
   if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from("students").delete().eq("id", id)
-      if (!error) return
-      console.warn("Supabase delete failed, fallback to local storage:", error)
-    } catch (err) {
-      console.error("Supabase error:", err)
+    const { error } = await supabase.from("students").delete().eq("id", id)
+    if (error) {
+      console.error("Supabase delete student failed:", error)
+      throw new Error(error.message)
     }
+    return
   }
   set(K.students, getLocalStudents().filter((s) => s.id !== id))
   set(K.attendance, getLocalAttendance().filter((a) => a.studentId !== id))
@@ -638,13 +637,12 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
 
 export async function deleteFee(id: string): Promise<void> {
   if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from("fees").delete().eq("id", id)
-      if (!error) return
-      console.warn("Supabase delete failed, fallback to local storage:", error)
-    } catch (err) {
-      console.error("Supabase error:", err)
+    const { error } = await supabase.from("fees").delete().eq("id", id)
+    if (error) {
+      console.error("Supabase delete fee failed:", error)
+      throw new Error(error.message)
     }
+    return
   }
   set(K.fees, getLocalFees().filter((f) => f.id !== id))
 }
@@ -781,13 +779,12 @@ export async function updateAnnouncement(id: string, data: Partial<Announcement>
 
 export async function deleteAnnouncement(id: string): Promise<void> {
   if (isSupabaseConfigured()) {
-    try {
-      const { error } = await supabase.from("announcements").delete().eq("id", id)
-      if (!error) return
-      console.warn("Supabase delete failed, fallback to local storage:", error)
-    } catch (err) {
-      console.error("Supabase error:", err)
+    const { error } = await supabase.from("announcements").delete().eq("id", id)
+    if (error) {
+      console.error("Supabase delete announcement failed:", error)
+      throw new Error(error.message)
     }
+    return
   }
   set(K.announcements, getLocalAnnouncements().filter((a) => a.id !== id))
 }
