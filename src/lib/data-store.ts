@@ -452,22 +452,20 @@ export async function addStudent(
   if (isSupabaseConfigured()) {
     try {
       const dbRow = mapStudentToDb(data)
-      const { data: inserted, error } = await supabase.from("students").insert([dbRow]).select().single()
-      if (!error && inserted) {
-        student = mapStudentFromDb(inserted)
+      const res = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add", data: dbRow }),
+      })
+      const json = await res.json()
+      if (res.ok && json.student) {
+        student = mapStudentFromDb(json.student)
       } else {
-        console.warn("Supabase insert failed, fallback to local storage:", error)
-        const localStudents = getLocalStudents()
-        student = { ...data, id: uid() }
-        localStudents.push(student)
-        set(K.students, localStudents)
+        throw new Error(json.error || "Failed to add student")
       }
-    } catch (err) {
-      console.error("Supabase error:", err)
-      const localStudents = getLocalStudents()
-      student = { ...data, id: uid() }
-      localStudents.push(student)
-      set(K.students, localStudents)
+    } catch (err: any) {
+      console.error("[addStudent] API error:", err?.message)
+      throw err
     }
   } else {
     const localStudents = getLocalStudents()
@@ -492,14 +490,15 @@ export async function addStudent(
 
 export async function updateStudent(id: string, data: Partial<Student>): Promise<void> {
   if (isSupabaseConfigured()) {
-    try {
-      const dbRow = mapStudentToDb(data)
-      const { error } = await supabase.from("students").update(dbRow).eq("id", id)
-      if (!error) return
-      console.warn("Supabase update failed, fallback to local storage:", error)
-    } catch (err) {
-      console.error("Supabase error:", err)
-    }
+    const dbRow = mapStudentToDb(data)
+    const res = await fetch("/api/students", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update", id, data: dbRow }),
+    })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || "Failed to update student")
+    return
   }
   const students = getLocalStudents().map((s) => (s.id === id ? { ...s, ...data } : s))
   set(K.students, students)
@@ -507,11 +506,13 @@ export async function updateStudent(id: string, data: Partial<Student>): Promise
 
 export async function deleteStudent(id: string): Promise<void> {
   if (isSupabaseConfigured()) {
-    const { error } = await supabase.from("students").delete().eq("id", id)
-    if (error) {
-      console.error("Supabase delete student failed:", error)
-      throw new Error(error.message)
-    }
+    const res = await fetch("/api/students", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", id }),
+    })
+    const json = await res.json()
+    if (!res.ok) throw new Error(json.error || "Failed to delete student")
     return
   }
   set(K.students, getLocalStudents().filter((s) => s.id !== id))
@@ -848,22 +849,20 @@ export async function bulkAddStudents(
   if (isSupabaseConfigured()) {
     try {
       const dbRows = dataList.map(mapStudentToDb)
-      const { data: inserted, error } = await supabase.from("students").insert(dbRows).select()
-      if (!error && inserted) {
-        insertedStudents = inserted.map(mapStudentFromDb)
+      const res = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bulk", data: dbRows }),
+      })
+      const json = await res.json()
+      if (res.ok && json.students) {
+        insertedStudents = json.students.map(mapStudentFromDb)
       } else {
-        console.warn("Supabase bulk insert failed, fallback to local storage:", error)
-        const localStudents = getLocalStudents()
-        insertedStudents = dataList.map((data) => ({ ...data, id: uid() }))
-        localStudents.push(...insertedStudents)
-        set(K.students, localStudents)
+        throw new Error(json.error || "Bulk insert failed")
       }
-    } catch (err) {
-      console.error("Supabase bulk error:", err)
-      const localStudents = getLocalStudents()
-      insertedStudents = dataList.map((data) => ({ ...data, id: uid() }))
-      localStudents.push(...insertedStudents)
-      set(K.students, localStudents)
+    } catch (err: any) {
+      console.error("[bulkAddStudents] API error:", err?.message)
+      throw err
     }
   } else {
     const localStudents = getLocalStudents()
