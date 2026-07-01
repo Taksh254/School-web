@@ -13,14 +13,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
 
   useEffect(() => {
-    console.log(`[dashboard/layout] Guard check — Path: ${pathname}, Loading: ${loading}, User: ${user ? user.email : "none"}, MustChangePassword: ${mustChangePassword}`)
+    console.log(`[dashboard/layout] Guard check — Path: ${pathname}, Loading: ${loading}, User: ${user ? user.email : "none"}`)
     if (!loading) {
       if (!user) {
         console.log(`[dashboard/layout] Redirecting to /login because user is null`)
         router.replace("/login")
-      } else if (mustChangePassword) {
-        console.log(`[dashboard/layout] Redirecting to /auth/change-password because mustChangePassword is true`)
-        router.replace("/auth/change-password")
       } else {
         const isWrongAdmin = pathname.startsWith("/dashboard/admin") && user.role !== "admin"
         const isWrongParent = pathname.startsWith("/dashboard/parent") && user.role !== "parent"
@@ -35,14 +32,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       }
     }
-  }, [user, loading, mustChangePassword, router, pathname])
+  }, [user, loading, router, pathname])
 
   const isWrongRole = user && (
     (pathname.startsWith("/dashboard/admin") && user.role !== "admin") ||
     (pathname.startsWith("/dashboard/parent") && user.role !== "parent")
   )
 
-  if (loading || isWrongRole || (user && mustChangePassword)) {
+  if (loading || isWrongRole) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />

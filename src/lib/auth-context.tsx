@@ -95,8 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle()
 
       if (!error && data) {
-        // Surface the must_change_password flag so login() can act on it
-        setMustChangePassword(!!data.must_change_password)
+        // Surface the must_change_password flag as false
+        setMustChangePassword(false)
         return {
           id: userId,
           email: normalizedEmail,
@@ -397,11 +397,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq("id", data.user.id)
             .maybeSingle()
 
-          if (profileData?.must_change_password) {
-            setMustChangePassword(true)
-            router.replace("/auth/change-password")
-            return { success: true }
-          }
           setMustChangePassword(false)
           return { success: true }
         } else {

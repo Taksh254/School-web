@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User created but ID not returned" }, { status: 500 })
     }
 
-    // Upsert a profile row: role=parent, must_change_password=true, child_id=studentId
+    // Upsert a profile row: role=parent, must_change_password=false, child_id=studentId
     const { error: profileError } = await adminSupabase.from("profiles").upsert(
       {
         id: userId,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         name: parentName || normalizedEmail.split("@")[0],
         role: "parent",
         child_id: studentId,
-        must_change_password: true,
+        must_change_password: false,
       },
       { onConflict: "id" }
     )
