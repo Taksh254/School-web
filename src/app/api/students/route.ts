@@ -20,6 +20,18 @@ function getAdminClient() {
   })
 }
 
+const VALID_PROGRAMS = ["Play group", "Nursery", "LKG", "UKG"] as const
+
+function validateAndFixRow(dbRow: any): { row: any; error?: string } {
+  const row = { ...dbRow }
+  // Validate program if present
+  if (row.program !== undefined && !VALID_PROGRAMS.includes(row.program)) {
+    console.warn("[students] Invalid program value received:", JSON.stringify(row.program))
+    return { row, error: `Invalid program "${row.program}". Allowed: ${VALID_PROGRAMS.join(", ")}` }
+  }
+  return { row }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -29,7 +41,13 @@ export async function POST(request: NextRequest) {
 
     // ── ADD single student ──────────────────────────────────────
     if (action === "add") {
-      const { data: dbRow } = body as { data: any }
+      const { data: rawRow } = body as { data: any }
+      const { row: dbRow, error: validationError } = validateAndFixRow(rawRow)
+      if (validationError) {
+        return NextResponse.json({ error: validationError }, { status: 400 })
+      }
+
+      console.log("[students/add] inserting:", JSON.stringify(dbRow))
       const { data: inserted, error } = await admin
         .from("students")
         .insert([dbRow])
@@ -37,7 +55,7 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) {
-        console.error("[students/add] error:", error.message)
+        console.error("[students/add] error:", error.message, "| payload:", JSON.stringify(dbRow))
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
       return NextResponse.json({ student: inserted })
@@ -45,14 +63,20 @@ export async function POST(request: NextRequest) {
 
     // ── UPDATE student ──────────────────────────────────────────
     if (action === "update") {
-      const { id, data: dbRow } = body as { id: string; data: any }
+      const { id, data: rawRow } = body as { id: string; data: any }
+      const { row: dbRow, error: validationError } = validateAndFixRow(rawRow)
+      if (validationError) {
+        return NextResponse.json({ error: validationError }, { status: 400 })
+      }
+
+      console.log("[students/update] id:", id, "| payload:", JSON.stringify(dbRow))
       const { error } = await admin
         .from("students")
         .update(dbRow)
         .eq("id", id)
 
       if (error) {
-        console.error("[students/update] error:", error.message)
+        console.error("[students/update] error:", error.message, "| payload:", JSON.stringify(dbRow))
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
       return NextResponse.json({ ok: true })
@@ -72,10 +96,16 @@ export async function POST(request: NextRequest) {
 
     // ── BULK ADD students ───────────────────────────────────────
     if (action === "bulk") {
-      const { data: dbRows } = body as { data: any[] }
+      const { data: rawRows } = body as { data: any[] }
+      const validatedRows: any[] = []
+      for (const rawRow of rawRows) {
+        const { row, error: ve } = validateAndFixRow(rawRow)
+        if (ve) return NextResponse.json({ error: ve }, { status: 400 })
+        validatedRows.push(row)
+      }
       const { data: inserted, error } = await admin
         .from("students")
-        .insert(dbRows)
+        .insert(validatedRows)
         .select()
 
       if (error) {
