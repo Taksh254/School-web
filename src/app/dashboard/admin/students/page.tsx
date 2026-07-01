@@ -210,16 +210,28 @@ export default function AdminStudentsPage() {
     e.preventDefault()
     setModalError(null)
     setErrorBanner(null)
-    setSubmitting(true)
-    try {
-      if (editing) {
-        await updateStudent(editing.id, form)
-        setModalOpen(false)
-        refresh()
-      } else {
+
+    if (editing) {
+      // ── OPTIMISTIC UPDATE: close modal & update list instantly ──
+      const optimistic: Student = { ...editing, ...form }
+      setStudents((prev) => prev.map((s) => (s.id === editing.id ? optimistic : s)))
+      setModalOpen(false)
+
+      // Sync to server in background
+      updateStudent(editing.id, form).then(() => {
+        // Success — no extra refresh needed, list already reflects changes
+      }).catch((err: any) => {
+        // Revert on failure
+        setStudents((prev) => prev.map((s) => (s.id === editing.id ? editing : s)))
+        setErrorBanner(err?.message || "Failed to save changes. Please try again.")
+      })
+    } else {
+      // ADD — still needs server response for the real ID
+      setSubmitting(true)
+      try {
         const { student, parentAccount } = await addStudent(form)
+        setStudents((prev) => [...prev, student])
         setModalOpen(false)
-        refresh()
         if (parentAccount) {
           setCreatedCredentials({
             studentName: student.name,
@@ -230,26 +242,28 @@ export default function AdminStudentsPage() {
             error: parentAccount.error,
           })
         }
+      } catch (err: any) {
+        const msg = err?.message || "Failed to add student."
+        setModalError(msg)
+        setErrorBanner(msg)
+      } finally {
+        setSubmitting(false)
       }
-    } catch (err: any) {
-      const msg = err?.message || "Failed to save student profile."
-      setModalError(msg)
-      setErrorBanner(msg)
-    } finally {
-      setSubmitting(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    setErrorBanner(null)
-    try {
-      await deleteStudent(id)
-      setDeleteConfirm(null)
-      refresh()
-    } catch (err: any) {
-      setErrorBanner(err?.message || "Failed to remove student.")
-      setDeleteConfirm(null)
-    }
+    // ── OPTIMISTIC DELETE: remove from list instantly ──
+    const snapshot = students
+    setStudents((prev) => prev.filter((s) => s.id !== id))
+    setDeleteConfirm(null)
+
+    // Sync to server in background
+    deleteStudent(id).catch((err: any) => {
+      // Revert on failure
+      setStudents(snapshot)
+      setErrorBanner(err?.message || "Failed to remove student. Please try again.")
+    })
   }
 
   const handleLinkParent = async (e: React.FormEvent) => {
