@@ -7,6 +7,7 @@ import type { TeacherNote, Student } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
 import Modal from "@/components/dashboard/Modal"
+import SearchableStudentSelect from "@/components/dashboard/SearchableStudentSelect"
 import { MessageCircle, Plus, Trash2, Award, BookOpen, Heart, AlertCircle, Star, Filter, Users, ShieldAlert } from "lucide-react"
 
 const CATEGORIES = ["academic", "behavior", "health", "general", "achievement"] as const
@@ -262,17 +263,13 @@ export default function AdminNotesPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-olive mb-1 font-body">Select Student *</label>
-            <select
+            <SearchableStudentSelect
               required
+              students={students}
               value={form.studentId}
-              onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body"
-            >
-              {students.length === 0 && <option value="">No Students Available</option>}
-              {students.map((s) => (
-                <option key={s.id} value={s.id}>{s.name} ({s.program})</option>
-              ))}
-            </select>
+              onChange={(studentId) => setForm({ ...form, studentId })}
+              placeholder="Select student..."
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

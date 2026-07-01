@@ -7,6 +7,7 @@ import type { FeeRecord, Student } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
 import Modal from "@/components/dashboard/Modal"
+import SearchableStudentSelect from "@/components/dashboard/SearchableStudentSelect"
 import ImportReportModal from "@/components/dashboard/ImportReportModal"
 import { parseCsvFile, validateFees, exportToCSV, exportToExcel } from "@/lib/importer-exporter"
 import { CreditCard, Plus, CheckCircle, Clock, Trash2, TrendingUp, Upload, Download, FileSpreadsheet, Pencil } from "lucide-react"
@@ -306,11 +307,13 @@ export default function AdminFeesPage() {
         <form onSubmit={handleAddFee} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-olive mb-1 font-body">Student *</label>
-            <select required value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body">
-              <option value="">Select student...</option>
-              {students.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.program})</option>)}
-            </select>
+            <SearchableStudentSelect
+              required
+              students={students}
+              value={form.studentId}
+              onChange={(studentId) => setForm({ ...form, studentId })}
+              placeholder="Select student..."
+            />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
