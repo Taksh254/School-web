@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import { getAttendance, getStudents, bulkAddAttendance } from "@/lib/data-store"
+import { getAttendance, getStudents, bulkAddAttendance, deleteAttendance } from "@/lib/data-store"
 import type { AttendanceRecord, Student, AttendanceStatus } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
 import Modal from "@/components/dashboard/Modal"
 import ImportReportModal from "@/components/dashboard/ImportReportModal"
 import { parseCsvFile, validateAttendance, exportToCSV, exportToExcel } from "@/lib/importer-exporter"
-import { CalendarCheck, CheckCircle, XCircle, Clock, Upload, Download, FileSpreadsheet, Plus, Calendar, Filter } from "lucide-react"
+import { CalendarCheck, CheckCircle, XCircle, Clock, Upload, Download, FileSpreadsheet, Plus, Calendar, Filter, Trash2 } from "lucide-react"
 
 interface AttendanceRow {
   id: string
@@ -32,6 +32,7 @@ export default function AdminAttendancePage() {
   const [markModalOpen, setMarkModalOpen] = useState(false)
   const [attendanceDate, setAttendanceDate] = useState("")
   const [studentStatuses, setStudentStatuses] = useState<Record<string, AttendanceStatus>>({})
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importReport, setImportReport] = useState<{
@@ -59,6 +60,18 @@ export default function AdminAttendancePage() {
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
+
+  const handleDelete = async (id: string) => {
+    setErrorBanner(null)
+    try {
+      await deleteAttendance(id)
+      setDeleteConfirm(null)
+      refresh()
+    } catch (err: any) {
+      setErrorBanner(err?.message || "Failed to remove attendance record.")
+      setDeleteConfirm(null)
+    }
+  }
 
   // Reset/initialize student statuses when opening Mark modal
   useEffect(() => {
@@ -212,6 +225,22 @@ export default function AdminAttendancePage() {
           }`} />
           {row.status}
         </span>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (row: AttendanceRow) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setDeleteConfirm(row.id)}
+            className="p-1.5 rounded-lg hover:bg-red-50 text-olive/40 hover:text-red-500 transition-colors"
+            title="Delete Record"
+            aria-label="Delete"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       ),
     },
   ]
@@ -425,6 +454,23 @@ export default function AdminAttendancePage() {
           errors={importReport.errors}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Attendance Record" maxWidth="max-w-sm">
+        <p className="text-sm text-olive/60 mb-4 font-body">
+          Are you sure you want to delete this attendance record? This action cannot be undone.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={() => setDeleteConfirm(null)}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-cream text-olive/60 text-sm font-medium hover:bg-beige/30 transition-colors font-body">
+            Cancel
+          </button>
+          <button onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors font-body">
+            Delete
+          </button>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -540,6 +540,19 @@ export async function getAttendance(studentId?: string): Promise<AttendanceRecor
   return getLocalAttendance(studentId)
 }
 
+export async function deleteAttendance(id: string): Promise<void> {
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase.from("attendance").delete().eq("id", id)
+    if (error) {
+      console.error("Supabase delete attendance failed:", error)
+      throw new Error(error.message)
+    }
+    return
+  }
+  const attendance = get<AttendanceRecord[]>(K.attendance, [])
+  set(K.attendance, attendance.filter((a) => a.id !== id))
+}
+
 // ── Fees CRUD ─────────────────────────────────────────────────
 
 export async function getFees(studentId?: string): Promise<FeeRecord[]> {
