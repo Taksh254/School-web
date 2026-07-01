@@ -39,6 +39,8 @@ export default function AdminStudentsPage() {
   const [filter, setFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [modalError, setModalError] = useState<string | null>(null)
   const [errorBanner, setErrorBanner] = useState<string | null>(null)
 
   // Linking parent state
@@ -182,6 +184,7 @@ export default function AdminStudentsPage() {
   const openAdd = () => {
     setEditing(null)
     setForm(emptyForm)
+    setModalError(null)
     setModalOpen(true)
   }
 
@@ -199,12 +202,15 @@ export default function AdminStudentsPage() {
       admissionNo: student.admissionNo,
       teacher: student.teacher,
     })
+    setModalError(null)
     setModalOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setModalError(null)
     setErrorBanner(null)
+    setSubmitting(true)
     try {
       if (editing) {
         await updateStudent(editing.id, form)
@@ -226,7 +232,11 @@ export default function AdminStudentsPage() {
         }
       }
     } catch (err: any) {
-      setErrorBanner(err?.message || "Failed to save student profile.")
+      const msg = err?.message || "Failed to save student profile."
+      setModalError(msg)
+      setErrorBanner(msg)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -561,14 +571,24 @@ export default function AdminStudentsPage() {
             </div>
           </div>
 
+          {modalError && (
+            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-body">
+              ⚠️ {modalError}
+            </div>
+          )}
+
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-cream text-olive/60 text-sm font-medium hover:bg-beige/30 transition-colors font-body">
+            <button type="button" onClick={() => setModalOpen(false)} disabled={submitting}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-cream text-olive/60 text-sm font-medium hover:bg-beige/30 transition-colors font-body disabled:opacity-50">
               Cancel
             </button>
-            <button type="submit"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift transition-all font-body">
-              {editing ? "Save Changes" : "Add Student"}
+            <button type="submit" disabled={submitting}
+              className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium shadow-soft hover:shadow-lift transition-all font-body disabled:opacity-70 flex items-center justify-center gap-2">
+              {submitting ? (
+                <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> Saving...</>
+              ) : (
+                editing ? "Save Changes" : "Add Student"
+              )}
             </button>
           </div>
         </form>
