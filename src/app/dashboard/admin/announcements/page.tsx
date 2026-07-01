@@ -14,8 +14,9 @@ export default function AdminAnnouncementsPage() {
   const [editing, setEditing] = useState<Announcement | null>(null)
   const [form, setForm] = useState({ title: "", content: "", priority: "normal" as AnnouncementPriority, published: true, author: "Principal Sunita" })
   const [loading, setLoading] = useState(true)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const exportData = announcements.map((a) => ({
       "Title": a.title,
       "Content": a.content,
@@ -24,10 +25,10 @@ export default function AdminAnnouncementsPage() {
       "Published": a.published ? "Yes" : "No",
       "Author": a.author,
     }))
-    exportToCSV(exportData, "announcements_export")
+    await exportToCSV(exportData, "announcements_export")
   }
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const exportData = announcements.map((a) => ({
       "Title": a.title,
       "Content": a.content,
@@ -36,7 +37,7 @@ export default function AdminAnnouncementsPage() {
       "Published": a.published ? "Yes" : "No",
       "Author": a.author,
     }))
-    exportToExcel(exportData, "announcements_export")
+    await exportToExcel(exportData, "announcements_export")
   }
 
 
@@ -84,6 +85,7 @@ export default function AdminAnnouncementsPage() {
 
   const handleDelete = async (id: string) => {
     await deleteAnnouncement(id)
+    setDeleteConfirmId(null)
     refresh()
   }
 
@@ -165,7 +167,7 @@ export default function AdminAnnouncementsPage() {
                   className="p-1.5 rounded-lg hover:bg-cream text-olive/40 hover:text-olive transition-colors" aria-label="Edit">
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => handleDelete(a.id)}
+                <button onClick={() => setDeleteConfirmId(a.id)}
                   className="p-1.5 rounded-lg hover:bg-red-50 text-olive/40 hover:text-red-500 transition-colors" aria-label="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -229,6 +231,23 @@ export default function AdminAnnouncementsPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Delete Announcement" maxWidth="max-w-sm">
+        <p className="text-sm text-olive/60 mb-4 font-body">
+          Are you sure you want to delete this announcement? This action cannot be undone.
+        </p>
+        <div className="flex gap-3">
+          <button onClick={() => setDeleteConfirmId(null)}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-cream text-olive/60 text-sm font-medium hover:bg-beige/30 transition-colors font-body">
+            Cancel
+          </button>
+          <button onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors font-body">
+            Delete
+          </button>
+        </div>
       </Modal>
     </div>
   )

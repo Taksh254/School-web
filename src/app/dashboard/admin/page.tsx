@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { getStudents, getFees, getAnnouncements } from "@/lib/data-store"
+import { getStudentsBrief, getFeesBrief, getAnnouncements } from "@/lib/data-store"
 import StatCard from "@/components/dashboard/StatCard"
 import { Users, CreditCard, BarChart3, GraduationCap, Bell, TrendingUp, ArrowRight } from "lucide-react"
 import Link from "next/link"
@@ -24,9 +24,9 @@ export default function AdminDashboard() {
       setLoading(true)
       try {
         const [students, fees, announcements] = await Promise.all([
-          getStudents(),
-          getFees(),
-          getAnnouncements(),
+          getStudentsBrief(),
+          getFeesBrief(),
+          getAnnouncements(4), // Limit database results to 4 notices
         ])
 
         setTotalStudents(students.length)
@@ -43,7 +43,7 @@ export default function AdminDashboard() {
         setClassCounts(Object.entries(counts).map(([name, count]) => ({ name, count })))
 
         // Recent announcements
-        setRecentAnnouncements(announcements.slice(0, 4).map((a) => ({ title: a.title, date: a.date })))
+        setRecentAnnouncements(announcements.map((a) => ({ title: a.title, date: a.date })))
 
         // Fetch pending parents
         if (isSupabaseConfigured()) {

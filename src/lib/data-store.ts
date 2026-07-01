@@ -128,7 +128,7 @@ const SEED_STUDENTS: Student[] = [
 
 function generateAttendance(): AttendanceRecord[] {
   const records: AttendanceRecord[] = []
-  const year = 2026
+  const year = new Date().getFullYear()
   const month = 4 // May (0-indexed)
 
   for (const student of SEED_STUDENTS) {
@@ -339,6 +339,7 @@ function mapAnnouncementToDb(a: Omit<Announcement, "id"> | Partial<Announcement>
   const row: any = {}
   if (a.title !== undefined) row.title = a.title
   if (a.content !== undefined) row.content = a.content
+  if (a.date !== undefined) row.date = a.date
   if (a.priority !== undefined) row.priority = a.priority
   if (a.published !== undefined) row.published = a.published
   if (a.author !== undefined) row.author = a.author
@@ -696,17 +697,53 @@ export async function getPayments(studentId?: string): Promise<Payment[]> {
 
 // ── Announcements CRUD ────────────────────────────────────────
 
-export async function getAnnouncements(): Promise<Announcement[]> {
+export async function getAnnouncements(limit?: number): Promise<Announcement[]> {
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.from("announcements").select("*").order("date", { ascending: false })
+      let query = supabase.from("announcements").select("*").order("date", { ascending: false })
+      if (limit) {
+        query = query.limit(limit)
+      }
+      const { data, error } = await query
       if (!error && data) return data.map(mapAnnouncementFromDb)
       console.warn("Supabase fetch failed, fallback to local storage:", error)
     } catch (err) {
       console.error("Supabase error:", err)
     }
   }
-  return getLocalAnnouncements()
+  const local = getLocalAnnouncements()
+  return limit ? local.slice(0, limit) : local
+}
+
+export async function getStudentsBrief(): Promise<{ id: string; program: string }[]> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from("students").select("id, program")
+      if (!error && data) return data as { id: string; program: string }[]
+      console.warn("Supabase brief fetch failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase error:", err)
+    }
+  }
+  return getLocalStudents().map((s) => ({ id: s.id, program: s.program }))
+}
+
+export async function getFeesBrief(): Promise<{ amount: number; paidAmount: number }[]> {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase.from("fees").select("amount, paid_amount")
+      if (!error && data) {
+        return data.map((f) => ({
+          amount: Number(f.amount),
+          paidAmount: Number(f.paid_amount),
+        }))
+      }
+      console.warn("Supabase brief fetch failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase error:", err)
+    }
+  }
+  return getLocalFees().map((f) => ({ amount: f.amount, paidAmount: f.paidAmount }))
 }
 
 export async function addAnnouncement(data: Omit<Announcement, "id">): Promise<Announcement> {

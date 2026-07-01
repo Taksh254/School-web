@@ -1,5 +1,3 @@
-import Papa from "papaparse"
-import * as XLSX from "xlsx"
 import type { Student, FeeRecord, AttendanceRecord, ProgramType, FeeStatus, AttendanceStatus, Announcement } from "./types"
 
 export interface ImportError {
@@ -40,7 +38,8 @@ export function getVal(row: Record<string, unknown>, keys: string[]): string {
 }
 
 // ── CSV Parsing Wrapper ─────────────────────────────────────────
-export function parseCsvFile(file: File): Promise<Record<string, unknown>[]> {
+export async function parseCsvFile(file: File): Promise<Record<string, unknown>[]> {
+  const Papa = (await import("papaparse")).default
   return new Promise((resolve, reject) => {
     Papa.parse<Record<string, unknown>>(file, {
       header: true,
@@ -56,7 +55,8 @@ export function parseCsvFile(file: File): Promise<Record<string, unknown>[]> {
 }
 
 // ── Export Wrappers ─────────────────────────────────────────────
-export function exportToCSV(data: any[], fileName: string) {
+export async function exportToCSV(data: any[], fileName: string) {
+  const Papa = (await import("papaparse")).default
   const csvContent = Papa.unparse(data)
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)
@@ -69,7 +69,8 @@ export function exportToCSV(data: any[], fileName: string) {
   document.body.removeChild(link)
 }
 
-export function exportToExcel(data: any[], fileName: string) {
+export async function exportToExcel(data: any[], fileName: string) {
+  const XLSX = await import("xlsx")
   const ws = XLSX.utils.json_to_sheet(data)
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, "Data")

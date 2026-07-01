@@ -155,12 +155,12 @@ export default function AdminStudentsPage() {
     }
   }
 
-  const handleExportCSV = () => {
-    exportStudentsCSV(filtered, "students_export")
+  const handleExportCSV = async () => {
+    await exportStudentsCSV(filtered, "students_export")
   }
 
-  const handleExportExcel = () => {
-    exportStudentsExcel(filtered, "students_export")
+  const handleExportExcel = async () => {
+    await exportStudentsExcel(filtered, "students_export")
   }
 
   const refresh = useCallback(async () => {

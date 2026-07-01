@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx"
 import type { Student, ProgramType } from "./types"
 
 export interface ImportedRow {
@@ -21,7 +20,8 @@ export interface ImportPreview {
   invalidCount: number
 }
 
-export function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
+export async function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
+  const XLSX = await import("xlsx")
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -175,7 +175,7 @@ export function previewToStudentData(preview: ImportedRow[]): Omit<Student, "id"
       if (program === "Play group") age = 3
       if (program === "LKG") age = 5
       if (program === "UKG") age = 6
-      const birthYear = 2026 - age
+      const birthYear = new Date().getFullYear() - age
       dateOfBirth = `${birthYear}-01-01`
     }
 

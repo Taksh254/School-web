@@ -146,7 +146,7 @@ create or replace function public.is_admin()
 returns boolean security definer set search_path = public as $$
 begin
     return coalesce(
-        lower(auth.jwt() ->> 'email') in ('admin@school.com', 'sehrawatsonia27@gmail.com'),
+        lower(auth.jwt() ->> 'email') in ('admin@school.com', 'sehrawatsonia27@gmail.com', 'admin01@gmail.com'),
         false
     );
 end;
@@ -243,7 +243,7 @@ begin
         new.email,
         coalesce(new.raw_user_meta_data->>'name', 'New Parent'),
         case 
-            when lower(new.email) in ('admin@school.com', 'sehrawatsonia27@gmail.com') then 'admin'
+            when lower(new.email) in ('admin@school.com', 'sehrawatsonia27@gmail.com', 'admin01@gmail.com') then 'admin'
             else 'parent'
         end,
         case 

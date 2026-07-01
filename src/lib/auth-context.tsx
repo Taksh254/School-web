@@ -126,8 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (user) {
       localStorage.setItem("hk_user", JSON.stringify(user))
-      const isProd = process.env.NODE_ENV === "production"
-      document.cookie = `hk_bypass_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400; SameSite=Lax${isProd ? "; Secure" : ""}`
+      // Only write the bypass cookie in development — it is read by middleware only in dev mode
+      if (process.env.NODE_ENV === "development") {
+        document.cookie = `hk_bypass_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=86400; SameSite=Lax`
+      }
     } else {
       localStorage.removeItem("hk_user")
       document.cookie = "hk_bypass_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
@@ -141,127 +143,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let subscription: { unsubscribe: () => void } | null = null
 
     async function init() {
-      // For non-Supabase mode, restore from localStorage immediately
+      // Stale-While-Revalidate: Load from localStorage first to prevent spinner flash
+      let localUser: User | null = null
+      try {
+        const raw = localStorage.getItem("hk_user")
+        if (raw) {
+          const parsed = JSON.parse(raw) as User
+          localUser = parsed
+          setUser(parsed)
+          setSessionDebug({
+            hasSession: true,
+            userId: parsed.id,
+            email: parsed.email,
+            role: parsed.role,
+            provider: parsed.id.startsWith("u-") ? "localStorage" : "supabase",
+          })
+          setLoading(false) // Render dashboard immediately
+        }
+      } catch { /* ignore */ }
+
+      // For non-Supabase mode, if we already loaded from localStorage, we are done
       if (!isSupabaseConfigured()) {
-        try {
-          const raw = localStorage.getItem("hk_user")
-          if (raw) {
-            const parsed = JSON.parse(raw)
-            setUser((prev) => {
-              if (
-                prev &&
-                prev.id === parsed.id &&
-                prev.email === parsed.email &&
-                prev.name === parsed.name &&
-                prev.role === parsed.role &&
-                prev.childId === parsed.childId
-              ) {
-                return prev
-              }
-              return parsed
-            })
-            setSessionDebug({
-              hasSession: true,
-              userId: parsed.id,
-              email: parsed.email,
-              role: parsed.role,
-              provider: "localStorage",
-            })
-          }
-        } catch { /* empty */ }
-        if (active) setLoading(false)
+        if (!localUser && active) setLoading(false)
         return
       }
 
-      // Step 1: Check existing Supabase session first
-      const { data: { session }, error } = await supabase.auth.getSession()
+      // Step 1: Check existing Supabase session in background
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
 
-      console.log(`[auth-context] init — checking Supabase session. Session found:`, !!session, `Error:`, error?.message || "none")
+        if (!active) return
 
-      if (!active) return
+        if (!error && session?.user) {
+          const email = session.user.email?.trim().toLowerCase() || ""
+          const correctRole: Role = inferRoleFromEmail(email)
+          const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split("@")[0] || "School User"
+          await ensureProfile(session.user.id, email, name, correctRole)
 
-      if (!error && session?.user) {
-        const email = session.user.email?.trim().toLowerCase() || ""
-        const correctRole: Role = inferRoleFromEmail(email)
-        const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || email.split("@")[0] || "School User"
-        await ensureProfile(session.user.id, email, name, correctRole)
-
-        const profile = await fetchProfile(session.user.id, email)
-        console.log(`[auth-context] init — fetched profile for ${email}:`, profile)
-        if (active && profile) {
-          // Override role with correct value in case profile had stale data
-          profile.role = correctRole
-          setUser((prev) => {
-            if (
-              prev &&
-              prev.id === profile.id &&
-              prev.email === profile.email &&
-              prev.name === profile.name &&
-              prev.role === profile.role &&
-              prev.childId === profile.childId
-            ) {
-              return prev
-            }
-            return profile
-          })
-          setSessionDebug({
-            hasSession: true,
-            userId: profile.id,
-            email: profile.email,
-            role: profile.role,
-            provider: "supabase",
-          })
-          if (active) setLoading(false)
-          return
-        }
-      }
-
-      // Step 2: No Supabase session — try localStorage fallback in offline/demo mode OR dev mode
-      const isDev = process.env.NODE_ENV === "development"
-      if (!isSupabaseConfigured() || isDev) {
-        console.log(`[auth-context] init — falling back to localStorage check`)
-        try {
-          const raw = localStorage.getItem("hk_user")
-          if (raw) {
-            const parsed = JSON.parse(raw)
-            console.log(`[auth-context] init — found user in localStorage:`, parsed.email)
+          const profile = await fetchProfile(session.user.id, email)
+          if (active && profile) {
+            profile.role = correctRole
             setUser((prev) => {
               if (
                 prev &&
-                prev.id === parsed.id &&
-                prev.email === parsed.email &&
-                prev.name === parsed.name &&
-                prev.role === parsed.role &&
-                prev.childId === parsed.childId
+                prev.id === profile.id &&
+                prev.email === profile.email &&
+                prev.name === profile.name &&
+                prev.role === profile.role &&
+                prev.childId === profile.childId
               ) {
                 return prev
               }
-              return parsed
+              return profile
             })
             setSessionDebug({
               hasSession: true,
-              userId: parsed.id,
-              email: parsed.email,
-              role: parsed.role,
-              provider: "localStorage",
+              userId: profile.id,
+              email: profile.email,
+              role: profile.role,
+              provider: "supabase",
             })
-          } else {
-            console.log(`[auth-context] init — no localStorage session, user set to null`)
-            setUser(null)
-            setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
           }
-        } catch (err: any) {
-          console.error(`[auth-context] init — localStorage read failed:`, err?.message)
-          setUser(null)
-          setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+        } else {
+          // No active Supabase session
+          const isDev = process.env.NODE_ENV === "development"
+          if (isDev && localUser && localUser.id.startsWith("u-")) {
+            // Keep local dev bypass user logged in
+          } else {
+            // Clear user in production or if it was a supabase user that expired
+            if (active) {
+              setUser(null)
+              localStorage.removeItem("hk_user")
+              setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+            }
+          }
         }
-      } else {
-        console.log(`[auth-context] init (production) — no Supabase session, fallback blocked, user set to null`)
-        setUser(null)
-        setSessionDebug({ hasSession: false, userId: null, email: null, role: null, provider: "none" })
+      } catch (err) {
+        console.error("[auth-context] Background session fetch failed:", err)
+      } finally {
+        if (active) setLoading(false)
       }
-
-      if (active) setLoading(false)
     }
 
     init()
@@ -637,6 +598,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           return { success: false, error: error.message }
         }
+        // Clear the flag in-memory immediately so the dashboard layout
+        // doesn't re-redirect the user to /auth/change-password
+        setMustChangePassword(false)
         return { success: true }
       } catch (err: any) {
         return { success: false, error: err?.message || "An error occurred" }

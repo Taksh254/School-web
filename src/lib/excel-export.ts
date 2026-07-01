@@ -1,8 +1,7 @@
-import Papa from "papaparse"
-import * as XLSX from "xlsx"
 import type { Student } from "./types"
 
-export function exportStudentsCSV(students: Student[], fileName: string) {
+export async function exportStudentsCSV(students: Student[], fileName: string) {
+  const Papa = (await import("papaparse")).default
   const data = students.map((s) => ({
     "Student Name": s.name,
     "Parents Name": s.parentName,
@@ -25,7 +24,8 @@ export function exportStudentsCSV(students: Student[], fileName: string) {
   URL.revokeObjectURL(url)
 }
 
-export function exportStudentsExcel(students: Student[], fileName: string) {
+export async function exportStudentsExcel(students: Student[], fileName: string) {
+  const XLSX = await import("xlsx")
   const data = students.map((s) => ({
     "Student Name": s.name,
     "Parents Name": s.parentName,

@@ -43,15 +43,15 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase()
 
-    // Check if user already exists
-    const { data: existingUsers } = await adminSupabase.auth.admin.listUsers()
-    const alreadyExists = existingUsers?.users?.some(
-      (u) => u.email?.toLowerCase() === normalizedEmail
-    )
+    // Check if user already exists via profiles table (O(1) — scales to unlimited users)
+    const { data: existingProfile } = await adminSupabase
+      .from("profiles")
+      .select("id, child_id")
+      .eq("email", normalizedEmail)
+      .maybeSingle()
 
-    if (alreadyExists) {
-      console.log(`[create-parent-account] Email already exists, skipping: ${normalizedEmail}`)
-      // Still ensure profile is linked even if auth user already existed
+    if (existingProfile) {
+      // Still ensure child is linked even if auth user already existed
       await adminSupabase
         .from("profiles")
         .update({ child_id: studentId })

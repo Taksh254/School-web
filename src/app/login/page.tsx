@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { ArrowRight, Unlock, ArrowLeft, UserPlus, LogIn, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
@@ -128,8 +129,8 @@ export default function LoginPage() {
             Back to Home
           </a>
           <div className="text-center mb-8">
-            <div className="w-[88px] h-[88px] mx-auto mb-5 rounded-full overflow-hidden border border-white/60 flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)] bg-gradient-to-br from-pistachio to-sage">
-              <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+            <div className="w-[88px] h-[88px] mx-auto mb-5 rounded-full overflow-hidden border border-white/60 flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)] bg-gradient-to-br from-pistachio to-sage relative">
+              <Image src="/images/logo.jpg" alt="Logo" fill sizes="88px" className="object-cover" priority />
             </div>
             <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5">Tiny Mind Play School</h1>
             <p className="text-olive/60 text-sm font-body">

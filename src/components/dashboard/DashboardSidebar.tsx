@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
@@ -55,8 +56,8 @@ export default function DashboardSidebar({ open, onClose }: SidebarProps) {
     <div className="flex flex-col h-full bg-soft-white border-r border-beige/20">
       {/* Logo */}
       <div className="p-5 flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-full overflow-hidden border border-beige/25 flex items-center justify-center shrink-0 shadow-soft">
-          <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+        <div className="w-9 h-9 rounded-full overflow-hidden border border-beige/25 flex items-center justify-center shrink-0 shadow-soft relative">
+          <Image src="/images/logo.jpg" alt="Logo" fill sizes="36px" className="object-cover" priority />
         </div>
         <div className="min-w-0">
           <span className="text-base font-display font-bold text-olive block leading-tight">Tiny Mind Play School</span>

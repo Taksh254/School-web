@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Heart, Mail, Phone, MapPin, Clock, Camera, Globe, Video } from "lucide-react"
 
 export default function Footer() {
@@ -8,8 +9,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-9 h-9 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-white/5">
-                <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-white/5 relative">
+                <Image src="/images/logo.jpg" alt="Logo" fill sizes="36px" className="object-cover" />
               </div>
               <span className="text-xl font-display font-bold text-white">Tiny Mind</span>
             </div>
