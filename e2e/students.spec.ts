@@ -33,7 +33,7 @@ test.describe("Student Management (Admin)", () => {
 
   test("shows all program types from seed data", async ({ page }) => {
     await expect(page.getByText("Play Group").first()).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText("Kindergarten").first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText("UKG").first()).toBeVisible({ timeout: 10000 })
   })
 
   test("'Add Student' button is visible", async ({ page }) => {

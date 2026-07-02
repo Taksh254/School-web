@@ -86,8 +86,8 @@ export function validateStudents(
   const errors: ImportError[] = []
 
   const programMapping: Record<string, ProgramType> = {
-    "play group": "Play group",
-    "playgroup": "Play group",
+    "play group": "Play Group",
+    "playgroup": "Play Group",
     "nursery": "Nursery",
     "lkg": "LKG",
     "ukg": "UKG",
@@ -129,7 +129,7 @@ export function validateStudents(
     if (!program) {
       errors.push({
         row: rowNum,
-        error: `Invalid Class value '${rawClass}'. Must be one of: Play group, Nursery, LKG, UKG`,
+        error: `Invalid Class value '${rawClass}'. Must be one of: Play Group, Nursery, LKG, UKG`,
       })
       return
     }
@@ -172,7 +172,7 @@ export function validateStudents(
       age = calcAge(rawDob)
     } else {
       age = 4
-      if (program === "Play group") age = 3
+      if (program === "Play Group") age = 3
       if (program === "LKG") age = 5
       if (program === "UKG") age = 6
       const birthYear = 2026 - age
@@ -183,7 +183,7 @@ export function validateStudents(
     const admissionNo = `ADM-${String(Date.now()).slice(-6)}-${index + 1}`
 
     let teacher = "Ms. Anita Desai"
-    if (program === "Play group") teacher = "Ms. Priya Kapoor"
+    if (program === "Play Group") teacher = "Ms. Priya Kapoor"
     if (program === "UKG") teacher = "Mr. Rohan Joshi"
 
     validRecords.push({

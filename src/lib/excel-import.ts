@@ -75,8 +75,8 @@ function parseDate(raw: string): string {
 }
 
 const programMapping: Record<string, ProgramType> = {
-  "play group": "Play group",
-  "playgroup": "Play group",
+  "play group": "Play Group",
+  "playgroup": "Play Group",
   "nursery": "Nursery",
   "lkg": "LKG",
   "ukg": "UKG",
@@ -109,7 +109,7 @@ export function generatePreview(rows: Record<string, unknown>[], existingAdmissi
       const normalizedClass = rawClass.toLowerCase()
       const program = programMapping[normalizedClass]
       if (!program) {
-        errs.push(`Invalid Class '${rawClass}'. Must be: Play group, Nursery, LKG, or UKG`)
+        errs.push(`Invalid Class '${rawClass}'. Must be: Play Group, Nursery, LKG, or UKG`)
       }
     }
 
@@ -172,7 +172,7 @@ export function previewToStudentData(preview: ImportedRow[]): Omit<Student, "id"
       age = calcAge(r.dob)
     } else {
       age = 4
-      if (program === "Play group") age = 3
+      if (program === "Play Group") age = 3
       if (program === "LKG") age = 5
       if (program === "UKG") age = 6
       const birthYear = new Date().getFullYear() - age
@@ -181,7 +181,7 @@ export function previewToStudentData(preview: ImportedRow[]): Omit<Student, "id"
 
     const section = "A"
     let teacher = "Ms. Anita Desai"
-    if (program === "Play group") teacher = "Ms. Priya Kapoor"
+    if (program === "Play Group") teacher = "Ms. Priya Kapoor"
     if (program === "UKG") teacher = "Mr. Rohan Joshi"
 
     return {

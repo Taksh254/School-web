@@ -6,7 +6,7 @@ import { Baby, Sprout, TreePine, Music, Clock, Users, BookOpen, Sun, ChevronDown
 import Link from "next/link"
 
 const programs = [
-  { id: "pg", icon: Baby, title: "Play group", age: "2-3 Years", ratio: "1:6", timing: "9AM-12PM", color: "bg-pistachio/10 text-olive",
+  { id: "pg", icon: Baby, title: "Play Group", age: "2-3 Years", ratio: "1:6", timing: "9AM-12PM", color: "bg-pistachio/10 text-olive",
     desc: "A gentle, loving introduction to school life through sensory-rich activities, free play, and guided exploration. Your child will build confidence, social skills, and a love for learning.",
     highlights: ["Sensory play with natural materials", "Music and movement sessions", "Story time with puppets", "Outdoor nature exploration", "Art and messy play", "Social skills through group activities"],
     schedule: "Half-day (3 hours)" },

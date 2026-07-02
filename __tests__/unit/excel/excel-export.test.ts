@@ -18,7 +18,6 @@ const mockWriteFile = XLSX.writeFile as jest.Mock
 const mockJsonToSheet = XLSX.utils.json_to_sheet as jest.Mock
 const mockBookAppendSheet = XLSX.utils.book_append_sheet as jest.Mock
 
-
 // ── Mocks ──────────────────────────────────────────────────────
 const mockClick = jest.fn()
 const mockAppendChild = jest.fn()
@@ -62,38 +61,38 @@ afterEach(() => {
 })
 
 describe("exportStudentsCSV", () => {
-  it("creates an anchor element and triggers a click", () => {
-    exportStudentsCSV([mockStudent], "test-export")
+  it("creates an anchor element and triggers a click", async () => {
+    await exportStudentsCSV([mockStudent], "test-export")
     expect(mockClick).toHaveBeenCalledTimes(1)
   })
 
-  it("sets the download attribute to fileName.csv", () => {
-    exportStudentsCSV([mockStudent], "students-report")
+  it("sets the download attribute to fileName.csv", async () => {
+    await exportStudentsCSV([mockStudent], "students-report")
     expect(createdLink.setAttribute).toHaveBeenCalledWith("download", "students-report.csv")
   })
 
-  it("sets the href to a blob URL", () => {
-    exportStudentsCSV([mockStudent], "test-export")
+  it("sets the href to a blob URL", async () => {
+    await exportStudentsCSV([mockStudent], "test-export")
     expect(createdLink.setAttribute).toHaveBeenCalledWith("href", "blob:mock-url")
   })
 
-  it("appends and then removes the link from the DOM", () => {
-    exportStudentsCSV([mockStudent], "test-export")
+  it("appends and then removes the link from the DOM", async () => {
+    await exportStudentsCSV([mockStudent], "test-export")
     expect(mockAppendChild).toHaveBeenCalledWith(createdLink)
     expect(mockRemoveChild).toHaveBeenCalledWith(createdLink)
   })
 
-  it("revokes the object URL after download", () => {
-    exportStudentsCSV([mockStudent], "test-export")
+  it("revokes the object URL after download", async () => {
+    await exportStudentsCSV([mockStudent], "test-export")
     expect(mockRevokeObjectURL).toHaveBeenCalledWith("blob:mock-url")
   })
 
-  it("handles empty student array without throwing", () => {
-    expect(() => exportStudentsCSV([], "empty-export")).not.toThrow()
+  it("handles empty student array without throwing", async () => {
+    await expect(exportStudentsCSV([], "empty-export")).resolves.not.toThrow()
   })
 
-  it("creates a Blob with text/csv MIME type (verifies link href is set to a blob URL)", () => {
-    exportStudentsCSV([mockStudent], "test")
+  it("creates a Blob with text/csv MIME type (verifies link href is set to a blob URL)", async () => {
+    await exportStudentsCSV([mockStudent], "test")
     // If createObjectURL was called, a Blob was created
     expect(mockCreateObjectURL).toHaveBeenCalledTimes(1)
     // The setAttribute call for href uses the URL returned by createObjectURL
@@ -108,18 +107,18 @@ describe("exportStudentsExcel", () => {
     mockBookAppendSheet.mockClear()
   })
 
-  it("calls XLSX.writeFile with the correct filename (.xlsx extension)", () => {
-    exportStudentsExcel([mockStudent, mockStudent2], "excel-export")
+  it("calls XLSX.writeFile with the correct filename (.xlsx extension)", async () => {
+    await exportStudentsExcel([mockStudent, mockStudent2], "excel-export")
     expect(mockWriteFile).toHaveBeenCalledTimes(1)
     expect(mockWriteFile.mock.calls[0][1]).toBe("excel-export.xlsx")
   })
 
-  it("handles empty array without throwing", () => {
-    expect(() => exportStudentsExcel([], "empty")).not.toThrow()
+  it("handles empty array without throwing", async () => {
+    await expect(exportStudentsExcel([], "empty")).resolves.not.toThrow()
   })
 
-  it("creates a workbook with a sheet named 'Students'", () => {
-    exportStudentsExcel([mockStudent], "test")
+  it("creates a workbook with a sheet named 'Students'", async () => {
+    await exportStudentsExcel([mockStudent], "test")
     expect(mockBookAppendSheet).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
@@ -127,8 +126,8 @@ describe("exportStudentsExcel", () => {
     )
   })
 
-  it("maps student fields to the correct Excel column names", () => {
-    exportStudentsExcel([mockStudent], "test")
+  it("maps student fields to the correct Excel column names", async () => {
+    await exportStudentsExcel([mockStudent], "test")
     const calledWith = mockJsonToSheet.mock.calls[0][0][0]
     expect(calledWith["Student Name"]).toBe("Aanya Sharma")
     expect(calledWith["Parents Name"]).toBe("Priya Sharma")

@@ -13,7 +13,14 @@ import type { ImportedRow } from "@/lib/excel-import"
 import { exportStudentsCSV, exportStudentsExcel } from "@/lib/excel-export"
 import { Users, Plus, Pencil, Trash2, GraduationCap, Upload, Download, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft, Link2 } from "lucide-react"
 
-const PROGRAMS: ProgramType[] = ["Play group", "Nursery", "LKG", "UKG"]
+const PROGRAMS: ProgramType[] = ["Play Group", "Nursery", "LKG", "UKG"]
+
+const PROGRAM_LABELS: Record<ProgramType, string> = {
+  "Play Group": "Play Group (2–3 yrs)",
+  "Nursery": "Nursery (3–4 yrs)",
+  "LKG": "LKG (4–5 yrs)",
+  "UKG": "UKG (5–6 yrs)",
+}
 
 function calculateAge(dob: string): number {
   if (!dob) return 0
@@ -373,7 +380,7 @@ export default function AdminStudentsPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard icon={Users} label="Total Students" value={students.length} color="bg-pistachio/10" index={0} />
         {PROGRAMS.map((prog, i) => (
           <StatCard key={prog} icon={GraduationCap} label={prog} value={students.filter((s) => s.program === prog).length} color={i === 0 ? "bg-sage/10" : i === 1 ? "bg-cream" : "bg-beige/30"} index={i + 1} />
@@ -540,7 +547,7 @@ export default function AdminStudentsPage() {
               <label htmlFor="student-program-select" className="block text-xs font-medium text-olive mb-1 font-body">Program *</label>
               <select id="student-program-select" value={form.program} onChange={(e) => setForm({ ...form, program: e.target.value as ProgramType })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body">
-                {PROGRAMS.map((p) => <option key={p} value={p}>{p}</option>)}
+                {PROGRAMS.map((p) => <option key={p} value={p}>{PROGRAM_LABELS[p] || p}</option>)}
               </select>
             </div>
             <div>

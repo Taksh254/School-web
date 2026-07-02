@@ -12,9 +12,9 @@ const steps = [
 ]
 
 const faqs = [
-  { q: "What is the ideal age to start preschool?", a: "Children can join our Play group from 2 years of age. Children who are walking confidently and showing curiosity about their environment are ready." },
-  { q: "What is the teacher-to-child ratio?", a: "We maintain a low ratio of 1:6 for Play group, 1:8 for Nursery, 1:10 for LKG, and 1:12 for UKG." },
-  { q: "What are the school timings?", a: "Play group runs 9 AM to 12 PM, Nursery 9 AM to 1 PM, LKG 8:30 AM to 1:30 PM, and UKG 8:30 AM to 2:30 PM, Monday through Friday." },
+  { q: "What is the ideal age to start preschool?", a: "Children can join our Play Group from 2 years of age. Children who are walking confidently and showing curiosity about their environment are ready." },
+  { q: "What is the teacher-to-child ratio?", a: "We maintain a low ratio of 1:6 for Play Group, 1:8 for Nursery, 1:10 for LKG, and 1:12 for UKG." },
+  { q: "What are the school timings?", a: "Play Group runs 9 AM to 12 PM, Nursery 9 AM to 1 PM, LKG 8:30 AM to 1:30 PM, and UKG 8:30 AM to 2:30 PM, Monday through Friday." },
   { q: "Is there a trial period?", a: "Yes! We offer a one-week settling-in period where a parent can stay with the child for a smooth transition." },
   { q: "What documents are required?", a: "You'll need your child's birth certificate, recent photographs, vaccination records, and a filled enrollment form." },
   { q: "Do you provide meals?", a: "We provide healthy, nutritious snacks and lunch. Our menu is vegetarian and designed by a child nutritionist." },
@@ -153,10 +153,10 @@ export default function AdmissionsPage() {
                             onChange={(e) => setFormData({ ...formData, program: e.target.value })}
                             className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
                           >
-                            <option value="Play group">Play group (2-3 years)</option>
-                            <option value="Nursery">Nursery (3-4 years)</option>
-                            <option value="LKG">LKG (4-5 years)</option>
-                            <option value="UKG">UKG (5-6 years)</option>
+                            <option value="Play Group">Play Group (2–3 yrs)</option>
+                            <option value="Nursery">Nursery (3–4 yrs)</option>
+                            <option value="LKG">LKG (4–5 yrs)</option>
+                            <option value="UKG">UKG (5–6 yrs)</option>
                           </select>
                         </div>
                         <div>

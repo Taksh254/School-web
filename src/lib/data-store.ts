@@ -13,19 +13,18 @@ import { supabase, isSupabaseConfigured } from "./supabase"
 
 // ── Parent Account Helpers ─────────────────────────────────────
 
-/**
- * Derives a default password from a child's date of birth.
- * Format: DDMMYYYY  e.g. 2021-08-15 → "15082021"
- * Falls back to a static default when DOB is missing or unparseable.
- */
-export function generatePasswordFromDob(dob: string): string {
-  if (!dob) return "School@123"
-  const d = new Date(dob)
-  if (isNaN(d.getTime())) return "School@123"
-  const dd = String(d.getDate()).padStart(2, "0")
-  const mm = String(d.getMonth() + 1).padStart(2, "0")
-  const yyyy = String(d.getFullYear())
-  return `${dd}${mm}${yyyy}`
+export function generatePasswordFromEmail(email: string): string {
+  if (!email || !email.includes("@")) return "School@123"
+  const username = email.split("@")[0]
+  const alphabetic = username.replace(/[^a-zA-Z]/g, "")
+  if (alphabetic.length < 3) {
+    const pad = (alphabetic + "xxx").slice(0, 3)
+    const firstUpper = pad.charAt(0).toUpperCase() + pad.slice(1).toLowerCase()
+    return `${firstUpper}@123`
+  }
+  const first3 = alphabetic.slice(0, 3)
+  const firstUpper = first3.charAt(0).toUpperCase() + first3.slice(1).toLowerCase()
+  return `${firstUpper}@123`
 }
 
 /**
@@ -39,15 +38,14 @@ export function generatePasswordFromDob(dob: string): string {
 export async function createParentAccount(
   studentId: string,
   parentEmail: string,
-  parentName: string,
-  dob: string
+  parentName: string
 ): Promise<ParentAccountResult> {
   const email = parentEmail.trim().toLowerCase()
   if (!email || !email.includes("@")) {
     return { email, created: false, skipped: true, error: "Invalid or missing email" }
   }
 
-  const defaultPassword = generatePasswordFromDob(dob)
+  const defaultPassword = generatePasswordFromEmail(email)
 
   try {
     const res = await fetch("/api/create-parent-account", {
@@ -117,12 +115,12 @@ export const DEMO_USERS: User[] = [
 
 const SEED_STUDENTS: Student[] = [
   { id: "s1", name: "Aanya Sharma", age: 4, dateOfBirth: "2022-03-15", program: "Nursery", section: "A", parentName: "Priya Sharma", parentEmail: "priya@email.com", parentPhone: "+91 98765 43210", admissionNo: "ADM-001", teacher: "Ms. Anita Desai" },
-  { id: "s2", name: "Arjun Verma", age: 3, dateOfBirth: "2023-06-22", program: "Play group", section: "A", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43211", admissionNo: "ADM-002", teacher: "Ms. Priya Kapoor" },
+  { id: "s2", name: "Arjun Verma", age: 3, dateOfBirth: "2023-06-22", program: "Play Group", section: "A", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43211", admissionNo: "ADM-002", teacher: "Ms. Priya Kapoor" },
   { id: "s3", name: "Riya Kapoor", age: 5, dateOfBirth: "2021-01-10", program: "LKG", section: "A", parentName: "Neha Kapoor", parentEmail: "neha@email.com", parentPhone: "+91 98765 43212", admissionNo: "ADM-003", teacher: "Ms. Anita Desai" },
-  { id: "s4", name: "Kabir Singh", age: 3, dateOfBirth: "2023-09-05", program: "Play group", section: "B", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43213", admissionNo: "ADM-004", teacher: "Ms. Priya Kapoor" },
+  { id: "s4", name: "Kabir Singh", age: 3, dateOfBirth: "2023-09-05", program: "Play Group", section: "B", parentName: "Rohit Verma", parentEmail: "rohit@email.com", parentPhone: "+91 98765 43213", admissionNo: "ADM-004", teacher: "Ms. Priya Kapoor" },
   { id: "s5", name: "Myra Gupta", age: 4, dateOfBirth: "2022-11-18", program: "Nursery", section: "B", parentName: "Ankit Gupta", parentEmail: "ankit@email.com", parentPhone: "+91 98765 43214", admissionNo: "ADM-005", teacher: "Ms. Anita Desai" },
   { id: "s6", name: "Vivaan Mehta", age: 5, dateOfBirth: "2021-07-30", program: "UKG", section: "B", parentName: "Rohan Mehta", parentEmail: "rohan@email.com", parentPhone: "+91 98765 43215", admissionNo: "ADM-006", teacher: "Mr. Rohan Joshi" },
-  { id: "s7", name: "Ishaan Reddy", age: 2, dateOfBirth: "2024-02-14", program: "Play group", section: "A", parentName: "Srinivas Reddy", parentEmail: "srinivas@email.com", parentPhone: "+91 98765 43216", admissionNo: "ADM-007", teacher: "Ms. Priya Kapoor" },
+  { id: "s7", name: "Ishaan Reddy", age: 2, dateOfBirth: "2024-02-14", program: "Play Group", section: "A", parentName: "Srinivas Reddy", parentEmail: "srinivas@email.com", parentPhone: "+91 98765 43216", admissionNo: "ADM-007", teacher: "Ms. Priya Kapoor" },
   { id: "s8", name: "Anvi Patel", age: 4, dateOfBirth: "2022-05-20", program: "Nursery", section: "A", parentName: "Raj Patel", parentEmail: "raj@email.com", parentPhone: "+91 98765 43217", admissionNo: "ADM-008", teacher: "Ms. Anita Desai" },
 ]
 
@@ -480,8 +478,7 @@ export async function addStudent(
     parentAccount = await createParentAccount(
       student.id,
       data.parentEmail,
-      data.parentName,
-      data.dateOfBirth
+      data.parentName
     )
   }
 
@@ -883,8 +880,7 @@ export async function bulkAddStudents(
       const result = await createParentAccount(
         student.id,
         student.parentEmail,
-        student.parentName,
-        dataList[i]?.dateOfBirth ?? student.dateOfBirth
+        student.parentName
       )
       parentAccounts.push(result)
     }

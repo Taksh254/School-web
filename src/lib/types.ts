@@ -23,7 +23,7 @@ export interface User {
 
 // ── Students ──────────────────────────────────────────────────
 
-export type ProgramType = "Play group" | "Nursery" | "LKG" | "UKG"
+export type ProgramType = "Play Group" | "Nursery" | "LKG" | "UKG"
 
 export interface Student {
   id: string

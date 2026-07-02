@@ -30,8 +30,19 @@ export default function AdminReportsPage() {
           getAttendance(),
         ])
 
-        const classCounts: Record<string, number> = {}
-        students.forEach((s) => { classCounts[s.program] = (classCounts[s.program] || 0) + 1 })
+        const classCounts: Record<string, number> = {
+          "Play Group": 0,
+          "Nursery": 0,
+          "LKG": 0,
+          "UKG": 0
+        }
+        students.forEach((s) => {
+          if (s.program in classCounts) {
+            classCounts[s.program]++
+          } else {
+            classCounts[s.program] = 1
+          }
+        })
 
         const totalFees = fees.reduce((s, f) => s + f.amount, 0)
         const totalPaid = fees.reduce((s, f) => s + f.paidAmount, 0)
@@ -160,7 +171,7 @@ export default function AdminReportsPage() {
             {data.classCounts.map((cls, i) => {
               const classStudentIds = (() => {
                 // We don't have direct access here, so use percentage
-                const pct = Math.round((cls.count / data.totalStudents) * 100)
+                const pct = data.totalStudents > 0 ? Math.round((cls.count / data.totalStudents) * 100) : 0
                 return pct
               })()
 

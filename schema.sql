@@ -9,7 +9,7 @@ create table public.students (
     name text not null,
     age integer not null check (age >= 0),
     date_of_birth date not null,
-    program text not null check (program in ('Play group', 'Nursery', 'LKG', 'UKG')),
+    program text not null check (program in ('Play Group', 'Nursery', 'LKG', 'UKG')),
     section text not null default 'A',
     parent_name text not null,
     parent_email text not null,
@@ -25,7 +25,8 @@ create table public.profiles (
     email text not null unique,
     name text,
     role text not null check (role in ('admin', 'parent')) default 'parent',
-    child_id uuid references public.students(id) on delete set null
+    child_id uuid references public.students(id) on delete set null,
+    must_change_password boolean not null default false
 );
 
 -- ── 3. ATTENDANCE TABLE ──────────────────────────────────────────────
@@ -156,6 +157,9 @@ $$ language plpgsql;
 create policy "Users can read own profile" on public.profiles
     for select using (auth.uid() = id);
 
+create policy "Users can update own profile" on public.profiles
+    for update using (auth.uid() = id);
+
 create policy "Admins can manage all profiles" on public.profiles
     for all using (public.is_admin());
 
@@ -266,3 +270,13 @@ begin
     end if;
 end;
 $$;
+
+-- ── 10. INDEXES FOR PERFORMANCE ──────────────────────────────────────
+create index if not exists idx_profiles_child_id on public.profiles(child_id);
+create index if not exists idx_attendance_student_id on public.attendance(student_id);
+create index if not exists idx_attendance_date on public.attendance(date);
+create index if not exists idx_fees_student_id on public.fees(student_id);
+create index if not exists idx_fees_due_date on public.fees(due_date);
+create index if not exists idx_payments_fee_id on public.payments(fee_id);
+create index if not exists idx_payments_student_id on public.payments(student_id);
+create index if not exists idx_notes_student_id on public.notes(student_id);

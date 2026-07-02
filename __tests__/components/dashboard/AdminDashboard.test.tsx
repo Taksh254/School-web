@@ -7,6 +7,8 @@ jest.mock("@/lib/data-store", () => ({
   getStudents: jest.fn(),
   getFees: jest.fn(),
   getAnnouncements: jest.fn(),
+  getStudentsBrief: jest.fn(),
+  getFeesBrief: jest.fn(),
 }))
 
 import * as dataStore from "@/lib/data-store"
@@ -15,17 +17,30 @@ import AdminDashboard from "@/app/dashboard/admin/page"
 const mockGetStudents = dataStore.getStudents as jest.MockedFunction<typeof dataStore.getStudents>
 const mockGetFees = dataStore.getFees as jest.MockedFunction<typeof dataStore.getFees>
 const mockGetAnnouncements = dataStore.getAnnouncements as jest.MockedFunction<typeof dataStore.getAnnouncements>
+const mockGetStudentsBrief = dataStore.getStudentsBrief as jest.MockedFunction<typeof dataStore.getStudentsBrief>
+const mockGetFeesBrief = dataStore.getFeesBrief as jest.MockedFunction<typeof dataStore.getFeesBrief>
 
 beforeEach(() => {
   mockGetStudents.mockResolvedValue([
     { id: "s1", name: "Aanya", age: 4, dateOfBirth: "2022-03-15", program: "Nursery", section: "A", parentName: "P1", parentEmail: "p1@e.com", parentPhone: "1234", admissionNo: "A001", teacher: "T1" },
-    { id: "s2", name: "Arjun", age: 3, dateOfBirth: "2023-01-01", program: "Play group", section: "A", parentName: "P2", parentEmail: "p2@e.com", parentPhone: "5678", admissionNo: "A002", teacher: "T2" },
+    { id: "s2", name: "Arjun", age: 3, dateOfBirth: "2023-01-01", program: "Play Group" as any, section: "A", parentName: "P2", parentEmail: "p2@e.com", parentPhone: "5678", admissionNo: "A002", teacher: "T2" },
     { id: "s3", name: "Riya", age: 5, dateOfBirth: "2021-06-01", program: "LKG", section: "A", parentName: "P3", parentEmail: "p3@e.com", parentPhone: "9012", admissionNo: "A003", teacher: "T3" },
+  ])
+
+  mockGetStudentsBrief.mockResolvedValue([
+    { id: "s1", program: "Nursery" },
+    { id: "s2", program: "Play Group" },
+    { id: "s3", program: "LKG" },
   ])
 
   mockGetFees.mockResolvedValue([
     { id: "f1", studentId: "s1", studentName: "Aanya", term: "Q1", amount: 25000, paidAmount: 25000, dueDate: "2026-04-15", status: "paid", createdAt: "2026-03-20" },
     { id: "f2", studentId: "s2", studentName: "Arjun", term: "Q1", amount: 22000, paidAmount: 0, dueDate: "2026-04-15", status: "pending", createdAt: "2026-03-20" },
+  ])
+
+  mockGetFeesBrief.mockResolvedValue([
+    { amount: 25000, paidAmount: 25000 },
+    { amount: 22000, paidAmount: 0 },
   ])
 
   mockGetAnnouncements.mockResolvedValue([mockAnnouncement])
@@ -42,6 +57,8 @@ describe("AdminDashboard", () => {
       mockGetStudents.mockReturnValue(new Promise(() => {}))
       mockGetFees.mockReturnValue(new Promise(() => {}))
       mockGetAnnouncements.mockReturnValue(new Promise(() => {}))
+      mockGetStudentsBrief.mockReturnValue(new Promise(() => {}))
+      mockGetFeesBrief.mockReturnValue(new Promise(() => {}))
 
       render(<AdminDashboard />)
       const spinner = document.querySelector(".animate-spin")
@@ -105,7 +122,7 @@ describe("AdminDashboard", () => {
       render(<AdminDashboard />)
       await waitFor(() => {
         expect(screen.getByText("Nursery")).toBeInTheDocument()
-        expect(screen.getByText("Play group")).toBeInTheDocument()
+        expect(screen.getByText("Play Group")).toBeInTheDocument()
         expect(screen.getByText("LKG")).toBeInTheDocument()
       })
     })

@@ -35,8 +35,8 @@ describe("generatePreview", () => {
       expect(preview.rows[0].rowNumber).toBe(2)
     })
 
-    it("accepts all valid program types: Play group, Nursery, LKG, UKG", () => {
-      const programs = ["Play group", "Nursery", "LKG", "UKG"]
+    it("accepts all valid program types: Play Group, Nursery, LKG, UKG", () => {
+      const programs = ["Play Group", "Nursery", "LKG", "UKG"]
       const rows = programs.map((cls, i) =>
         makeRow({ "Class": cls, "Admission No.": `ADM-${i}` })
       )
@@ -49,7 +49,7 @@ describe("generatePreview", () => {
       expect(preview.rows[0].valid).toBe(true)
     })
 
-    it("accepts 'playgroup' as a valid alias for Play group", () => {
+    it("accepts 'playgroup' as a valid alias for Play Group", () => {
       const preview = generatePreview([makeRow({ "Class": "playgroup" })], [])
       expect(preview.rows[0].valid).toBe(true)
     })
@@ -157,7 +157,7 @@ describe("previewToStudentData", () => {
   })
 
   it("sets default age by program when DOB is missing", () => {
-    const rows = [makeValidRow({ dob: "", className: "Play group" })]
+    const rows = [makeValidRow({ dob: "", className: "Play Group" })]
     const result = previewToStudentData(rows)
     expect(result[0].age).toBe(3)
   })
@@ -168,7 +168,7 @@ describe("previewToStudentData", () => {
       makeValidRow({ className: "LKG", admissionNo: "ADM-002" }),
     ]
     const result = previewToStudentData(rows)
-    expect(result[0].program).toBe("Play group")
+    expect(result[0].program).toBe("Play Group")
     expect(result[1].program).toBe("LKG")
   })
 

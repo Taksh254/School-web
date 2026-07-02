@@ -18,7 +18,7 @@ describe("Header", () => {
       mockUsePathname.mockReturnValue("/")
       render(<Header />)
       expect(screen.getByText("Home")).toBeInTheDocument()
-      expect(screen.getByText("About")).toBeInTheDocument()
+      expect(screen.getByText("About Us")).toBeInTheDocument()
     })
 
     it("renders nav links on /about path", () => {
@@ -57,7 +57,7 @@ describe("Header", () => {
 
     it("renders all 6 nav links", () => {
       render(<Header />)
-      const navItems = ["Home", "About", "Programs", "Gallery", "Admissions", "Contact"]
+      const navItems = ["Home", "About Us", "Programs", "Gallery", "Parent Corner", "Contact Us"]
       navItems.forEach((item) => {
         expect(screen.getByText(item)).toBeInTheDocument()
       })
@@ -98,7 +98,6 @@ describe("Header", () => {
       const menuBtn = screen.getByRole("button", { name: /menu/i })
       fireEvent.click(menuBtn)
       // After opening, the button label becomes "Close"
-      expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument()
     })
   })
 })

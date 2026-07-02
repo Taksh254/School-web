@@ -24,35 +24,42 @@ export default function ParentDashboard() {
       setLoadingData(true)
       try {
         const childId = user?.childId
-        if (childId) {
-          const s = await getStudent(childId)
-          setChild(s || null)
+        const studentPromise = childId ? getStudent(childId) : Promise.resolve(null)
+        const attendancePromise = childId ? getAttendance(childId) : Promise.resolve([])
+        const feesPromise = childId ? getFees(childId) : Promise.resolve([])
+        const notesPromise = childId ? getNotes(childId) : Promise.resolve([])
+        const announcementsPromise = getAnnouncements()
+        const eventsPromise = getEvents()
 
-          if (s) {
-            // Attendance
-            const records = await getAttendance(childId)
-            const total = records.filter((r) => r.status !== "holiday").length
-            const present = records.filter((r) => r.status === "present").length
-            setAttendanceRate(total > 0 ? Math.round((present / total) * 100) : 0)
+        const [s, records, fees, fetchedNotes, ann, evs] = await Promise.all([
+          studentPromise,
+          attendancePromise,
+          feesPromise,
+          notesPromise,
+          announcementsPromise,
+          eventsPromise,
+        ])
 
-            // Fee status
-            const fees = await getFees(childId)
-            const pendingFees = fees.filter((f) => f.status !== "paid")
-            setFeeStatus(pendingFees.length > 0 ? `${pendingFees.length} Pending` : "All Paid")
+        setChild(s || null)
 
-            // Notes
-            const fetchedNotes = await getNotes(childId)
-            setNotes(fetchedNotes.slice(0, 3))
-          }
+        if (s) {
+          // Attendance
+          const total = records.filter((r) => r.status !== "holiday").length
+          const present = records.filter((r) => r.status === "present").length
+          setAttendanceRate(total > 0 ? Math.round((present / total) * 100) : 0)
+
+          // Fee status
+          const pendingFees = fees.filter((f) => f.status !== "paid")
+          setFeeStatus(pendingFees.length > 0 ? `${pendingFees.length} Pending` : "All Paid")
+
+          // Notes
+          setNotes(fetchedNotes.slice(0, 3))
         } else {
           setChild(null)
         }
 
         // Announcements & events (global)
-        const ann = await getAnnouncements()
         setAnnouncements(ann.filter((a) => a.published).slice(0, 3))
-
-        const evs = await getEvents()
         setEvents(evs.slice(0, 3))
       } catch (err) {
         console.error("Parent dashboard load error:", err)

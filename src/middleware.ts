@@ -16,6 +16,22 @@ function resolveRole(dbRole: string | undefined | null, email: string | null | u
   return dbRole || emailRole
 }
 
+function redirectWithCookies(request: NextRequest, targetUrl: URL | string, supabaseResponse: NextResponse) {
+  const redirectResponse = NextResponse.redirect(new URL(targetUrl, request.url))
+  supabaseResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie.name, cookie.value, {
+      path: cookie.path,
+      domain: cookie.domain,
+      maxAge: cookie.maxAge,
+      expires: cookie.expires,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly,
+      sameSite: cookie.sameSite,
+    })
+  })
+  return redirectResponse
+}
+
 // Paths that never require authentication
 const PUBLIC_PATHS = [
   "/",
@@ -108,17 +124,17 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL("/login", request.url)
       loginUrl.searchParams.set("redirect", pathname)
       console.log(`[middleware] Unauthenticated or no role resolved for ${pathname}. Redirecting to login: ${loginUrl.toString()}`)
-      return NextResponse.redirect(loginUrl)
+      return redirectWithCookies(request, loginUrl, supabaseResponse)
     }
 
     // Role-based access control
     if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
       console.log(`[middleware] RBAC violation: ${userObject?.email} (role: ${role}) accessed ${pathname}. Redirecting to /dashboard/parent`)
-      return NextResponse.redirect(new URL("/dashboard/parent", request.url))
+      return redirectWithCookies(request, "/dashboard/parent", supabaseResponse)
     }
     if (pathname.startsWith("/dashboard/parent") && role !== "parent") {
       console.log(`[middleware] RBAC violation: ${userObject?.email} (role: ${role}) accessed ${pathname}. Redirecting to /dashboard/admin`)
-      return NextResponse.redirect(new URL("/dashboard/admin", request.url))
+      return redirectWithCookies(request, "/dashboard/admin", supabaseResponse)
     }
 
     console.log(`[middleware] Access granted to ${userObject?.email} (role: ${role}) for path: ${pathname}`)

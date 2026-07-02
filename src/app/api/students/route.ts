@@ -20,7 +20,7 @@ function getAdminClient() {
   })
 }
 
-const VALID_PROGRAMS = ["Play group", "Nursery", "LKG", "UKG"] as const
+const VALID_PROGRAMS = ["Play Group", "Nursery", "LKG", "UKG"] as const
 
 function validateAndFixRow(dbRow: any): { row: any; error?: string } {
   const row = { ...dbRow }

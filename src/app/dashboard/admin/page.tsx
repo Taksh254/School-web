@@ -37,8 +37,19 @@ export default function AdminDashboard() {
         setCollectionRate(total > 0 ? Math.round((collected / total) * 100) : 0)
 
         // Class breakdown
-        const counts: Record<string, number> = {}
-        students.forEach((s) => { counts[s.program] = (counts[s.program] || 0) + 1 })
+        const counts: Record<string, number> = {
+          "Play Group": 0,
+          "Nursery": 0,
+          "LKG": 0,
+          "UKG": 0
+        }
+        students.forEach((s) => {
+          if (s.program in counts) {
+            counts[s.program]++
+          } else {
+            counts[s.program] = 1
+          }
+        })
         setClassCounts(Object.entries(counts).map(([name, count]) => ({ name, count })))
 
         // Recent announcements
