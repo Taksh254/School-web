@@ -1,15 +1,19 @@
-// ── Roles & Auth ──────────────────────────────────────────────
-
 export type Role = "admin" | "parent"
 
-// Admin email list.
-export const ADMIN_EMAILS = ["admin@school.com", "sehrawatsonia27@gmail.com", "admin01@gmail.com"]
-
-export function inferRoleFromEmail(email: string): Role {
-  const lower = email.toLowerCase()
-  if (ADMIN_EMAILS.includes(lower)) return "admin"
+/**
+ * SECURITY: Admin email list is NOT kept client-side.
+ * Role is resolved exclusively from `profiles.role` in the database.
+ * This function is kept as a stub so existing server-side call-sites compile.
+ * On the client, it always returns "parent" — the server/middleware owns role resolution.
+ *
+ * Server-side callers (middleware, API routes) should use the DB profile directly.
+ */
+export function inferRoleFromEmail(_email: string): Role {
+  // This function must NOT contain a hardcoded email allowlist.
+  // Role assignment is performed server-side by reading profiles.role from Supabase.
   return "parent"
 }
+
 
 export interface User {
   id: string
@@ -34,6 +38,7 @@ export interface Student {
   section: string
   parentName: string
   parentEmail: string
+  parentId?: string
   parentPhone: string
   admissionNo: string
   teacher: string
@@ -123,6 +128,7 @@ export interface ParentAccountResult {
   created: boolean
   skipped: boolean
   error?: string
+  userId?: string
 }
 
 // ── Teacher Notes ─────────────────────────────────────────────

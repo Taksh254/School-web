@@ -1,34 +1,13 @@
-import { generatePasswordFromEmail, createParentAccount } from "@/lib/data-store"
+import { createParentAccount } from "@/lib/data-store"
 
 describe("Parent Account Provisioning", () => {
-  describe("generatePasswordFromEmail", () => {
-    it("generates correct Tak@123 password for email", () => {
-      expect(generatePasswordFromEmail("takshsehrawat08@gmail.com")).toBe("Tak@123")
-    })
-
-    it("handles capitalized email usernames", () => {
-      expect(generatePasswordFromEmail("TakshSehrawat@gmail.com")).toBe("Tak@123")
-    })
-
-    it("handles usernames with less than 3 letters by padding", () => {
-      expect(generatePasswordFromEmail("ab@gmail.com")).toBe("Abx@123")
-    })
-
-    it("falls back to School@123 for invalid or missing emails", () => {
-      expect(generatePasswordFromEmail("")).toBe("School@123")
-      expect(generatePasswordFromEmail("invalid-email")).toBe("School@123")
-      // @ts-ignore
-      expect(generatePasswordFromEmail(null)).toBe("School@123")
-    })
-  })
-
   describe("createParentAccount (offline client path)", () => {
     beforeEach(() => {
       // Mock global fetch
       global.fetch = jest.fn().mockImplementation(() =>
         Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ created: true, skipped: false }),
+          json: () => Promise.resolve({ created: true, skipped: false, userId: "fake-id" }),
         })
       ) as jest.Mock
     })
@@ -38,26 +17,25 @@ describe("Parent Account Provisioning", () => {
     })
 
     it("returns error if email is invalid or missing", async () => {
-      const result = await createParentAccount("s1", "", "Parent Name")
+      const result = await createParentAccount("", "Parent Name", "s1")
       expect(result.created).toBe(false)
       expect(result.skipped).toBe(true)
       expect(result.error).toBeDefined()
     })
 
     it("calls POST /api/create-parent-account with correct payload", async () => {
-      const result = await createParentAccount("s1", "takshsehrawat08@gmail.com", "Parent Name")
+      const result = await createParentAccount("takshsehrawat08@gmail.com", "Parent Name", "s1")
       expect(global.fetch).toHaveBeenCalledWith("/api/create-parent-account", expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: "takshsehrawat08@gmail.com",
-          password: "Tak@123",
           studentId: "s1",
           parentName: "Parent Name",
         }),
       }))
       expect(result.created).toBe(true)
-      expect(result.defaultPassword).toBe("Tak@123")
+      expect(result.userId).toBe("fake-id")
     })
 
     it("handles skipped responses successfully", async () => {
@@ -68,10 +46,9 @@ describe("Parent Account Provisioning", () => {
         })
       ) as jest.Mock
 
-      const result = await createParentAccount("s1", "existing@example.com", "Parent Name")
+      const result = await createParentAccount("existing@example.com", "Parent Name", "s1")
       expect(result.created).toBe(false)
       expect(result.skipped).toBe(true)
-      expect(result.defaultPassword).toBeUndefined()
     })
 
     it("handles API error responses gracefully", async () => {
@@ -82,7 +59,7 @@ describe("Parent Account Provisioning", () => {
         })
       ) as jest.Mock
 
-      const result = await createParentAccount("s1", "error@example.com", "Parent Name")
+      const result = await createParentAccount("error@example.com", "Parent Name", "s1")
       expect(result.created).toBe(false)
       expect(result.skipped).toBe(false)
       expect(result.error).toBe("Failed to create user in auth")

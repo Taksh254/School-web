@@ -60,7 +60,7 @@ const team = [
 export default function AboutPage() {
   return (
     <>
-      <section className="py-16 md:py-24 bg-gradient-to-b from-cream to-beige/50">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-cream/70 backdrop-blur-md border border-white/20 overflow-hidden shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedElement>
             <SectionHeader
@@ -109,7 +109,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-24 bg-cream">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-cream/70 backdrop-blur-md border border-white/20 overflow-hidden shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedElement>
             <SectionHeader
@@ -141,7 +141,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-24 bg-beige/30">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-white/20 backdrop-blur-sm border border-white/30 overflow-hidden shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedElement>
             <SectionHeader

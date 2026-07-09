@@ -1,15 +1,59 @@
 import { createClient } from "@supabase/supabase-js"
+import { createServerClient } from "@supabase/ssr"
 import { type NextRequest, NextResponse } from "next/server"
 
 /**
  * /api/students  — server-side student mutations using the Service Role Key
  * so writes always succeed regardless of the client's JWT / RLS state.
  *
+ * All requests are verified to originate from an authenticated admin user
+ * before any mutation is performed.
+ *
  * POST   { action: "add",    data: StudentRow }                → { student }
  * POST   { action: "update", id: string, data: Partial<StudentRow> } → { ok }
  * POST   { action: "delete", id: string }                     → { ok }
  * POST   { action: "bulk",   data: StudentRow[] }              → { students }
  */
+
+/**
+ * Returns true if the incoming request comes from an authenticated admin.
+ * Verifies the Supabase JWT and checks profiles.role in the DB.
+ */
+async function isAuthorizedAdmin(request: NextRequest): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) return false
+
+  try {
+    const supabaseResponse = NextResponse.next({ request })
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    })
+    
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error || !user) return false
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    return profile?.role === "admin"
+  } catch (err) {
+    console.error("[students/auth] Session check failed:", err)
+  }
+
+  return false
+}
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -24,7 +68,6 @@ const VALID_PROGRAMS = ["Play Group", "Nursery", "LKG", "UKG"] as const
 
 function validateAndFixRow(dbRow: any): { row: any; error?: string } {
   const row = { ...dbRow }
-  // Validate program if present
   if (row.program !== undefined && !VALID_PROGRAMS.includes(row.program)) {
     console.warn("[students] Invalid program value received:", JSON.stringify(row.program))
     return { row, error: `Invalid program "${row.program}". Allowed: ${VALID_PROGRAMS.join(", ")}` }
@@ -34,12 +77,19 @@ function validateAndFixRow(dbRow: any): { row: any; error?: string } {
 
 export async function POST(request: NextRequest) {
   try {
+    const authorized = await isAuthorizedAdmin(request)
+    if (!authorized) {
+      return NextResponse.json(
+        { error: "Unauthorized — admin access required" },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { action } = body as { action: string }
 
     const admin = getAdminClient()
 
-    // ── ADD single student ──────────────────────────────────────
     if (action === "add") {
       const { data: rawRow } = body as { data: any }
       const { row: dbRow, error: validationError } = validateAndFixRow(rawRow)
@@ -47,7 +97,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: validationError }, { status: 400 })
       }
 
-      console.log("[students/add] inserting:", JSON.stringify(dbRow))
       const { data: inserted, error } = await admin
         .from("students")
         .insert([dbRow])
@@ -55,13 +104,12 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (error) {
-        console.error("[students/add] error:", error.message, "| payload:", JSON.stringify(dbRow))
+        console.error("[students/add] error:", error.message)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
       return NextResponse.json({ student: inserted })
     }
 
-    // ── UPDATE student ──────────────────────────────────────────
     if (action === "update") {
       const { id, data: rawRow } = body as { id: string; data: any }
       const { row: dbRow, error: validationError } = validateAndFixRow(rawRow)
@@ -69,20 +117,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: validationError }, { status: 400 })
       }
 
-      console.log("[students/update] id:", id, "| payload:", JSON.stringify(dbRow))
       const { error } = await admin
         .from("students")
         .update(dbRow)
         .eq("id", id)
 
       if (error) {
-        console.error("[students/update] error:", error.message, "| payload:", JSON.stringify(dbRow))
+        console.error("[students/update] error:", error.message)
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
       return NextResponse.json({ ok: true })
     }
 
-    // ── DELETE student ──────────────────────────────────────────
     if (action === "delete") {
       const { id } = body as { id: string }
       const { error } = await admin.from("students").delete().eq("id", id)
@@ -94,7 +140,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    // ── BULK ADD students ───────────────────────────────────────
     if (action === "bulk") {
       const { data: rawRows } = body as { data: any[] }
       const validatedRows: any[] = []

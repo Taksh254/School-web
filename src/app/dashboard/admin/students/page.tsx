@@ -74,7 +74,6 @@ export default function AdminStudentsPage() {
   const [createdCredentials, setCreatedCredentials] = useState<{
     studentName: string
     parentEmail: string
-    parentPassword?: string
     created: boolean
     skipped: boolean
     error?: string
@@ -243,7 +242,6 @@ export default function AdminStudentsPage() {
           setCreatedCredentials({
             studentName: student.name,
             parentEmail: parentAccount.email,
-            parentPassword: parentAccount.defaultPassword,
             created: parentAccount.created,
             skipped: parentAccount.skipped,
             error: parentAccount.error,
@@ -699,12 +697,8 @@ export default function AdminStudentsPage() {
                 <span className="text-olive/50 font-body">Parent Email</span>
                 <span className="font-mono font-medium text-olive select-all">{createdCredentials.parentEmail}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-olive/50 font-body">Default Password</span>
-                <span className="font-mono font-bold text-olive select-all">{createdCredentials.parentPassword}</span>
-              </div>
-              <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200/40 font-body leading-relaxed mt-1">
-                Please copy these credentials and share them with the parent. They will be prompted to change their password on first login.
+              <p className="text-[11px] text-pistachio-dark bg-pistachio/10 p-2.5 rounded-xl border border-pistachio/20 font-body leading-relaxed mt-1">
+                Account created securely. The parent must use the &quot;Forgot Password&quot; flow to set their password.
               </p>
             </div>
           )}

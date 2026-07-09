@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { useAuth } from "@/lib/auth-context"
-import { getStudent, getAttendance, getFees, getAnnouncements, getEvents, getNotes } from "@/lib/data-store"
+import { getStudentsByParent, getAttendance, getFees, getAnnouncements, getEvents, getNotes } from "@/lib/data-store"
 import type { Student, Announcement, SchoolEvent, TeacherNote } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import { GraduationCap, CalendarCheck, CreditCard, Calendar, Bell, MessageCircle, ArrowRight, AlertCircle } from "lucide-react"
@@ -11,6 +11,7 @@ import Link from "next/link"
 
 export default function ParentDashboard() {
   const { user } = useAuth()
+  const [children, setChildren] = useState<Student[]>([])
   const [child, setChild] = useState<Student | null>(null)
   const [attendanceRate, setAttendanceRate] = useState(0)
   const [feeStatus, setFeeStatus] = useState("")
@@ -19,43 +20,54 @@ export default function ParentDashboard() {
   const [notes, setNotes] = useState<TeacherNote[]>([])
   const [loadingData, setLoadingData] = useState(true)
 
+  const loadChildData = async (activeChild: Student) => {
+    try {
+      const childId = activeChild.id
+      const [records, fees, fetchedNotes] = await Promise.all([
+        getAttendance(childId),
+        getFees(childId),
+        getNotes(childId)
+      ])
+
+      // Attendance
+      const total = records.filter((r) => r.status !== "holiday").length
+      const present = records.filter((r) => r.status === "present").length
+      setAttendanceRate(total > 0 ? Math.round((present / total) * 100) : 0)
+
+      // Fee status
+      const pendingFees = fees.filter((f) => f.status !== "paid")
+      setFeeStatus(pendingFees.length > 0 ? `${pendingFees.length} Pending` : "All Paid")
+
+      // Notes
+      setNotes(fetchedNotes.slice(0, 3))
+    } catch (err) {
+      console.error("Child data load error:", err)
+    }
+  }
+
   useEffect(() => {
     const loadData = async () => {
       setLoadingData(true)
       try {
-        const childId = user?.childId
-        const studentPromise = childId ? getStudent(childId) : Promise.resolve(null)
-        const attendancePromise = childId ? getAttendance(childId) : Promise.resolve([])
-        const feesPromise = childId ? getFees(childId) : Promise.resolve([])
-        const notesPromise = childId ? getNotes(childId) : Promise.resolve([])
-        const announcementsPromise = getAnnouncements()
-        const eventsPromise = getEvents()
-
-        const [s, records, fees, fetchedNotes, ann, evs] = await Promise.all([
-          studentPromise,
-          attendancePromise,
-          feesPromise,
-          notesPromise,
-          announcementsPromise,
-          eventsPromise,
+        const userId = user?.id || ""
+        const userEmail = user?.email || ""
+        
+        let fetchedChildren: Student[] = []
+        if (userId || userEmail) {
+          fetchedChildren = await getStudentsByParent(userId, userEmail)
+        }
+        
+        setChildren(fetchedChildren)
+        const activeChild = fetchedChildren.length > 0 ? fetchedChildren[0] : null
+        setChild(activeChild)
+        
+        const [ann, evs] = await Promise.all([
+          getAnnouncements(),
+          getEvents(),
         ])
 
-        setChild(s || null)
-
-        if (s) {
-          // Attendance
-          const total = records.filter((r) => r.status !== "holiday").length
-          const present = records.filter((r) => r.status === "present").length
-          setAttendanceRate(total > 0 ? Math.round((present / total) * 100) : 0)
-
-          // Fee status
-          const pendingFees = fees.filter((f) => f.status !== "paid")
-          setFeeStatus(pendingFees.length > 0 ? `${pendingFees.length} Pending` : "All Paid")
-
-          // Notes
-          setNotes(fetchedNotes.slice(0, 3))
-        } else {
-          setChild(null)
+        if (activeChild) {
+          await loadChildData(activeChild)
         }
 
         // Announcements & events (global)
@@ -69,7 +81,15 @@ export default function ParentDashboard() {
     }
 
     loadData()
-  }, [user?.id, user?.childId])
+  }, [user?.id, user?.email])
+
+  const handleChildSelect = async (selected: Student) => {
+    if (selected.id === child?.id) return
+    setLoadingData(true)
+    setChild(selected)
+    await loadChildData(selected)
+    setLoadingData(false)
+  }
 
   if (loadingData) {
     return (
@@ -99,7 +119,22 @@ export default function ParentDashboard() {
           </div>
         </motion.div>
       ) : (
-        /* Child Info Card */
+        <>
+          {children.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 -mt-2">
+              {children.map(c => (
+                <button 
+                  key={c.id} 
+                  onClick={() => handleChildSelect(c)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${child?.id === c.id ? 'bg-pistachio text-olive shadow-sm' : 'bg-cream text-olive/60 hover:bg-beige/40'}`}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* Child Info Card */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -121,6 +156,7 @@ export default function ParentDashboard() {
             </div>
           </div>
         </motion.div>
+        </>
       )}
 
       {/* Stats (only if child is linked) */}

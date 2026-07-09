@@ -10,7 +10,7 @@ jest.mock("@/lib/auth-context", () => ({
 
 // ── Mock data-store ────────────────────────────────────────────
 jest.mock("@/lib/data-store", () => ({
-  getStudent: jest.fn(),
+  getStudentsByParent: jest.fn(),
   getAttendance: jest.fn(),
   getFees: jest.fn(),
   getAnnouncements: jest.fn(),
@@ -21,7 +21,7 @@ jest.mock("@/lib/data-store", () => ({
 import * as dataStore from "@/lib/data-store"
 import ParentDashboard from "@/app/dashboard/parent/page"
 
-const mockGetStudent = dataStore.getStudent as jest.MockedFunction<typeof dataStore.getStudent>
+const mockGetStudentsByParent = dataStore.getStudentsByParent as jest.MockedFunction<typeof dataStore.getStudentsByParent>
 const mockGetAttendance = dataStore.getAttendance as jest.MockedFunction<typeof dataStore.getAttendance>
 const mockGetFees = dataStore.getFees as jest.MockedFunction<typeof dataStore.getFees>
 const mockGetAnnouncements = dataStore.getAnnouncements as jest.MockedFunction<typeof dataStore.getAnnouncements>
@@ -30,7 +30,7 @@ const mockGetNotes = dataStore.getNotes as jest.MockedFunction<typeof dataStore.
 
 function setupLinkedParent() {
   mockUseAuth.mockReturnValue({ user: { id: "u2", email: "parent@school.com", role: "parent", childId: "s1", name: "Priya" } })
-  mockGetStudent.mockResolvedValue(mockStudent)
+  mockGetStudentsByParent.mockResolvedValue([mockStudent])
   mockGetAttendance.mockResolvedValue([
     { id: "a1", studentId: "s1", date: "2026-05-01", status: "present" },
     { id: "a2", studentId: "s1", date: "2026-05-02", status: "present" },
@@ -44,6 +44,7 @@ function setupLinkedParent() {
 
 function setupUnlinkedParent() {
   mockUseAuth.mockReturnValue({ user: { id: "u3", email: "nolink@parent.com", role: "parent", name: "Unlinked" } })
+  mockGetStudentsByParent.mockResolvedValue([])
   mockGetAnnouncements.mockResolvedValue([mockAnnouncement])
   mockGetEvents.mockResolvedValue([mockEvent])
 }

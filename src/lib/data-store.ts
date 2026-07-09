@@ -13,45 +13,28 @@ import { supabase, isSupabaseConfigured } from "./supabase"
 
 // ── Parent Account Helpers ─────────────────────────────────────
 
-export function generatePasswordFromEmail(email: string): string {
-  if (!email || !email.includes("@")) return "School@123"
-  const username = email.split("@")[0]
-  const alphabetic = username.replace(/[^a-zA-Z]/g, "")
-  if (alphabetic.length < 3) {
-    const pad = (alphabetic + "xxx").slice(0, 3)
-    const firstUpper = pad.charAt(0).toUpperCase() + pad.slice(1).toLowerCase()
-    return `${firstUpper}@123`
-  }
-  const first3 = alphabetic.slice(0, 3)
-  const firstUpper = first3.charAt(0).toUpperCase() + first3.slice(1).toLowerCase()
-  return `${firstUpper}@123`
-}
-
 /**
  * Calls the server-side /api/create-parent-account route to provision a
  * Supabase Auth user for a parent. Safe to call multiple times for the
  * same email — duplicate accounts are skipped automatically.
  *
- * NOTE: The generated password is returned here for the admin to note.
- *       It is NEVER stored in any database table.
+ * NOTE: The generated password is NOT returned. It is managed by Supabase.
  */
 export async function createParentAccount(
-  studentId: string,
   parentEmail: string,
-  parentName: string
+  parentName: string,
+  studentId?: string // Optional for backward compatibility with old routing guard
 ): Promise<ParentAccountResult> {
   const email = parentEmail.trim().toLowerCase()
   if (!email || !email.includes("@")) {
     return { email, created: false, skipped: true, error: "Invalid or missing email" }
   }
 
-  const defaultPassword = generatePasswordFromEmail(email)
-
   try {
     const res = await fetch("/api/create-parent-account", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password: defaultPassword, studentId, parentName }),
+      body: JSON.stringify({ email, studentId, parentName }),
     })
     const json = await res.json()
 
@@ -61,10 +44,10 @@ export async function createParentAccount(
     }
 
     if (json.skipped) {
-      return { email, created: false, skipped: true }
+      return { email, created: false, skipped: true, userId: json.userId }
     }
 
-    return { email, defaultPassword, created: true, skipped: false }
+    return { email, created: true, skipped: false, userId: json.userId }
   } catch (err: any) {
     console.error("[createParentAccount] fetch failed:", err?.message)
     return { email, created: false, skipped: false, error: err?.message || "Network error" }
@@ -103,15 +86,7 @@ const K = {
   seeded: "hk_seeded",
 } as const
 
-// ── Demo Users ────────────────────────────────────────────────
-
-export const DEMO_USERS: User[] = [
-  { id: "u1", email: "admin@school.com", name: "Principal Sunita", role: "admin" },
-  { id: "u3", email: "admin01@gmail.com", name: "Admin User", role: "admin" },
-  { id: "u2", email: "parent@school.com", name: "Priya Sharma", role: "parent", childId: "s1" },
-]
-
-// ── Seed Data ─────────────────────────────────────────────────
+// ── Demo Users removed for production ──────────────────────────
 
 const SEED_STUDENTS: Student[] = [
   { id: "s1", name: "Aanya Sharma", age: 4, dateOfBirth: "2022-03-15", program: "Nursery", section: "A", parentName: "Priya Sharma", parentEmail: "priya@email.com", parentPhone: "+91 98765 43210", admissionNo: "ADM-001", teacher: "Ms. Anita Desai" },
@@ -199,9 +174,7 @@ const SEED_NOTES: TeacherNote[] = [
 // ── LocalStorage Getters/Setters ───────────────────────────────
 
 function conditionallySeed() {
-  if (process.env.NODE_ENV !== "test") {
-    seedIfNeeded()
-  }
+  // Demo seeding is disabled in production MVP
 }
 
 function getLocalStudents() {
@@ -249,6 +222,7 @@ function mapStudentFromDb(row: any): Student {
     section: row.section,
     parentName: row.parent_name,
     parentEmail: row.parent_email,
+    parentId: row.parent_id,
     parentPhone: row.parent_phone,
     admissionNo: row.admission_no,
     teacher: row.teacher,
@@ -265,6 +239,7 @@ function mapStudentToDb(s: Omit<Student, "id"> | Partial<Student>): any {
   if (s.section !== undefined) row.section = s.section
   if (s.parentName !== undefined) row.parent_name = s.parentName
   if (s.parentEmail !== undefined) row.parent_email = s.parentEmail
+  if (s.parentId !== undefined) row.parent_id = s.parentId
   if (s.parentPhone !== undefined) row.parent_phone = s.parentPhone
   if (s.admissionNo !== undefined) row.admission_no = s.admissionNo
   if (s.teacher !== undefined) row.teacher = s.teacher
@@ -400,19 +375,7 @@ export function updatePrincipalProfile(profile: PrincipalProfile): void {
   localStorage.setItem("hk_principal", JSON.stringify(profile))
 }
 
-export function seedIfNeeded() {
-  if (typeof window === "undefined") return
-  if (localStorage.getItem(K.seeded)) return
 
-  set(K.students, SEED_STUDENTS)
-  set(K.attendance, generateAttendance())
-  set(K.fees, SEED_FEES)
-  set(K.payments, SEED_PAYMENTS)
-  set(K.announcements, SEED_ANNOUNCEMENTS)
-  set(K.events, SEED_EVENTS)
-  set(K.notes, SEED_NOTES)
-  localStorage.setItem(K.seeded, "1")
-}
 
 // ── Student CRUD ──────────────────────────────────────────────
 
@@ -427,6 +390,35 @@ export async function getStudents(): Promise<Student[]> {
     }
   }
   return getLocalStudents()
+}
+
+export async function getStudentsByParent(parentId: string, parentEmail: string): Promise<Student[]> {
+  if (isSupabaseConfigured()) {
+    try {
+      const conditions: string[] = []
+      if (parentId) conditions.push(`parent_id.eq.${parentId}`)
+      const normalizedEmail = parentEmail?.trim().toLowerCase()
+      if (normalizedEmail) conditions.push(`parent_email.eq.${normalizedEmail}`)
+      
+      if (conditions.length === 0) return []
+
+      const { data, error } = await supabase
+        .from("students")
+        .select("*")
+        .or(conditions.join(","))
+        .order("name")
+      
+      if (!error && data) return data.map(mapStudentFromDb)
+      console.warn("Supabase fetch failed, fallback to local storage:", error)
+    } catch (err) {
+      console.error("Supabase error:", err)
+    }
+  }
+  const normalizedEmail = parentEmail?.trim().toLowerCase() || ""
+  return getLocalStudents().filter(s => 
+    (s.parentId && s.parentId === parentId) || 
+    (s.parentEmail && s.parentEmail.trim().toLowerCase() === normalizedEmail)
+  )
 }
 
 export async function getStudent(id: string): Promise<Student | undefined> {
@@ -445,8 +437,10 @@ export async function getStudent(id: string): Promise<Student | undefined> {
 export async function addStudent(
   data: Omit<Student, "id">
 ): Promise<{ student: Student; parentAccount: ParentAccountResult | null }> {
+  let parentAccount: ParentAccountResult | null = null
   let student: Student
 
+  // Step 1: Insert the student (with parent_email but no parent_id yet)
   if (isSupabaseConfigured()) {
     try {
       const dbRow = mapStudentToDb(data)
@@ -465,21 +459,43 @@ export async function addStudent(
       console.error("[addStudent] API error:", err?.message)
       throw err
     }
+
+    // Step 2: Auto-provision parent account AFTER we have the real student.id
+    if (data.parentEmail?.trim()) {
+      parentAccount = await createParentAccount(
+        data.parentEmail,
+        data.parentName,
+        student.id
+      )
+
+      // Step 3: Backlink parent_id into the student row
+      if (parentAccount.userId) {
+        try {
+          await fetch("/api/students", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "update",
+              id: student.id,
+              data: { parent_id: parentAccount.userId },
+            }),
+          })
+          student = { ...student, parentId: parentAccount.userId }
+        } catch (err: any) {
+          console.warn("[addStudent] parent_id backlink failed:", err?.message)
+        }
+      }
+    }
   } else {
+    // LocalStorage fallback
     const localStudents = getLocalStudents()
     student = { ...data, id: uid() }
     localStudents.push(student)
     set(K.students, localStudents)
-  }
 
-  // Auto-provision parent account when Supabase is active and email is provided
-  let parentAccount: ParentAccountResult | null = null
-  if (isSupabaseConfigured() && data.parentEmail?.trim()) {
-    parentAccount = await createParentAccount(
-      student.id,
-      data.parentEmail,
-      data.parentName
-    )
+    if (data.parentEmail?.trim()) {
+      parentAccount = { email: data.parentEmail, created: false, skipped: true }
+    }
   }
 
   return { student, parentAccount }
@@ -588,6 +604,13 @@ export async function addFee(data: Omit<FeeRecord, "id" | "createdAt">): Promise
   return fee
 }
 
+/** Generates a collision-resistant receipt number using timestamp + random hex. */
+function generateReceiptNo(): string {
+  const ts = Date.now().toString(36).toUpperCase()
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase()
+  return `HK-${ts}-${rand}`
+}
+
 export async function markFeePaid(feeId: string, method: Payment["method"] = "Cash"): Promise<void> {
   if (isSupabaseConfigured()) {
     try {
@@ -595,13 +618,11 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
       if (!fetchErr && fee) {
         const remaining = Number(fee.amount) - Number(fee.paid_amount)
         const { error: updateErr } = await supabase.from("fees").update({ paid_amount: fee.amount, status: "paid" }).eq("id", feeId)
-        
+
         if (!updateErr) {
-          // Add payment row
-          const { data: paymentsList } = await supabase.from("payments").select("id")
-          const count = paymentsList ? paymentsList.length : 0
-          const receiptNo = `HK-2026-${String(count + 1).padStart(3, "0")}-${Math.floor(1000 + Math.random() * 9000)}`
-          
+          // Use collision-resistant receipt number — no row-count query needed
+          const receiptNo = generateReceiptNo()
+
           await supabase.from("payments").insert([{
             fee_id: feeId,
             student_id: fee.student_id,
@@ -629,7 +650,7 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
   fee.status = "paid"
   set(K.fees, fees)
 
-  // Create payment record
+  // Create payment record with collision-resistant receipt number
   const payment: Payment = {
     id: uid(),
     feeId,
@@ -638,7 +659,7 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
     amount: remaining,
     date: new Date().toISOString().slice(0, 10),
     method,
-    receiptNo: `HK-2026-${String(getLocalPayments().length + 1).padStart(3, "0")}-${Math.floor(1000 + Math.random() * 9000)}`,
+    receiptNo: generateReceiptNo(),
     description: `${fee.term} Tuition Fee`,
   }
   const payments = getLocalPayments()
@@ -841,9 +862,11 @@ export async function bulkAddStudents(
 ): Promise<{ students: Student[]; parentAccounts: ParentAccountResult[] }> {
   if (dataList.length === 0) return { students: [], parentAccounts: [] }
 
-  let insertedStudents: Student[]
+  let insertedStudents: Student[] = []
+  const parentAccounts: ParentAccountResult[] = []
 
   if (isSupabaseConfigured()) {
+    // Step 1: Insert all students first (with parent_email, but without parent_id)
     try {
       const dbRows = dataList.map(mapStudentToDb)
       const res = await fetch("/api/students", {
@@ -861,29 +884,52 @@ export async function bulkAddStudents(
       console.error("[bulkAddStudents] API error:", err?.message)
       throw err
     }
+
+    // Step 2: Provision parent accounts now that we have real student IDs
+    // Deduplicate by email — multiple siblings share one parent account
+    const seenEmails = new Map<string, string>() // email → parentUserId
+
+    for (const student of insertedStudents) {
+      const email = student.parentEmail?.trim().toLowerCase()
+      if (!email || !email.includes("@")) continue
+
+      if (!seenEmails.has(email)) {
+        const result = await createParentAccount(student.parentEmail, student.parentName || "", student.id)
+        parentAccounts.push(result)
+        if (result.userId) seenEmails.set(email, result.userId)
+      }
+
+      // Step 3: Backlink parent_id into the student row
+      const parentUserId = seenEmails.get(email)
+      if (parentUserId) {
+        try {
+          await fetch("/api/students", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "update",
+              id: student.id,
+              data: { parent_id: parentUserId },
+            }),
+          })
+        } catch (err: any) {
+          console.warn(`[bulkAddStudents] parent_id backlink failed for ${student.id}:`, err?.message)
+        }
+      }
+    }
+
+    // Refresh the inserted students list to include the newly set parent_ids
+    insertedStudents = insertedStudents.map((s) => {
+      const email = s.parentEmail?.trim().toLowerCase()
+      const parentUserId = email ? seenEmails.get(email) : undefined
+      return parentUserId ? { ...s, parentId: parentUserId } : s
+    })
   } else {
+    // LocalStorage fallback
     const localStudents = getLocalStudents()
     insertedStudents = dataList.map((data) => ({ ...data, id: uid() }))
     localStudents.push(...insertedStudents)
     set(K.students, localStudents)
-  }
-
-  // Auto-provision parent accounts for each student when Supabase is active
-  const parentAccounts: ParentAccountResult[] = []
-  if (isSupabaseConfigured()) {
-    // Deduplicate by email so we don't call the API twice for the same parent
-    const seenEmails = new Set<string>()
-    for (const [i, student] of insertedStudents.entries()) {
-      const email = student.parentEmail?.trim().toLowerCase()
-      if (!email || !email.includes("@") || seenEmails.has(email)) continue
-      seenEmails.add(email)
-      const result = await createParentAccount(
-        student.id,
-        student.parentEmail,
-        student.parentName
-      )
-      parentAccounts.push(result)
-    }
   }
 
   return { students: insertedStudents, parentAccounts }
@@ -965,20 +1011,15 @@ export async function linkParentToStudent(studentId: string, parentEmail: string
   }
 
   // Fallback to local storage (demo mode)
-  const matchedDemo = DEMO_USERS.find(u => u.email === email)
-  if (matchedDemo) {
-    matchedDemo.childId = studentId
-    if (typeof window !== "undefined") {
-      const rawUser = localStorage.getItem("hk_user")
-      if (rawUser) {
-        const currentUser = JSON.parse(rawUser)
-        if (currentUser.email === email) {
-          currentUser.childId = studentId
-          localStorage.setItem("hk_user", JSON.stringify(currentUser))
-        }
+  if (typeof window !== "undefined") {
+    const rawUser = localStorage.getItem("hk_user")
+    if (rawUser) {
+      const currentUser = JSON.parse(rawUser)
+      if (currentUser.email === email) {
+        currentUser.childId = studentId
+        localStorage.setItem("hk_user", JSON.stringify(currentUser))
       }
     }
-    return true
   }
 
   if (typeof window !== "undefined") {

@@ -323,7 +323,7 @@ export default function AdminFeesPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-olive mb-1 font-body">Amount (₹) *</label>
-              <input type="number" required min={0} value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: parseInt(e.target.value) || 0 })}
+              <input type="number" required min={0} step="0.01" value={form.amount || ""} onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
             </div>
           </div>
@@ -378,7 +378,7 @@ export default function AdminFeesPage() {
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-olive mb-1 font-body">Amount (₹) *</label>
-              <input type="number" required min={0} value={editForm.amount || ""} onChange={(e) => setEditForm({ ...editForm, amount: parseInt(e.target.value) || 0 })}
+              <input type="number" required min={0} step="0.01" value={editForm.amount || ""} onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
             </div>
             <div>

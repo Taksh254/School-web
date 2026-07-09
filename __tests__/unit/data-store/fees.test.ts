@@ -102,11 +102,11 @@ describe("Fees CRUD — localStorage mode", () => {
       expect(payment?.method).toBe("Cash")
     })
 
-    it("generates a receipt number in expected format", async () => {
+    it("generates a receipt number in expected collision-resistant format", async () => {
       await markFeePaid("f3")
       const payments = await getPayments("s2")
       const payment = payments.find((p) => p.feeId === "f3")
-      expect(payment?.receiptNo).toMatch(/^HK-\d{4}-\d{3}-\d{4}$/)
+      expect(payment?.receiptNo).toMatch(/^HK-[A-Z0-9]+-[A-Z0-9]{4}$/)
     })
 
     it("does nothing if feeId does not exist", async () => {

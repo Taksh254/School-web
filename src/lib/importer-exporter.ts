@@ -104,6 +104,7 @@ export function validateStudents(
     const phone = getVal(row, ["phone", "phonenumber", "parentphone", "phone number"])
     const email = getVal(row, ["email", "parentemail", "emailaddress", "email address"])
     const rawDob = getVal(row, ["dateofbirth", "date of birth", "dob", "birthdate"])
+    const rawAdmissionNo = getVal(row, ["admissionno", "admission no", "admissionnumber"])
 
     // 1. Required Fields
     if (!name) {
@@ -141,15 +142,32 @@ export function validateStudents(
     }
 
     // 4. Duplicate Check
-    const isDuplicate = existingStudents.some(
-      (s) => s.name.toLowerCase() === name.toLowerCase() && s.parentEmail.toLowerCase() === email.toLowerCase()
-    )
-    const isAlreadyInImport = validRecords.some(
-      (s) => s.name.toLowerCase() === name.toLowerCase() && s.parentEmail.toLowerCase() === email.toLowerCase()
-    )
+    let isDuplicate = false
+    let isAlreadyInImport = false
+    let duplicateReason = ""
+
+    if (rawAdmissionNo) {
+      if (existingStudents.some(s => s.admissionNo.toLowerCase() === rawAdmissionNo.toLowerCase())) {
+        isDuplicate = true
+        duplicateReason = `Admission No '${rawAdmissionNo}' already exists`
+      } else if (validRecords.some(s => s.admissionNo.toLowerCase() === rawAdmissionNo.toLowerCase())) {
+        isAlreadyInImport = true
+        duplicateReason = `Admission No '${rawAdmissionNo}' is duplicated in the import file`
+      }
+    }
+
+    if (!isDuplicate && !isAlreadyInImport) {
+      if (existingStudents.some((s) => s.name.toLowerCase() === name.toLowerCase() && s.parentEmail.toLowerCase() === email.toLowerCase())) {
+        isDuplicate = true
+        duplicateReason = `Student '${name}' with parent email '${email}' already exists`
+      } else if (validRecords.some((s) => s.name.toLowerCase() === name.toLowerCase() && s.parentEmail.toLowerCase() === email.toLowerCase())) {
+        isAlreadyInImport = true
+        duplicateReason = `Student '${name}' with parent email '${email}' is duplicated in the import file`
+      }
+    }
 
     if (isDuplicate || isAlreadyInImport) {
-      errors.push({ row: rowNum, error: `Duplicate entry: Student '${name}' with parent email '${email}' already exists` })
+      errors.push({ row: rowNum, error: `Duplicate entry: ${duplicateReason}` })
       return
     }
 
@@ -175,12 +193,12 @@ export function validateStudents(
       if (program === "Play Group") age = 3
       if (program === "LKG") age = 5
       if (program === "UKG") age = 6
-      const birthYear = 2026 - age
+      const birthYear = new Date().getFullYear() - age
       dateOfBirth = `${birthYear}-01-01`
     }
 
     const section = "A"
-    const admissionNo = `ADM-${String(Date.now()).slice(-6)}-${index + 1}`
+    const admissionNo = rawAdmissionNo || `ADM-${String(Date.now()).slice(-6)}-${index + 1}`
 
     let teacher = "Ms. Anita Desai"
     if (program === "Play Group") teacher = "Ms. Priya Kapoor"

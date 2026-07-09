@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /*?*
 
 Sitemap: https://${VERCEL_URL}/sitemap.xml

@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowRight, Unlock, ArrowLeft, UserPlus, LogIn, Eye, EyeOff } from "lucide-react"
+import { ArrowRight, ArrowLeft, UserPlus, LogIn, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
 type PageMode = "login" | "signup"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, loading, login, bypassLogin, register, loginWithGoogle } = useAuth()
+  const { user, loading, login, register, loginWithGoogle } = useAuth()
   const [mode, setMode] = useState<PageMode>("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -256,21 +256,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-6 pt-5 border-t border-beige/30 space-y-3">
-              <p className="text-[10px] text-olive/30 text-center font-body uppercase tracking-wider">Dev Mode — Bypass Login</p>
-              <button onClick={async () => { await bypassLogin("admin@school.com") }}
-                className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border-2 border-dashed border-pistachio/40 text-sm text-pistachio-dark font-medium font-body transition-all duration-300 hover:border-pistachio hover:bg-pistachio/10 hover:shadow-glow">
-                <Unlock className="w-3.5 h-3.5" />
-                <span>Bypass Login (enter as Admin)</span>
-              </button>
-              <button onClick={async () => { await bypassLogin("parent@school.com") }}
-                className="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border-2 border-dashed border-sage/40 text-sm text-olive font-medium font-body transition-all duration-300 hover:border-sage hover:bg-sage/10 hover:shadow-glow">
-                <Unlock className="w-3.5 h-3.5" />
-                <span>Bypass Login (enter as Parent)</span>
-              </button>
-            </div>
-          )}
         </div>
         <p className="text-center mt-6 text-xs text-olive/40 font-body">Tiny Mind Play School &copy; {new Date().getFullYear()}</p>
       </motion.div>

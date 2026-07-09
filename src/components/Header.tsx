@@ -37,7 +37,7 @@ export default function Header() {
   return (
     <header className="relative z-50 bg-transparent py-3">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-soft-white/95 backdrop-blur-sm rounded-2xl border border-beige/30 shadow-soft px-5 md:px-8">
+        <div className="bg-soft-white/95 backdrop-blur-sm rounded-full border border-beige/30 shadow-soft px-5 md:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-full overflow-hidden border border-beige/25 flex items-center justify-center shadow-soft relative">
@@ -54,7 +54,7 @@ export default function Header() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                  "px-3 py-1 rounded-full text-sm font-medium transition-all duration-200",
                   path === link.href
                     ? "text-olive bg-cream"
                     : "text-olive/60 hover:text-olive hover:bg-cream/50"

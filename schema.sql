@@ -14,6 +14,7 @@ create table public.students (
     parent_name text not null,
     parent_email text not null,
     parent_phone text,
+    parent_id uuid,
     admission_no text not null unique,
     teacher text not null,
     photo text
@@ -96,6 +97,22 @@ create table public.notes (
     category text not null check (category in ('academic', 'behavior', 'health', 'general', 'achievement')) default 'general'
 );
 
+-- ── 9. ADMISSION INQUIRIES TABLE ─────────────────────────────────────
+create table public.admission_inquiries (
+    id uuid primary key default gen_random_uuid(),
+    child_name text not null,
+    date_of_birth date not null,
+    program text not null,
+    parent_name text not null,
+    email text not null,
+    phone text not null,
+    message text,
+    status text not null check (status in ('Pending', 'Contacted', 'Admitted', 'Rejected')) default 'Pending',
+    notes text,
+    created_at timestamp with time zone not null default now(),
+    updated_at timestamp with time zone
+);
+
 -- ── ROW LEVEL SECURITY (RLS) POLICIES ────────────────────────────────
 
 -- Enable RLS on all tables
@@ -107,6 +124,7 @@ alter table public.payments enable row level security;
 alter table public.announcements enable row level security;
 alter table public.events enable row level security;
 alter table public.notes enable row level security;
+alter table public.admission_inquiries enable row level security;
 
 -- ── FIX: Drop recursive policies on profiles, recreate with security definer helper ──
 
@@ -146,9 +164,9 @@ $$;
 create or replace function public.is_admin()
 returns boolean security definer set search_path = public as $$
 begin
-    return coalesce(
-        lower(auth.jwt() ->> 'email') in ('admin@school.com', 'sehrawatsonia27@gmail.com', 'admin01@gmail.com'),
-        false
+    return exists (
+        select 1 from public.profiles
+        where id = auth.uid() and role = 'admin'
     );
 end;
 $$ language plpgsql;
@@ -237,6 +255,13 @@ create policy "Parents can view notes for their child" on public.notes
 create policy "Admins have full access to notes" on public.notes
     for all using (public.is_admin());
 
+-- ── ADMISSION INQUIRIES POLICIES ─────────────────────────────────────
+create policy "Anyone can insert enquiries" on public.admission_inquiries
+    for insert with check (true);
+
+create policy "Admins have full access to enquiries" on public.admission_inquiries
+    for all using (public.is_admin());
+
 -- ── 9. AUTH TRIGGER FOR NEW SIGNUPS ──────────────────────────────────
 create or replace function public.handle_new_user()
 returns trigger set search_path = public as $$
@@ -246,10 +271,7 @@ begin
         new.id,
         new.email,
         coalesce(new.raw_user_meta_data->>'name', 'New Parent'),
-        case 
-            when lower(new.email) in ('admin@school.com', 'sehrawatsonia27@gmail.com', 'admin01@gmail.com') then 'admin'
-            else 'parent'
-        end,
+        'parent', -- Role defaults to parent. Admins must be provisioned manually or via secure API.
         case 
             when new.raw_user_meta_data->>'child_id' is not null 
             then (new.raw_user_meta_data->>'child_id')::uuid 

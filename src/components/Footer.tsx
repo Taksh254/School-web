@@ -19,7 +19,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3">
               {[Camera, Globe, Video].map((Icon, i) => (
-                <a key={i} href="#" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-pistachio/30 transition-colors">
+                <a key={i} href="https://example.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-pistachio/30 transition-colors">
                   <Icon className="w-4 h-4" />
                 </a>
               ))}

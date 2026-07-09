@@ -33,6 +33,7 @@ export default function AdminAttendancePage() {
   const [attendanceDate, setAttendanceDate] = useState("")
   const [studentStatuses, setStudentStatuses] = useState<Record<string, AttendanceStatus>>({})
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [duplicateWarning, setDuplicateWarning] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importReport, setImportReport] = useState<{
@@ -159,17 +160,14 @@ export default function AdminAttendancePage() {
     exportToExcel(exportData, "attendance_export")
   }
 
-  const handleMarkSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleMarkSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setErrorBanner(null)
 
     // F-02: Duplicate date check
-    const alreadyExists = attendance.some((a) => a.date === attendanceDate)
-    if (alreadyExists) {
-      const proceed = window.confirm(
-        `Attendance for ${attendanceDate} has already been recorded. Submitting will add duplicate records. Continue anyway?`
-      )
-      if (!proceed) return
+    if (!duplicateWarning && attendance.some((a) => a.date === attendanceDate)) {
+      setDuplicateWarning(true)
+      return
     }
 
     const records = Object.entries(studentStatuses).map(([studentId, status]) => ({
@@ -180,6 +178,7 @@ export default function AdminAttendancePage() {
     try {
       await bulkAddAttendance(records)
       setMarkModalOpen(false)
+      setDuplicateWarning(false)
       refresh()
     } catch (err: any) {
       setErrorBanner("Failed to save attendance: " + (err.message || err))
@@ -468,6 +467,23 @@ export default function AdminAttendancePage() {
           <button onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
             className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors font-body">
             Delete
+          </button>
+        </div>
+      </Modal>
+
+      {/* Duplicate Warning Modal */}
+      <Modal open={duplicateWarning} onClose={() => setDuplicateWarning(false)} title="Duplicate Records" maxWidth="max-w-sm">
+        <p className="text-sm text-olive/60 mb-4 font-body">
+          Attendance for {attendanceDate} has already been recorded. Submitting will add duplicate records. Continue anyway?
+        </p>
+        <div className="flex gap-3">
+          <button onClick={() => setDuplicateWarning(false)}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-cream text-olive/60 text-sm font-medium hover:bg-beige/30 transition-colors font-body">
+            Cancel
+          </button>
+          <button onClick={() => handleMarkSubmit()}
+            className="flex-1 px-4 py-2.5 rounded-xl bg-pistachio text-white text-sm font-medium hover:bg-pistachio/90 transition-colors font-body">
+            Continue
           </button>
         </div>
       </Modal>

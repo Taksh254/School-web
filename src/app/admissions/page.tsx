@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ClipboardCheck, FileText, Calendar, PhoneCall, CheckCircle, Send, HeartHandshake } from "lucide-react"
+import { ClipboardCheck, FileText, Calendar, PhoneCall, CheckCircle, Send, HeartHandshake, AlertCircle } from "lucide-react"
 
 const steps = [
   { icon: PhoneCall, title: "1. Reach Out", desc: "Give us a call or fill out our inquiry form. We'll answer all your questions and schedule a tour.", color: "bg-pistachio/10 text-olive" },
@@ -17,31 +17,88 @@ const faqs = [
   { q: "What are the school timings?", a: "Play Group runs 9 AM to 12 PM, Nursery 9 AM to 1 PM, LKG 8:30 AM to 1:30 PM, and UKG 8:30 AM to 2:30 PM, Monday through Friday." },
   { q: "Is there a trial period?", a: "Yes! We offer a one-week settling-in period where a parent can stay with the child for a smooth transition." },
   { q: "What documents are required?", a: "You'll need your child's birth certificate, recent photographs, vaccination records, and a filled enrollment form." },
-  { q: "Do you provide meals?", a: "We provide healthy, nutritious snacks and lunch. Our menu is vegetarian and designed by a child nutritionist." },
 ]
+
+const EMPTY_FORM = {
+  childName: "",
+  childDob: "",
+  program: "Nursery",
+  parentName: "",
+  parentEmail: "",
+  parentPhone: "",
+  message: "",
+}
+
+function formatRefId(uuid: string): string {
+  // Take first 8 chars of UUID and uppercase for a friendly reference
+  return `TM-${uuid.slice(0, 8).toUpperCase()}`
+}
 
 export default function AdmissionsPage() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    childName: "",
-    childDob: "",
-    program: "Nursery",
-    parentName: "",
-    parentEmail: "",
-    parentPhone: "",
-    message: "",
-  })
+  const [error, setError] = useState<string | null>(null)
+  const [refId, setRefId] = useState<string>("")
+  const [formData, setFormData] = useState(EMPTY_FORM)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    // Simulate submission API call
-    setTimeout(() => {
-      setLoading(false)
-      setSubmitted(true)
-    }, 1000)
+  // ── Client-side validation ──────────────────────────────────────────────
+  function validate(): string | null {
+    if (!formData.childName.trim()) return "Child's full name is required."
+    if (!formData.childDob) return "Child's date of birth is required."
+    if (new Date(formData.childDob) > new Date()) return "Date of birth cannot be in the future."
+    if (!formData.program) return "Please select a program."
+    if (!formData.parentName.trim()) return "Parent / Guardian name is required."
+    if (!formData.parentEmail.trim()) return "Email address is required."
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.parentEmail.trim())) return "Please enter a valid email address."
+    if (!formData.parentPhone.trim()) return "Phone number is required."
+    const digits = formData.parentPhone.replace(/[\s\-\(\)\+]/g, "")
+    const stripped = digits.startsWith("91") ? digits.slice(2) : digits.startsWith("0") ? digits.slice(1) : digits
+    if (!/^\d{10}$/.test(stripped)) return "Please enter a valid 10-digit Indian mobile number."
+    return null
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const validationError = validate()
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch("/api/enquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        setError(json.error || "Something went wrong. Please try again.")
+        return
+      }
+
+      setRefId(json.id ? formatRefId(json.id) : "TM-SUBMITTED")
+      setSubmitted(true)
+    } catch {
+      setError("Network error. Please check your connection and try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReset = () => {
+    setSubmitted(false)
+    setError(null)
+    setRefId("")
+    setFormData(EMPTY_FORM)
+  }
+
+  const inputCls = "w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
 
   return (
     <>
@@ -120,38 +177,39 @@ export default function AdmissionsPage() {
                       <p className="text-sm text-olive/50 font-body mt-1">Please share a few details, and our friendly staff will contact you shortly.</p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                      {/* Row 1: Child name + DOB */}
                       <div className="grid sm:grid-cols-2 gap-5">
                         <div>
                           <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Child&apos;s Full Name *</label>
                           <input
                             type="text"
-                            required
                             placeholder="e.g. Aarav Sharma"
                             value={formData.childName}
                             onChange={(e) => setFormData({ ...formData, childName: e.target.value })}
-                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                            className={inputCls}
                           />
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Child&apos;s Date of Birth *</label>
                           <input
                             type="date"
-                            required
+                            max={new Date().toISOString().split("T")[0]}
                             value={formData.childDob}
                             onChange={(e) => setFormData({ ...formData, childDob: e.target.value })}
-                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                            className={inputCls}
                           />
                         </div>
                       </div>
 
+                      {/* Row 2: Program + Parent name */}
                       <div className="grid sm:grid-cols-2 gap-5">
                         <div>
                           <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Program of Interest *</label>
                           <select
                             value={formData.program}
                             onChange={(e) => setFormData({ ...formData, program: e.target.value })}
-                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                            className={inputCls}
                           >
                             <option value="Play Group">Play Group (2–3 yrs)</option>
                             <option value="Nursery">Nursery (3–4 yrs)</option>
@@ -163,40 +221,39 @@ export default function AdmissionsPage() {
                           <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Parent / Guardian Name *</label>
                           <input
                             type="text"
-                            required
                             placeholder="e.g. Priya Sharma"
                             value={formData.parentName}
                             onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
-                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                            className={inputCls}
                           />
                         </div>
                       </div>
 
+                      {/* Row 3: Email + Phone */}
                       <div className="grid sm:grid-cols-2 gap-5">
                         <div>
                           <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Email Address *</label>
                           <input
                             type="email"
-                            required
                             placeholder="priya@example.com"
                             value={formData.parentEmail}
                             onChange={(e) => setFormData({ ...formData, parentEmail: e.target.value })}
-                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                            className={inputCls}
                           />
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Phone Number *</label>
                           <input
                             type="tel"
-                            required
-                            placeholder="+91 XXXXX XXXXX"
+                            placeholder="98765 43210"
                             value={formData.parentPhone}
                             onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                            className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body"
+                            className={inputCls}
                           />
                         </div>
                       </div>
 
+                      {/* Message */}
                       <div>
                         <label className="block text-xs font-semibold text-olive mb-1.5 font-body">Message / Specific Questions</label>
                         <textarea
@@ -204,17 +261,34 @@ export default function AdmissionsPage() {
                           placeholder="Tell us a little bit about your child, or ask any questions you have..."
                           value={formData.message}
                           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                          className="w-full px-4 py-3 rounded-2xl bg-cream/70 border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:bg-white transition-all font-body resize-none"
+                          className={`${inputCls} resize-none`}
                         />
                       </div>
+
+                      {/* Error */}
+                      {error && (
+                        <div className="flex items-start gap-2.5 px-4 py-3 rounded-2xl bg-red-50 border border-red-200 text-sm text-red-700 font-body">
+                          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>{error}</span>
+                        </div>
+                      )}
 
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-semibold shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60"
+                        className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-semibold shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <Send className="w-4 h-4" />
-                        <span>{loading ? "Sending Inquiry..." : "Submit Inquiry"}</span>
+                        {loading ? (
+                          <>
+                            <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                            <span>Sending Inquiry...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            <span>Submit Inquiry</span>
+                          </>
+                        )}
                       </button>
                     </form>
                   </motion.div>
@@ -223,17 +297,40 @@ export default function AdmissionsPage() {
                     key="success"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-10"
+                    className="text-center py-8"
                   >
-                    <div className="w-16 h-16 bg-pistachio/15 rounded-full flex items-center justify-center mx-auto mb-6 text-olive">
+                    <div className="w-16 h-16 bg-pistachio/15 rounded-full flex items-center justify-center mx-auto mb-5 text-olive">
                       <HeartHandshake className="w-8 h-8" />
                     </div>
                     <h3 className="text-2xl font-display font-bold text-olive mb-2">Thank You, {formData.parentName}!</h3>
                     <p className="text-sm text-olive/60 font-body max-w-md mx-auto leading-relaxed">
                       We have received your inquiry for <strong className="text-olive">{formData.childName}</strong>. Our admissions coordinator will get in touch with you at <strong className="text-olive">{formData.parentEmail}</strong> or <strong className="text-olive">{formData.parentPhone}</strong> within 24 working hours.
                     </p>
+
+                    {/* Reference Number */}
+                    <div className="mt-6 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-pistachio/10 border border-pistachio/20 mx-auto">
+                      <span className="text-xs text-olive/50 font-body">Reference No.</span>
+                      <span className="text-sm font-mono font-bold text-olive select-all">{refId}</span>
+                    </div>
+
+                    {/* Details recap */}
+                    <div className="mt-5 bg-cream/40 rounded-2xl p-4 border border-beige/15 text-left max-w-sm mx-auto space-y-2 text-xs font-body">
+                      <div className="flex justify-between">
+                        <span className="text-olive/40">Child</span>
+                        <span className="text-olive font-medium">{formData.childName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-olive/40">Program</span>
+                        <span className="text-olive font-medium">{formData.program}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-olive/40">Contact</span>
+                        <span className="text-olive font-medium">{formData.parentPhone}</span>
+                      </div>
+                    </div>
+
                     <button
-                      onClick={() => setSubmitted(false)}
+                      onClick={handleReset}
                       className="mt-8 px-6 py-2.5 rounded-full border border-pistachio/30 text-olive text-xs font-semibold hover:bg-cream transition-all font-body"
                     >
                       Submit Another Inquiry

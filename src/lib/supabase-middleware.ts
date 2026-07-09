@@ -37,22 +37,3 @@ export function createClient(request: NextRequest) {
 
   return { supabase, supabaseResponse }
 }
-
-export async function getUserRole(userId: string): Promise<string | null> {
-  try {
-    const { createClient: createJsClient } = await import("@supabase/supabase-js")
-    const adminClient = createJsClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { persistSession: false } }
-    )
-    const { data } = await adminClient
-      .from("profiles")
-      .select("role")
-      .eq("id", userId)
-      .maybeSingle()
-    return data?.role || null
-  } catch {
-    return null
-  }
-}
