@@ -51,7 +51,7 @@ The project is **feature-complete** and running in development mode at `http://l
 | `/dashboard/admin/announcements` | CRUD announcements with publish toggle |
 | `/dashboard/admin/reports` | Monthly fee chart, class-wise breakdown, attendance |
 | `/dashboard/admin/principal` | Edit principal profile |
-| `/dashboard/admin/supabase-test` | Supabase connection debug panel |
+
 
 ### Parent Dashboard (`/dashboard/parent/*`)
 
