@@ -14,9 +14,9 @@ const programs = [
 
 export default function ProgramsSection() {
   return (
-    <section className="py-20 md:py-28">
+    <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-white/60 backdrop-blur-md border border-white/40 overflow-hidden shadow-soft">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-soft-white rounded-3xl border border-beige/30 shadow-soft p-8 md:p-12">
+        <div>
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto text-center mb-12 md:mb-16">
           <span className="inline-block px-4 py-1.5 rounded-full bg-pistachio/10 text-olive text-sm font-medium font-display mb-3">Our Programs</span>

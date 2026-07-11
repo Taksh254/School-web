@@ -10,10 +10,9 @@ import { useRouter } from "next/navigation"
 interface AuthState {
   user: User | null
   loading: boolean
-  mustChangePassword: boolean
+
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  /** @deprecated Bypass login has been removed for security. This is a no-op stub. */
-  bypassLogin: (email: string) => Promise<{ success: boolean }>
+
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
@@ -24,9 +23,9 @@ interface AuthState {
 const AuthContext = createContext<AuthState>({
   user: null,
   loading: true,
-  mustChangePassword: false,
+
   login: async () => ({ success: false }),
-  bypassLogin: async () => ({ success: false }),
+
   register: async () => ({ success: false }),
   loginWithGoogle: async () => ({ success: false }),
   logout: async () => {},
@@ -39,32 +38,37 @@ const AuthContext = createContext<AuthState>({
 /**
  * Fetches the user profile from the `profiles` table.
  * Role comes exclusively from the database — never from email pattern matching.
+ * Returns null if no profile row exists or on any error.
+ * A null return means the user is authenticated in Supabase Auth but has no
+ * application profile — treat as unauthenticated at the application level.
  */
 async function fetchProfileFromDb(userId: string, emailFallback: string): Promise<User | null> {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("name, role, child_id, must_change_password")
+      .select("name, role, child_id")
       .eq("id", userId)
       .maybeSingle()
 
-    if (!error && data) {
-      return {
-        id: userId,
-        email: emailFallback,
-        name: data.name || "School User",
-        role: data.role as Role,
-        childId: data.child_id || undefined,
-      }
+    if (error) {
+      console.error("[auth] fetchProfileFromDb error:", error.message)
+      return null
     }
 
-    // Profile row missing — return minimal object; middleware will enforce access.
+    if (!data) {
+      // No profile row — user exists in Supabase Auth but has no application
+      // record. Do NOT fabricate a role. Return null so the caller treats this
+      // user as unauthenticated at the application level.
+      console.warn(`[auth] No profile row for user ${userId} (${emailFallback}). Treating as unauthenticated.`)
+      return null
+    }
+
     return {
       id: userId,
       email: emailFallback,
-      name: "School User",
-      role: "parent",
-      childId: undefined,
+      name: data.name || "School User",
+      role: data.role as Role,
+      childId: data.child_id || undefined,
     }
   } catch {
     return null
@@ -105,9 +109,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [mustChangePassword, setMustChangePassword] = useState(false)
 
-  // ── Init: validate Supabase session on mount ────────────────────────────
+
+  // ── Init: resolve session from onAuthStateChange ───────────────────────
+  //
+  // ARCHITECTURE NOTE — why onAuthStateChange drives init (not getUser):
+  //
+  // The middleware validates the JWT server-side on every request before the
+  // page is served. By the time this component mounts, the session is already
+  // authenticated. We only need to read the locally-cached token.
+  //
+  // Using getUser() here creates a race condition under React Strict Mode:
+  // Strict Mode intentionally mounts → unmounts → remounts every effect.
+  // The cleanup calls subscription.unsubscribe(), which cancels the global
+  // auto-refresh timer on the supabase-js singleton. The concurrent getUser()
+  // network call may complete after cleanup, causing the second mount's init
+  // to race against the first mount's in-flight result.
+  //
+  // The correct pattern: let onAuthStateChange with INITIAL_SESSION be the
+  // single authoritative source of session state on mount. This is synchronous
+  // (reads localStorage), cannot race, and the Supabase team documents this
+  // as the correct client-side pattern when middleware handles server validation.
   useEffect(() => {
     if (!isSupabaseConfigured()) {
       setLoading(false)
@@ -116,74 +138,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let active = true
 
-    async function init() {
-      try {
-        // getUser() validates the JWT server-side (unlike getSession() which is local-only)
-        const { data: { user: sbUser }, error } = await supabase.auth.getUser()
+    // Subscribe — INITIAL_SESSION fires synchronously on subscribe if a
+    // valid local session exists; TOKEN_REFRESHED / SIGNED_IN / SIGNED_OUT
+    // handle all subsequent state transitions.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!active) return
 
-        if (!active) return
-
-        if (!error && sbUser) {
+      if (event === "INITIAL_SESSION") {
+        // Session is present — hydrate the profile from DB.
+        if (session?.user) {
+          const sbUser = session.user
           const email = sbUser.email?.trim().toLowerCase() || ""
           const name = sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || email.split("@")[0] || "School User"
 
-          const profile = await fetchProfileFromDb(sbUser.id, email)
-          if (profile) {
-            // Check must_change_password flag
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("must_change_password")
-              .eq("id", sbUser.id)
-              .maybeSingle()
-            if (active) {
-              setMustChangePassword(profileData?.must_change_password || false)
+          try {
+            const profile = await fetchProfileFromDb(sbUser.id, email)
+            if (!active) return
+            if (profile) {
               setUser(profile)
+              // Fire-and-forget — non-fatal if this fails
+              ensureProfile(sbUser.id, email, name, profile.role).catch(() => {})
+            } else {
+              setUser(null)
             }
-            await ensureProfile(sbUser.id, email, name, profile.role)
-          } else {
-            if (active) setUser(null)
+          } catch {
+            setUser(null)
+          } finally {
+            setLoading(false)
           }
         } else {
-          // No valid Supabase session — clear user state
-          if (active) setUser(null)
-        }
-      } catch {
-        if (active) setUser(null)
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    init()
-
-    // Subscribe to future auth state changes (login / logout / token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // INITIAL_SESSION is handled by init() above
-      if (event === "INITIAL_SESSION") return
-
-      if (event === "SIGNED_OUT") {
-        if (active) {
+          // No session in storage — user is not authenticated.
           setUser(null)
-          setMustChangePassword(false)
+          setLoading(false)
         }
         return
       }
 
+      if (event === "SIGNED_OUT") {
+        setUser(null)
+        setMustChangePassword(false)
+        return
+      }
+
+      // SIGNED_IN / TOKEN_REFRESHED / USER_UPDATED — update profile from DB.
       if (session?.user) {
         const sbUser = session.user
         const email = sbUser.email?.trim().toLowerCase() || ""
         const name = sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || "School User"
 
-        const profile = await fetchProfileFromDb(sbUser.id, email)
-        if (active && profile) {
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("must_change_password")
-            .eq("id", sbUser.id)
-            .maybeSingle()
-          setMustChangePassword(profileData?.must_change_password || false)
+        try {
+          const profile = await fetchProfileFromDb(sbUser.id, email)
+          if (!active || !profile) return
           setUser(profile)
-          await ensureProfile(sbUser.id, email, name, profile.role)
+          ensureProfile(sbUser.id, email, name, profile.role).catch(() => {})
+        } catch {
+          // Non-fatal DB error — do not clear the session
         }
       }
     })
@@ -221,12 +230,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.user) {
         const profile = await fetchProfileFromDb(data.user.id, data.user.email || "")
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("must_change_password")
-          .eq("id", data.user.id)
-          .maybeSingle()
-        setMustChangePassword(profileData?.must_change_password || false)
         setUser(profile)
         return { success: true }
       }
@@ -237,15 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // ── bypassLogin — SECURITY: removed, no-op stub ─────────────────────────
-  const bypassLogin = useCallback(async (_email: string) => {
-    // bypassLogin has been permanently removed for security reasons.
-    // All authentication must go through Supabase.
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[auth] bypassLogin() has been removed. Use Supabase credentials.")
-    }
-    return { success: false }
-  }, [])
+
 
   // ── register ────────────────────────────────────────────────────────────
   const register = useCallback(async (name: string, email: string, password: string) => {
@@ -356,9 +351,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user,
       loading,
-      mustChangePassword,
+
       login,
-      bypassLogin,
+
       register,
       loginWithGoogle,
       logout,

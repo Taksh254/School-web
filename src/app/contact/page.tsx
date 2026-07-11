@@ -13,7 +13,7 @@ export default function ContactPage() {
   }
 
   return (
-    <section className="py-20 md:py-28 bg-gradient-to-b from-soft-white to-cream min-h-screen">
+    <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-white/60 backdrop-blur-md border border-white/40 overflow-hidden shadow-soft min-h-[calc(100vh-6rem)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="max-w-2xl mx-auto text-center mb-12">
@@ -86,10 +86,10 @@ export default function ContactPage() {
               <h3 className="text-lg font-display font-semibold text-olive mb-4">Get in Touch</h3>
               <div className="space-y-4">
                 {[
-                  { icon: Phone, label: "Phone", value: "+91 98765 43210", color: "bg-pistachio/10 text-olive" },
-                  { icon: Mail, label: "Email", value: "hello@happykids.in", color: "bg-sage/10 text-olive" },
-                  { icon: MapPin, label: "Address", value: "123 Blossom Lane, Green Valley Park, New Delhi 110001", color: "bg-cream text-olive" },
-                  { icon: Clock, label: "Hours", value: "Mon-Fri: 8AM-3PM | Sat: 8AM-12PM", color: "bg-beige/30 text-olive" },
+                  { icon: Phone, label: "Phone", value: "+91 8527737413", color: "bg-pistachio/10 text-olive" },
+                  { icon: Mail, label: "Email", value: "tinymindplayschool01@gmail.com", color: "bg-sage/10 text-olive" },
+                  { icon: MapPin, label: "Address", value: "Plot No 95, Near Main Market, Mahipalpur, Delhi-110037", color: "bg-cream text-olive" },
+                  { icon: Clock, label: "Hours", value: "Mon-Sat: 8AM-1PM", color: "bg-beige/30 text-olive" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center shrink-0`}><item.icon className="w-5 h-5" /></div>
@@ -104,7 +104,7 @@ export default function ContactPage() {
                 <div className="text-center">
                   <MapPin className="w-8 h-8 text-pistachio mx-auto mb-2" />
                   <p className="text-sm text-olive/40">Map</p>
-                  <p className="text-xs text-olive/30">123 Blossom Lane, New Delhi</p>
+                  <p className="text-xs text-olive/30">Plot No 95, Mahipalpur, Delhi</p>
                 </div>
               </div>
             </div>

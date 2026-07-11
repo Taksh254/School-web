@@ -82,7 +82,7 @@ const tips = [
 export default function ParentCornerPage() {
   return (
     <>
-      <section className="py-16 md:py-24 bg-gradient-to-b from-cream to-beige/50">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-cream/70 backdrop-blur-md border border-white/20 overflow-hidden shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedElement>
             <SectionHeader
@@ -110,10 +110,6 @@ export default function ParentCornerPage() {
                   <p className="text-sm text-olive/60 leading-relaxed mb-4">
                     {resource.description}
                   </p>
-                  <button className="inline-flex items-center gap-1 text-sm font-medium text-pistachio hover:text-sage transition-colors group">
-                    Learn more
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </button>
                 </motion.div>
               </AnimatedElement>
             ))}
@@ -121,7 +117,7 @@ export default function ParentCornerPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-24 bg-beige/30">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-beige/40 backdrop-blur-md border border-white/20 overflow-hidden shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <AnimatedElement>
             <SectionHeader
@@ -154,7 +150,7 @@ export default function ParentCornerPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-20 bg-pistachio/5">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-white/85 backdrop-blur-md border border-white/60 overflow-hidden shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <AnimatedElement>
             <div className="max-w-lg mx-auto">
@@ -162,15 +158,20 @@ export default function ParentCornerPage() {
                 <MessageCircle className="w-8 h-8 text-olive" />
               </div>
               <h2 className="text-2xl md:text-3xl font-display font-bold text-olive mb-4">
-                Stay Connected
+                Connected to the School
               </h2>
               <p className="text-olive/60 mb-6">
                 Join our parent WhatsApp group for daily updates, photos, and instant communication
                 with teachers.
               </p>
-              <button className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 shadow-soft">
-                Join Parent Group
-              </button>
+              <a 
+                href="https://chat.whatsapp.com/HwoOuzqafqoAEUcUvGY33k" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300 shadow-soft"
+              >
+                Connect to Community
+              </a>
             </div>
           </AnimatedElement>
         </div>

@@ -1,8 +1,18 @@
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
-import { Heart, Mail, Phone, MapPin, Clock, Camera, Globe, Video } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Heart, Mail, Phone, MapPin, Clock } from "lucide-react"
+import { FaInstagram } from "react-icons/fa"
 
 export default function Footer() {
+  const pathname = usePathname()
+
+  if (pathname === "/login" || pathname?.startsWith("/dashboard")) {
+    return null
+  }
+
   return (
     <footer className="bg-olive text-white/90">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
@@ -18,11 +28,9 @@ export default function Footer() {
               Where little minds grow with joy. A warm, nurturing space for your child&apos;s first steps into learning.
             </p>
             <div className="flex items-center gap-3">
-              {[Camera, Globe, Video].map((Icon, i) => (
-                <a key={i} href="https://example.com" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-pistachio/30 transition-colors">
-                  <Icon className="w-4 h-4" />
-                </a>
-              ))}
+              <a href="https://www.instagram.com/tinymindschool1?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-pistachio/30 transition-colors" title="Follow us on Instagram">
+                <FaInstagram className="w-4 h-4" />
+              </a>
             </div>
           </div>
 
@@ -59,17 +67,17 @@ export default function Footer() {
             <ul className="space-y-3">
               <li className="flex items-start gap-3 text-sm text-white/60">
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-pistachio" />
-                123 Blossom Lane, Green Valley Park, New Delhi 110001
+                Plot No 95, Near Main Market, Mahipalpur, Delhi-110037
               </li>
               <li className="flex items-center gap-3 text-sm text-white/60">
-                <Phone className="w-4 h-4 shrink-0 text-pistachio" />+91 98765 43210
+                <Phone className="w-4 h-4 shrink-0 text-pistachio" />+91 8527737413
               </li>
               <li className="flex items-center gap-3 text-sm text-white/60">
-                <Mail className="w-4 h-4 shrink-0 text-pistachio" />hello@happykids.in
+                <Mail className="w-4 h-4 shrink-0 text-pistachio" />tinymindplayschool01@gmail.com
               </li>
               <li className="flex items-start gap-3 text-sm text-white/60">
                 <Clock className="w-4 h-4 mt-0.5 shrink-0 text-pistachio" />
-                Mon-Fri: 8AM-3PM<br />Sat: 8AM-12PM
+                Mon-Sat: 8AM-1PM
               </li>
             </ul>
           </div>

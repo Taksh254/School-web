@@ -1010,38 +1010,7 @@ export async function linkParentToStudent(studentId: string, parentEmail: string
     }
   }
 
-  // Fallback to local storage (demo mode)
-  if (typeof window !== "undefined") {
-    const rawUser = localStorage.getItem("hk_user")
-    if (rawUser) {
-      const currentUser = JSON.parse(rawUser)
-      if (currentUser.email === email) {
-        currentUser.childId = studentId
-        localStorage.setItem("hk_user", JSON.stringify(currentUser))
-      }
-    }
-  }
 
-  if (typeof window !== "undefined") {
-    const existing = localStorage.getItem("hk_registered_users")
-    if (existing) {
-      const users: User[] = JSON.parse(existing)
-      const userIdx = users.findIndex(u => u.email === email)
-      if (userIdx > -1) {
-        users[userIdx].childId = studentId
-        localStorage.setItem("hk_registered_users", JSON.stringify(users))
-        const rawUser = localStorage.getItem("hk_user")
-        if (rawUser) {
-          const currentUser = JSON.parse(rawUser)
-          if (currentUser.email === email) {
-            currentUser.childId = studentId
-            localStorage.setItem("hk_user", JSON.stringify(currentUser))
-          }
-        }
-        return true
-      }
-    }
-  }
   return false
 }
 

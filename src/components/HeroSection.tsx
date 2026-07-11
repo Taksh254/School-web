@@ -7,7 +7,7 @@ import HeroCarousel from "@/components/HeroCarousel"
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-[85vh] md:min-h-[90vh] flex items-center overflow-hidden py-20 md:py-28">
+    <section className="relative min-h-[75vh] overflow-hidden pt-8 md:pt-12 pb-16 md:pb-24">
       <div className="absolute inset-0 pointer-events-none paper-texture" />
 
       <motion.div className="absolute top-1/3 right-[5%] w-2.5 h-2.5 rounded-full bg-pistachio/20" animate={{ opacity: [0.2, 0.7, 0.2] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
@@ -15,7 +15,7 @@ export default function HeroSection() {
       <motion.div className="absolute top-1/4 left-[3%] text-pistachio/10 text-2xl" animate={{ rotate: [0, 15, 0], scale: [1, 1.1, 1] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>✦</motion.div>
       <motion.div className="absolute bottom-1/4 right-[3%] text-sage/10 text-xl" animate={{ rotate: [0, -10, 0], scale: [1, 1.15, 1] }} transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 2 }}>✦</motion.div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 md:mt-10">
         <div className="bg-soft-white rounded-3xl border border-beige/30 shadow-soft p-8 md:p-12">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="text-center lg:text-left">

@@ -57,7 +57,8 @@ export async function middleware(request: NextRequest) {
 
   // ── Protected: /dashboard/* ───────────────────────────────────────────
   if (pathname.startsWith("/dashboard")) {
-    const { supabase, supabaseResponse } = createClient(request)
+    const authClient = createClient(request)
+    const supabase = authClient.supabase
 
     let role: string | null = null
 
@@ -83,19 +84,19 @@ export async function middleware(request: NextRequest) {
     if (!role) {
       const loginUrl = new URL("/login", request.url)
       loginUrl.searchParams.set("redirect", pathname)
-      return redirectWithCookies(request, loginUrl.pathname + loginUrl.search, supabaseResponse)
+      return redirectWithCookies(request, loginUrl.pathname + loginUrl.search, authClient.supabaseResponse)
     }
 
     // Role-based access control
     if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
-      return redirectWithCookies(request, "/dashboard/parent", supabaseResponse)
+      return redirectWithCookies(request, "/dashboard/parent", authClient.supabaseResponse)
     }
     if (pathname.startsWith("/dashboard/parent") && role !== "parent") {
-      return redirectWithCookies(request, "/dashboard/admin", supabaseResponse)
+      return redirectWithCookies(request, "/dashboard/admin", authClient.supabaseResponse)
     }
 
     // Always return supabaseResponse so refreshed tokens propagate via Set-Cookie.
-    return supabaseResponse
+    return authClient.supabaseResponse
   }
 
   return NextResponse.next()

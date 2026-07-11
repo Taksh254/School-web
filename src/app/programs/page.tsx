@@ -33,7 +33,7 @@ export default function ProgramsPage() {
 
   return (
     <>
-      <section className="py-20 md:py-28 bg-gradient-to-b from-soft-white to-cream min-h-screen">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-white/60 backdrop-blur-md border border-white/40 overflow-hidden shadow-soft min-h-[calc(100vh-6rem)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="max-w-2xl mx-auto text-center mb-12 md:mb-16">
@@ -88,7 +88,7 @@ export default function ProgramsPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-20 bg-pistachio/5">
+      <section className="mx-4 sm:mx-6 lg:mx-8 my-8 md:my-12 py-12 md:py-20 rounded-[2rem] md:rounded-[3rem] bg-pistachio/10 backdrop-blur-md border border-white/40 overflow-hidden shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl md:text-3xl font-display font-bold text-olive mb-4">Not Sure Which Program Fits Best?</h2>
           <p className="text-olive/60 max-w-lg mx-auto mb-8">We&apos;re happy to guide you. Schedule a visit and let us help you find the perfect start.</p>

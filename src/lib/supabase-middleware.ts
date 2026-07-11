@@ -35,5 +35,10 @@ export function createClient(request: NextRequest) {
     }
   )
 
-  return { supabase, supabaseResponse }
+  return {
+    supabase,
+    get supabaseResponse() {
+      return supabaseResponse
+    },
+  }
 }

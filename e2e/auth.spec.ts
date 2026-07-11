@@ -1,34 +1,32 @@
 import { test, expect, Page } from "@playwright/test"
 
-// Helper: clear all auth state and localStorage seeded flag
+// Helper: clear all auth state
 async function clearAuth(page: Page) {
   await page.goto("/login")
   await page.evaluate(() => {
     localStorage.clear()
-    document.cookie = "hk_bypass_user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+    document.cookie = "sb-qqdtxohdafpqgcnnndcu-auth-token-code-verifier=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+    document.cookie = "sb-qqdtxohdafpqgcnnndcu-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
   })
+  // Give it a moment to clear
+  await page.waitForTimeout(500)
 }
 
-// Helper: login as admin via dev bypass button
+// Helper: login as admin using real credentials
 async function loginAsAdmin(page: Page) {
   await page.goto("/login")
-  await page.evaluate(() => {
-    localStorage.setItem("hk_force_local", "1")
-    localStorage.setItem("hk_seeded", "1")
-  })
-  // Click the admin bypass button (only visible in development mode)
-  await page.getByRole("button", { name: /bypass login \(enter as admin\)/i }).click()
+  await page.getByLabel(/email address/i).fill("admin@demo.com")
+  await page.getByLabel(/password/i).fill("AdminPass2026!")
+  await page.getByRole("button", { name: /enter portal/i }).click()
   await page.waitForURL("**/dashboard/admin**", { timeout: 15000, waitUntil: "domcontentloaded" })
 }
 
-// Helper: login as parent via dev bypass button
+// Helper: login as parent using real credentials
 async function loginAsParent(page: Page) {
   await page.goto("/login")
-  await page.evaluate(() => {
-    localStorage.setItem("hk_force_local", "1")
-    localStorage.setItem("hk_seeded", "1")
-  })
-  await page.getByRole("button", { name: /bypass login \(enter as parent\)/i }).click()
+  await page.getByLabel(/email address/i).fill("parent@demo.com")
+  await page.getByLabel(/password/i).fill("ParentPass2026!")
+  await page.getByRole("button", { name: /enter portal/i }).click()
   await page.waitForURL("**/dashboard/parent**", { timeout: 15000, waitUntil: "domcontentloaded" })
 }
 
@@ -50,13 +48,13 @@ test.describe("Authentication", () => {
     await expect(page.getByText(/back to home/i)).toBeVisible()
   })
 
-  test("admin bypass login redirects to /dashboard/admin", async ({ page }) => {
+  test("admin login redirects to /dashboard/admin", async ({ page }) => {
     await loginAsAdmin(page)
     await expect(page).toHaveURL(/\/dashboard\/admin/)
     await expect(page.getByText("Admin Dashboard")).toBeVisible({ timeout: 10000 })
   })
 
-  test("parent bypass login redirects to /dashboard/parent", async ({ page }) => {
+  test("parent login redirects to /dashboard/parent", async ({ page }) => {
     await loginAsParent(page)
     await expect(page).toHaveURL(/\/dashboard\/parent/)
   })
