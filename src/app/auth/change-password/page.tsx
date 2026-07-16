@@ -54,18 +54,7 @@ export default function ChangePasswordPage() {
         throw new Error(res.error || "Failed to update auth password")
       }
 
-      // 2. If Supabase is configured, update the must_change_password flag in the profile
-      if (isSupabaseConfigured() && user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .update({ must_change_password: false })
-          .eq("id", user.id)
-
-        if (profileError) {
-          console.error("Failed to update profile must_change_password:", profileError.message)
-          // Don't fail completely if profile update fails but auth password succeeded
-        }
-      }
+      // 2. Removed must_change_password flag update as the column is no longer used
 
       setSuccess(true)
       setTimeout(() => {
@@ -122,7 +111,7 @@ export default function ChangePasswordPage() {
             </div>
             <h1 className="text-olive text-[26px] font-display font-bold leading-tight mb-2">Change Password</h1>
             <p className="text-olive/60 text-sm font-body px-4">
-              For security, you must update your temporary password before accessing the dashboard.
+              Update your account password.
             </p>
           </div>
 

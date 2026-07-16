@@ -190,7 +190,6 @@ export async function POST(request: NextRequest) {
         name: parentName || normalizedEmail.split("@")[0],
         role: "parent",
         child_id: studentId,
-        must_change_password: true,
       },
       { onConflict: "id" }
     )

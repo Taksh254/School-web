@@ -8,7 +8,7 @@ import DashboardTopbar from "@/components/dashboard/DashboardTopbar"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, loading, mustChangePassword } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -19,11 +19,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         console.log(`[dashboard/layout] Redirecting to /login because user is null`)
         router.replace("/login")
       } else {
-        if (user.role === "parent" && mustChangePassword) {
-          console.log(`[dashboard/layout] User must change password. Redirecting to /auth/change-password`)
-          router.replace("/auth/change-password")
-          return
-        }
 
         const isWrongAdmin = pathname.startsWith("/dashboard/admin") && user.role !== "admin"
         const isWrongParent = pathname.startsWith("/dashboard/parent") && user.role !== "parent"
@@ -42,8 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isWrongRole = user && (
     (pathname.startsWith("/dashboard/admin") && user.role !== "admin") ||
-    (pathname.startsWith("/dashboard/parent") && user.role !== "parent") ||
-    (user.role === "parent" && mustChangePassword)
+    (pathname.startsWith("/dashboard/parent") && user.role !== "parent")
   )
 
   if (loading || isWrongRole) {

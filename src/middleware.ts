@@ -74,7 +74,10 @@ export async function middleware(request: NextRequest) {
           .eq("id", user.id)
           .maybeSingle()
 
-        role = profile?.role || null
+        // If the profile row is missing (e.g. first-time Google OAuth),
+        // default the role to "parent" to break the infinite redirect loop.
+        // The client-side auth context will permanently provision the profile.
+        role = profile?.role || "parent"
       }
     } catch (err: any) {
       // Log on server only — never expose session details to the client.
@@ -85,6 +88,11 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL("/login", request.url)
       loginUrl.searchParams.set("redirect", pathname)
       return redirectWithCookies(request, loginUrl.pathname + loginUrl.search, authClient.supabaseResponse)
+    }
+
+    // Resolve the root /dashboard 404 black hole
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+      return redirectWithCookies(request, `/dashboard/${role}`, authClient.supabaseResponse)
     }
 
     // Role-based access control

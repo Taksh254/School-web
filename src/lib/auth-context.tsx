@@ -152,12 +152,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const name = sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || email.split("@")[0] || "School User"
 
           try {
-            const profile = await fetchProfileFromDb(sbUser.id, email)
+            let profile = await fetchProfileFromDb(sbUser.id, email)
             if (!active) return
+            if (!profile) {
+              // Auto-provision a parent profile if missing (e.g., Google OAuth)
+              await ensureProfile(sbUser.id, email, name, "parent")
+              profile = await fetchProfileFromDb(sbUser.id, email)
+            }
             if (profile) {
               setUser(profile)
-              // Fire-and-forget — non-fatal if this fails
-              ensureProfile(sbUser.id, email, name, profile.role).catch(() => {})
             } else {
               setUser(null)
             }
@@ -176,7 +179,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === "SIGNED_OUT") {
         setUser(null)
-        setMustChangePassword(false)
         return
       }
 
@@ -187,10 +189,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const name = sbUser.user_metadata?.full_name || sbUser.user_metadata?.name || "School User"
 
         try {
-          const profile = await fetchProfileFromDb(sbUser.id, email)
-          if (!active || !profile) return
+          let profile = await fetchProfileFromDb(sbUser.id, email)
+          if (!active) return
+          if (!profile) {
+            await ensureProfile(sbUser.id, email, name, "parent")
+            profile = await fetchProfileFromDb(sbUser.id, email)
+          }
+          if (!profile) return
           setUser(profile)
-          ensureProfile(sbUser.id, email, name, profile.role).catch(() => {})
         } catch {
           // Non-fatal DB error — do not clear the session
         }
@@ -229,7 +235,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.user) {
-        const profile = await fetchProfileFromDb(data.user.id, data.user.email || "")
+        const email = data.user.email?.trim().toLowerCase() || ""
+        const name = data.user.user_metadata?.full_name || data.user.user_metadata?.name || email.split("@")[0] || "School User"
+        let profile = await fetchProfileFromDb(data.user.id, email)
+        
+        if (!profile) {
+          await ensureProfile(data.user.id, email, name, "parent")
+          profile = await fetchProfileFromDb(data.user.id, email)
+        }
+
         setUser(profile)
         return { success: true }
       }
@@ -326,7 +340,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { error } = await supabase.auth.updateUser({ password })
       if (error) return { success: false, error: error.message }
-      setMustChangePassword(false)
       return { success: true }
     } catch (err: any) {
       return { success: false, error: err?.message || "An error occurred." }
@@ -336,7 +349,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── logout ───────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     setUser(null)
-    setMustChangePassword(false)
     if (isSupabaseConfigured()) {
       try {
         await supabase.auth.signOut({ scope: "local" })
