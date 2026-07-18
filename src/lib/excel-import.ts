@@ -27,7 +27,11 @@ export async function parseExcelFile(file: File): Promise<Record<string, unknown
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const workbook = XLSX.read(data, { type: "array" })
+        // cellDates: false → all date cells come back as Excel serial numbers (integers).
+        // This prevents XLSX from converting them to JS Date objects whose
+        // locale .toString() then gets mis-parsed by new Date(), producing the
+        // "+044766-12" timezone displacement PostgreSQL error.
+        const workbook = XLSX.read(data, { type: "array", cellDates: false })
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(firstSheet, { defval: "" })
         resolve(rows)
@@ -39,6 +43,7 @@ export async function parseExcelFile(file: File): Promise<Record<string, unknown
     reader.readAsArrayBuffer(file)
   })
 }
+
 
 function getVal(row: Record<string, unknown>, keys: string[]): string {
   const rowKeys = Object.keys(row)

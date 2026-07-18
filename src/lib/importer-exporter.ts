@@ -37,6 +37,37 @@ export function getVal(row: Record<string, unknown>, keys: string[]): string {
   return ""
 }
 
+// ── Date Parsing ─────────────────────────────────────────────────
+// Handles Excel serial numbers (e.g. 44766), JS Date strings, and YYYY-MM-DD.
+// Returns YYYY-MM-DD on success, null on failure.
+export function parseExcelDate(raw: any): string | null {
+  if (raw === undefined || raw === null || raw === "") return null
+
+  // Excel serial date (number or numeric string in range 20000–100000)
+  if (
+    typeof raw === "number" ||
+    (typeof raw === "string" && !isNaN(Number(raw)) && Number(raw) > 20000 && Number(raw) < 100000)
+  ) {
+    const excelDate = Number(raw)
+    // Excel epoch is Dec 30, 1899. Convert to Unix ms.
+    const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000))
+    if (!isNaN(date.getTime())) return date.toISOString().slice(0, 10)
+  }
+
+  // Already YYYY-MM-DD
+  const rawStr = String(raw).trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawStr)) {
+    const d = new Date(rawStr)
+    if (!isNaN(d.getTime())) return rawStr
+  }
+
+  // Fallback: let JS parse it and re-emit as YYYY-MM-DD
+  const parsed = new Date(rawStr)
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10)
+
+  return null
+}
+
 // ── CSV Parsing Wrapper ─────────────────────────────────────────
 export async function parseCsvFile(file: File): Promise<Record<string, unknown>[]> {
   const Papa = (await import("papaparse")).default
@@ -186,8 +217,16 @@ export function validateStudents(
     let dateOfBirth: string
 
     if (rawDob) {
-      dateOfBirth = rawDob
-      age = calcAge(rawDob)
+      const parsedDate = parseExcelDate(rawDob)
+      if (!parsedDate) {
+        errors.push({
+          row: rowNum,
+          error: `Row ${rowNum} | Column: Date of Birth | Invalid value: '${rawDob}' | Expected format: YYYY-MM-DD`,
+        })
+        return
+      }
+      dateOfBirth = parsedDate
+      age = calcAge(dateOfBirth)
     } else {
       age = 4
       if (program === "Play Group") age = 3
