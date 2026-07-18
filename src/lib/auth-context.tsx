@@ -12,6 +12,7 @@ interface AuthState {
   loading: boolean
 
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  parentLogin: (admissionNo: string, password: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>
 
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthState>({
   loading: true,
 
   login: async () => ({ success: false }),
+  parentLogin: async () => ({ success: false }),
 
   register: async () => ({ success: false }),
   loginWithGoogle: async () => ({ success: false }),
@@ -254,9 +256,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // ── parentLogin ─────────────────────────────────────────────────────────
+  const parentLogin = useCallback(async (admissionNo: string, password: string) => {
+    try {
+      const res = await fetch("/api/parent-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admissionNo, password }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        return { success: false, error: json.error || "Login failed" }
+      }
+      return { success: true, mustChangePassword: json.mustChangePassword }
+    } catch (err: any) {
+      return { success: false, error: err?.message || "A connection error occurred." }
+    }
+  }, [])
 
 
-  // ── register ────────────────────────────────────────────────────────────
   const register = useCallback(async (name: string, email: string, password: string) => {
     if (!isSupabaseConfigured()) {
       return { success: false, error: "Authentication service is not configured." }
@@ -349,6 +367,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── logout ───────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
     setUser(null)
+    // Clear parent session cookie by calling a logout endpoint or directly
+    try {
+      await fetch("/api/parent-logout", { method: "POST" })
+    } catch {
+      // Ignore
+    }
     if (isSupabaseConfigured()) {
       try {
         await supabase.auth.signOut({ scope: "local" })
@@ -365,6 +389,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
 
       login,
+      parentLogin,
 
       register,
       loginWithGoogle,

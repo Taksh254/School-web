@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "./lib/supabase-middleware"
+import jwt from "jsonwebtoken"
+
+const JWT_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+const PARENT_COOKIE = "parent_session"
 
 // Paths that never require authentication
 const PUBLIC_PATHS = [
@@ -32,6 +36,25 @@ function redirectWithCookies(request: NextRequest, targetUrl: string, supabaseRe
   return redirectResponse
 }
 
+interface ParentSession {
+  studentId: string
+  admissionNo: string
+  role: "parent"
+  mustChangePassword: boolean
+}
+
+function getParentSession(request: NextRequest): ParentSession | null {
+  const token = request.cookies.get(PARENT_COOKIE)?.value
+  if (!token || !JWT_SECRET) return null
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as ParentSession
+    if (payload.role !== "parent") return null
+    return payload
+  } catch {
+    return null
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -45,8 +68,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── Login page: pass through (redirect handled client-side after hydration) ──
+  // ── Login / forgot password: pass through ────────────────────────────
   if (pathname === "/login" || pathname === "/forgot-password") {
+    return NextResponse.next()
+  }
+
+  // ── Parent change-password page: validate parent session only ─────────
+  if (pathname === "/auth/parent-change-password") {
+    const parentSession = getParentSession(request)
+    if (!parentSession) {
+      return NextResponse.redirect(new URL("/login?tab=parent", request.url))
+    }
     return NextResponse.next()
   }
 
@@ -55,7 +87,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── Protected: /dashboard/* ───────────────────────────────────────────
+  // ── Protected: /dashboard/parent/* → validate parent_session cookie ───
+  if (pathname.startsWith("/dashboard/parent")) {
+    const parentSession = getParentSession(request)
+    if (!parentSession) {
+      return NextResponse.redirect(new URL("/login?tab=parent", request.url))
+    }
+    // Forced password change
+    if (parentSession.mustChangePassword) {
+      return NextResponse.redirect(new URL("/auth/parent-change-password", request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // ── Protected: /dashboard/admin/* and /dashboard → Supabase JWT ───────
   if (pathname.startsWith("/dashboard")) {
     const authClient = createClient(request)
     const supabase = authClient.supabase
@@ -63,24 +108,18 @@ export async function middleware(request: NextRequest) {
     let role: string | null = null
 
     try {
-      // getUser() validates the JWT against Supabase servers — cannot be spoofed.
       const { data: { user }, error } = await supabase.auth.getUser()
 
       if (!error && user) {
-        // Role comes exclusively from the DB profile — never from email pattern matching.
         const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .maybeSingle()
 
-        // If the profile row is missing (e.g. first-time Google OAuth),
-        // default the role to "parent" to break the infinite redirect loop.
-        // The client-side auth context will permanently provision the profile.
-        role = profile?.role || "parent"
+        role = profile?.role || "admin"
       }
     } catch (err: any) {
-      // Log on server only — never expose session details to the client.
       console.error(`[middleware] Session check failed for ${pathname}:`, err?.message)
     }
 
@@ -90,20 +129,20 @@ export async function middleware(request: NextRequest) {
       return redirectWithCookies(request, loginUrl.pathname + loginUrl.search, authClient.supabaseResponse)
     }
 
-    // Resolve the root /dashboard 404 black hole
+    // Resolve the root /dashboard
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
-      return redirectWithCookies(request, `/dashboard/${role}`, authClient.supabaseResponse)
+      return redirectWithCookies(
+        request,
+        role === "admin" ? "/dashboard/admin" : "/login?tab=parent",
+        authClient.supabaseResponse
+      )
     }
 
-    // Role-based access control
+    // Admin-only: non-admin users cannot access /dashboard/admin
     if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
-      return redirectWithCookies(request, "/dashboard/parent", authClient.supabaseResponse)
-    }
-    if (pathname.startsWith("/dashboard/parent") && role !== "parent") {
-      return redirectWithCookies(request, "/dashboard/admin", authClient.supabaseResponse)
+      return redirectWithCookies(request, "/login?tab=parent", authClient.supabaseResponse)
     }
 
-    // Always return supabaseResponse so refreshed tokens propagate via Set-Cookie.
     return authClient.supabaseResponse
   }
 
@@ -112,7 +151,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on everything except static assets and Next.js internals
     "/((?!_next/static|_next/image|favicon\\.ico|images/.*\\.(?:mp4|jpg|jpeg|gif|png|svg|webp)$).*)",
   ],
 }
+

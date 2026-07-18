@@ -11,7 +11,7 @@ import ImportReportModal from "@/components/dashboard/ImportReportModal"
 import { parseExcelFile, generatePreview, previewToStudentData } from "@/lib/excel-import"
 import type { ImportedRow } from "@/lib/excel-import"
 import { exportStudentsCSV, exportStudentsExcel } from "@/lib/excel-export"
-import { Users, Plus, Pencil, Trash2, GraduationCap, Upload, Download, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft, Link2 } from "lucide-react"
+import { Users, Plus, Pencil, Trash2, GraduationCap, Upload, Download, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft, Link2, KeyRound, ShieldAlert, ShieldCheck } from "lucide-react"
 
 const PROGRAMS: ProgramType[] = ["Play Group", "Nursery", "LKG", "UKG"]
 
@@ -49,6 +49,7 @@ export default function AdminStudentsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [modalError, setModalError] = useState<string | null>(null)
   const [errorBanner, setErrorBanner] = useState<string | null>(null)
+  const [resetingParentId, setResetingParentId] = useState<string | null>(null)
 
   // Linking parent state
   const [linkParentStudent, setLinkParentStudent] = useState<Student | null>(null)
@@ -169,6 +170,29 @@ export default function AdminStudentsPage() {
 
   const handleExportExcel = async () => {
     await exportStudentsExcel(filtered, "students_export")
+  }
+
+  const handleResetParentPassword = async (student: Student) => {
+    if (!window.confirm(`Reset parent password for ${student.name} (${student.admissionNo}) to their admission number?`)) return
+    setResetingParentId(student.id)
+    try {
+      const res = await fetch("/api/reset-parent-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId: student.id }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setErrorBanner("Failed to reset password: " + (json.error || "Unknown error"))
+      } else {
+        setErrorBanner(null)
+        alert(`Password reset. Parent can now log in with admission number: ${student.admissionNo}`)
+      }
+    } catch {
+      setErrorBanner("Failed to reset parent password.")
+    } finally {
+      setResetingParentId(null)
+    }
   }
 
   const refresh = useCallback(async () => {
@@ -320,6 +344,7 @@ export default function AdminStudentsPage() {
         </div>
       ),
     },
+    { key: "admissionNo", label: "Admission No", sortable: true },
     { key: "program", label: "Program", sortable: true },
     { key: "parentName", label: "Parent", sortable: true },
     { key: "teacher", label: "Teacher" },
@@ -420,6 +445,15 @@ export default function AdminStudentsPage() {
                 </button>
                 <button onClick={() => setLinkParentStudent(student)} className="p-1.5 rounded-lg hover:bg-cream text-olive/40 hover:text-olive transition-colors" title="Link Parent Account" aria-label="Link Parent">
                   <Link2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleResetParentPassword(student)}
+                  disabled={resetingParentId === student.id}
+                  className="p-1.5 rounded-lg hover:bg-amber-50 text-olive/40 hover:text-amber-600 transition-colors disabled:opacity-40"
+                  title="Reset Parent Password"
+                  aria-label="Reset Parent Password"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
                 </button>
                 <button onClick={() => setDeleteConfirm(student.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-olive/40 hover:text-red-500 transition-colors" title="Delete Student" aria-label="Delete">
                   <Trash2 className="w-3.5 h-3.5" />
