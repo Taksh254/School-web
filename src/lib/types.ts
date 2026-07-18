@@ -141,3 +141,81 @@ export interface TeacherNote {
   message: string
   category: "academic" | "behavior" | "health" | "general" | "achievement"
 }
+
+// ── Teachers ──────────────────────────────────────────────────
+
+export type EmploymentType = "Full Time" | "Part Time" | "Contract"
+export type TeacherStatus = "Active" | "On Leave" | "Resigned"
+export type LeaveType = "Casual Leave" | "Medical Leave" | "Paid Leave" | "Unpaid Leave"
+export type LeaveStatus = "Pending" | "Approved" | "Rejected"
+export type TeacherAttendanceStatus = "Present" | "Absent" | "Half Day" | "Late Entry"
+export type DocumentType = "Resume" | "Qualification Certificates" | "ID Proof" | "Joining Letter" | "Experience Certificate" | "Other"
+
+export interface Teacher {
+  id: string
+  full_name: string
+  gender: "Male" | "Female" | "Other"
+  dob: string
+  phone: string
+  email: string
+  address: string
+  specialization?: string
+  employment_type: EmploymentType
+  status: TeacherStatus
+  emergency_contact: string
+  blood_group?: string
+  aadhaar_number?: string
+  pan_number?: string
+  bank_name?: string
+  account_number?: string
+  ifsc_code?: string
+  upi_id?: string
+  photo?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface TeacherSalary {
+  id: string
+  teacher_id: string
+  month_year: string
+  basic_salary: number
+  allowances: number
+  bonus: number
+  deductions: number
+  pf: number
+  esi: number
+  net_salary: number
+  status: "Pending" | "Paid"
+  payment_date?: string
+  payment_mode?: "Cash" | "Bank Transfer" | "Cheque" | "UPI"
+  created_at?: string
+}
+
+export interface TeacherAttendance {
+  id: string
+  teacher_id: string
+  date: string
+  status: TeacherAttendanceStatus
+  notes?: string
+}
+
+export interface TeacherLeave {
+  id: string
+  teacher_id: string
+  start_date: string
+  end_date: string
+  type: LeaveType
+  reason: string
+  status: LeaveStatus
+  applied_on: string
+}
+
+export interface TeacherDocument {
+  id: string
+  teacher_id: string
+  title: string
+  type: DocumentType
+  file_url: string
+  uploaded_at?: string
+}

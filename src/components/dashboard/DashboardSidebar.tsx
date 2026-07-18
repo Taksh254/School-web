@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context"
 import {
   LayoutDashboard,
   Users,
+  UserCheck,
   CreditCard,
   Bell,
   BarChart3,
@@ -30,6 +31,7 @@ interface SidebarProps {
 const adminLinks = [
   { href: "/dashboard/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/admin/students", label: "Students", icon: Users },
+  { href: "/dashboard/admin/teachers", label: "Teachers", icon: UserCheck },
   { href: "/dashboard/admin/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/dashboard/admin/fees", label: "Fee Management", icon: CreditCard },
   { href: "/dashboard/admin/enquiries", label: "Enquiries", icon: ClipboardList },
