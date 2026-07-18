@@ -1,7 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/supabase"
-import { Teacher, TeacherSalary, TeacherAttendance, TeacherLeave, TeacherDocument, TeacherNote } from "@/lib/types"
+import { Teacher, TeacherSalary, TeacherAttendance, TeacherLeave, TeacherDocument, AdminTeacherNote } from "@/lib/types"
 
 // ── Teacher CRUD ──────────────────────────────────────────────
 
@@ -145,20 +145,17 @@ export async function addTeacherDocument(docData: Omit<TeacherDocument, "id" | "
 
 // ── Teacher Notes ─────────────────────────────────────────────
 
-export async function getTeacherNotes(teacherId: string): Promise<TeacherNote[]> {
+export async function getTeacherNotes(teacherId: string): Promise<AdminTeacherNote[]> {
   const { data, error } = await supabase.from("teacher_notes").select("*").eq("teacher_id", teacherId).order("date", { ascending: false })
-  if (error) {
-    console.error("Error fetching teacher notes:", error)
-    return []
-  }
-  return data as TeacherNote[]
+  if (error) { console.error("Error fetching teacher notes:", error); return [] }
+  return data as AdminTeacherNote[]
 }
 
-export async function addTeacherNote(noteData: Omit<TeacherNote, "id" | "date">): Promise<TeacherNote | { error: string }> {
+export async function addTeacherNote(noteData: Omit<AdminTeacherNote, "id" | "date">): Promise<AdminTeacherNote | { error: string }> {
   const { data, error } = await supabase.from("teacher_notes").insert([noteData]).select().single()
   if (error) {
     console.error("Error adding teacher note:", error)
     return { error: error.message }
   }
-  return data as TeacherNote
+  return data as AdminTeacherNote
 }

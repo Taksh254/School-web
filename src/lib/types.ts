@@ -262,7 +262,7 @@ export interface TeacherDocument {
   uploaded_at?: string
 }
 
-export interface TeacherNote {
+export interface AdminTeacherNote {
   id: string
   teacher_id: string
   note: string

@@ -15,7 +15,7 @@ import {
   getTeacherDocuments, addTeacherDocument, getTeacherNotes, addTeacherNote
 } from "@/app/actions/teacher-actions"
 
-import { Teacher, TeacherSalary, TeacherAttendance, TeacherLeave, TeacherDocument, TeacherNote } from "@/lib/types"
+import { Teacher, TeacherSalary, TeacherAttendance, TeacherLeave, TeacherDocument, AdminTeacherNote } from "@/lib/types"
 import Modal from "@/components/dashboard/Modal"
 import DataTable from "@/components/dashboard/DataTable"
 import { supabase } from "@/lib/supabase"
@@ -45,7 +45,7 @@ export default function TeacherProfilePage() {
   const [attendance, setAttendance] = useState<TeacherAttendance[]>([])
   const [leaves, setLeaves] = useState<TeacherLeave[]>([])
   const [documents, setDocuments] = useState<TeacherDocument[]>([])
-  const [notes, setNotes] = useState<TeacherNote[]>([])
+  const [notes, setNotes] = useState<AdminTeacherNote[]>([])
   
   const [modalOpen, setModalOpen] = useState<{ type: string; open: boolean }>({ type: "", open: false })
   const [submitting, setSubmitting] = useState(false)
@@ -56,7 +56,7 @@ export default function TeacherProfilePage() {
   const [leaveForm, setLeaveForm] = useState<Partial<TeacherLeave>>({ type: "Casual Leave", status: "Pending" })
   const [docForm, setDocForm] = useState<Partial<TeacherDocument>>({ type: "Resume" })
   const [docFile, setDocFile] = useState<File | null>(null)
-  const [noteForm, setNoteForm] = useState<Partial<TeacherNote>>({ note: "" })
+  const [noteForm, setNoteForm] = useState<Partial<AdminTeacherNote>>({ note: "" })
 
   const loadData = useCallback(async () => {
     if (!id || typeof id !== "string") return
@@ -183,7 +183,7 @@ export default function TeacherProfilePage() {
     try {
       const res = await addTeacherNote({ teacher_id: teacher.id, note: noteForm.note || "", author: "Admin" })
       if ('error' in res) throw new Error(res.error)
-      setNotes(prev => [res as TeacherNote, ...prev])
+      setNotes(prev => [res as AdminTeacherNote, ...prev])
       setModalOpen({ type: "", open: false }); setNoteForm({ note: "" })
     } catch (err: any) { setErrorBanner(err.message) } finally { setSubmitting(false) }
   }

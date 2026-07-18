@@ -64,14 +64,31 @@ function getVal(row: Record<string, unknown>, keys: string[]): string {
   return ""
 }
 
-function parseDate(raw: string): string {
-  if (!raw) return ""
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
-  const parsed = new Date(raw)
+function parseDate(raw: any): string | null {
+  if (raw === undefined || raw === null || raw === "") return null
+
+  // Check if it's an Excel serial date (e.g., 44766)
+  if (typeof raw === "number" || (typeof raw === "string" && !isNaN(Number(raw)) && Number(raw) > 30000 && Number(raw) < 100000)) {
+    const excelDate = Number(raw)
+    // Excel dates are days since Dec 30, 1899
+    const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000))
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().slice(0, 10)
+    }
+  }
+
+  const rawStr = String(raw).trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawStr)) {
+    const parsed = new Date(rawStr)
+    if (!isNaN(parsed.getTime())) return rawStr
+  }
+  
+  const parsed = new Date(rawStr)
   if (!isNaN(parsed.getTime())) {
     return parsed.toISOString().slice(0, 10)
   }
-  return raw
+  
+  return null // Return null if totally invalid
 }
 
 const programMapping: Record<string, ProgramType> = {
@@ -119,6 +136,11 @@ export function generatePreview(rows: Record<string, unknown>[], existingAdmissi
 
     const normalizedAdmissionNo = String(admissionNo || "").trim().toLowerCase()
 
+    const parsedDob = parseDate(rawDob)
+    if (rawDob && !parsedDob) {
+      errs.push(`Invalid Date of Birth format: '${rawDob}'. Expected YYYY-MM-DD or valid date.`)
+    }
+
     if (normalizedAdmissionNo && existingAdmissionNos.includes(normalizedAdmissionNo)) {
       errs.push(`Duplicate admission number: ${admissionNo}`)
     }
@@ -127,7 +149,7 @@ export function generatePreview(rows: Record<string, unknown>[], existingAdmissi
       rowNumber,
       studentName,
       parentName,
-      dob: parseDate(rawDob),
+      dob: parsedDob || "",
       email,
       phone,
       admissionNo,
