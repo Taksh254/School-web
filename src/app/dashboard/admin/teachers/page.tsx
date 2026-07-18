@@ -24,13 +24,19 @@ import type { Teacher, EmploymentType, TeacherStatus } from "@/lib/types"
 import { exportTeachersCSV, exportTeachersExcel } from "@/lib/excel-export"
 
 const emptyForm: Partial<Teacher> = {
+  teacher_id: "",
   full_name: "",
   gender: "Female",
   dob: "",
   phone: "",
   email: "",
   address: "",
+  qualification: "",
+  experience: "",
+  designation: "",
+  department: "",
   specialization: "",
+  joining_date: "",
   employment_type: "Full Time",
   status: "Active",
   emergency_contact: "",
@@ -278,6 +284,11 @@ export default function AdminTeachersPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Teacher ID *</label>
+              <input type="text" required value={form.teacher_id} onChange={(e) => setForm({ ...form, teacher_id: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all" />
+            </div>
+            <div>
               <label className="block text-xs font-medium text-olive mb-1 font-body">Full Name *</label>
               <input type="text" required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all" />
@@ -314,6 +325,31 @@ export default function AdminTeachersPage() {
                 <option value="Part Time">Part Time</option>
                 <option value="Contract">Contract</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Designation *</label>
+              <input type="text" required value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Department *</label>
+              <input type="text" required value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Qualification *</label>
+              <input type="text" required value={form.qualification} onChange={(e) => setForm({ ...form, qualification: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Experience</label>
+              <input type="text" value={form.experience} onChange={(e) => setForm({ ...form, experience: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-olive mb-1 font-body">Joining Date *</label>
+              <input type="date" required value={form.joining_date} onChange={(e) => setForm({ ...form, joining_date: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all" />
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-olive mb-1 font-body">Address *</label>

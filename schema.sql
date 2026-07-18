@@ -25,9 +25,37 @@ create table public.profiles (
     id uuid references auth.users on delete cascade primary key,
     email text not null unique,
     name text,
-    role text not null check (role in ('admin', 'parent')) default 'parent',
+    role text not null check (role in ('admin', 'parent', 'teacher', 'student', 'staff')) default 'parent',
     child_id uuid references public.students(id) on delete set null,
-    must_change_password boolean not null default false
+    must_change_password boolean not null default false,
+    photo_url text,
+    theme text default 'system',
+    language text default 'en',
+    timezone text default 'UTC',
+    date_format text default 'DD/MM/YYYY',
+    phone text,
+    alt_phone text,
+    date_of_birth date,
+    gender text,
+    address text,
+    city text,
+    state text,
+    country text,
+    pin_code text,
+    emergency_contact text,
+    is_active boolean default true,
+    last_login_at timestamp with time zone,
+    created_at timestamp with time zone default now()
+);
+
+-- ── 2A. USER ACTIVITY TABLE ──────────────────────────────────────────
+create table public.user_activity (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references public.profiles(id) on delete cascade not null,
+    action text not null,
+    ip_address text,
+    device text,
+    created_at timestamp with time zone default now()
 );
 
 -- ── 3. ATTENDANCE TABLE ──────────────────────────────────────────────
@@ -115,8 +143,8 @@ create table public.admission_inquiries (
 
 -- ── ROW LEVEL SECURITY (RLS) POLICIES ────────────────────────────────
 
--- Enable RLS on all tables
 alter table public.profiles enable row level security;
+alter table public.user_activity enable row level security;
 alter table public.students enable row level security;
 alter table public.attendance enable row level security;
 alter table public.fees enable row level security;
@@ -179,6 +207,16 @@ create policy "Users can update own profile" on public.profiles
     for update using (auth.uid() = id);
 
 create policy "Admins can manage all profiles" on public.profiles
+    for all using (public.is_admin());
+
+-- ── USER ACTIVITY POLICIES ───────────────────────────────────────────
+create policy "Users can read own activity" on public.user_activity
+    for select using (auth.uid() = user_id);
+
+create policy "Users can insert own activity" on public.user_activity
+    for insert with check (auth.uid() = user_id);
+
+create policy "Admins have full access to user activity" on public.user_activity
     for all using (public.is_admin());
 
 -- ── STUDENTS POLICIES ────────────────────────────────────────────────
@@ -295,6 +333,8 @@ $$;
 
 -- ── 10. INDEXES FOR PERFORMANCE ──────────────────────────────────────
 create index if not exists idx_profiles_child_id on public.profiles(child_id);
+create index if not exists idx_user_activity_user_id on public.user_activity(user_id);
+create index if not exists idx_user_activity_created_at on public.user_activity(created_at);
 create index if not exists idx_attendance_student_id on public.attendance(student_id);
 create index if not exists idx_attendance_date on public.attendance(date);
 create index if not exists idx_fees_student_id on public.fees(student_id);
@@ -307,13 +347,19 @@ create index if not exists idx_notes_student_id on public.notes(student_id);
 -- 1. TEACHERS TABLE
 create table if not exists public.teachers (
     id uuid primary key default gen_random_uuid(),
+    teacher_id text not null unique,
     full_name text not null,
     gender text not null check (gender in ('Male', 'Female', 'Other')),
     dob date not null,
     phone text not null,
     email text not null unique,
     address text not null,
+    qualification text not null,
+    experience text,
+    designation text not null,
+    department text not null,
     specialization text,
+    joining_date date not null default current_date,
     employment_type text not null check (employment_type in ('Full Time', 'Part Time', 'Contract')),
     status text not null check (status in ('Active', 'On Leave', 'Resigned')) default 'Active',
     emergency_contact text not null,

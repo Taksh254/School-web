@@ -1,4 +1,4 @@
-export type Role = "admin" | "parent"
+export type Role = "admin" | "parent" | "teacher" | "student" | "staff"
 
 /**
  * SECURITY: Admin email list is NOT kept client-side.
@@ -23,6 +23,42 @@ export interface User {
   avatar?: string
   /** Only relevant for parent role */
   childId?: string
+}
+
+export interface UserProfile {
+  id: string
+  email: string
+  name: string
+  role: Role
+  child_id?: string
+  must_change_password?: boolean
+  photo_url?: string
+  theme?: string
+  language?: string
+  timezone?: string
+  date_format?: string
+  phone?: string
+  alt_phone?: string
+  date_of_birth?: string
+  gender?: string
+  address?: string
+  city?: string
+  state?: string
+  country?: string
+  pin_code?: string
+  emergency_contact?: string
+  is_active?: boolean
+  last_login_at?: string
+  created_at?: string
+}
+
+export interface UserActivity {
+  id: string
+  user_id: string
+  action: string
+  ip_address?: string
+  device?: string
+  created_at?: string
 }
 
 // ── Students ──────────────────────────────────────────────────
@@ -153,13 +189,19 @@ export type DocumentType = "Resume" | "Qualification Certificates" | "ID Proof" 
 
 export interface Teacher {
   id: string
+  teacher_id: string
   full_name: string
   gender: "Male" | "Female" | "Other"
   dob: string
   phone: string
   email: string
   address: string
+  qualification: string
+  experience?: string
+  designation: string
+  department: string
   specialization?: string
+  joining_date: string
   employment_type: EmploymentType
   status: TeacherStatus
   emergency_contact: string
@@ -218,4 +260,12 @@ export interface TeacherDocument {
   type: DocumentType
   file_url: string
   uploaded_at?: string
+}
+
+export interface TeacherNote {
+  id: string
+  teacher_id: string
+  note: string
+  author: string
+  date?: string
 }

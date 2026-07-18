@@ -1,7 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/supabase"
-import { Teacher, TeacherSalary, TeacherAttendance, TeacherLeave, TeacherDocument } from "@/lib/types"
+import { Teacher, TeacherSalary, TeacherAttendance, TeacherLeave, TeacherDocument, TeacherNote } from "@/lib/types"
 
 // ── Teacher CRUD ──────────────────────────────────────────────
 
@@ -141,4 +141,24 @@ export async function addTeacherDocument(docData: Omit<TeacherDocument, "id" | "
     return { error: error.message }
   }
   return data as TeacherDocument
+}
+
+// ── Teacher Notes ─────────────────────────────────────────────
+
+export async function getTeacherNotes(teacherId: string): Promise<TeacherNote[]> {
+  const { data, error } = await supabase.from("teacher_notes").select("*").eq("teacher_id", teacherId).order("date", { ascending: false })
+  if (error) {
+    console.error("Error fetching teacher notes:", error)
+    return []
+  }
+  return data as TeacherNote[]
+}
+
+export async function addTeacherNote(noteData: Omit<TeacherNote, "id" | "date">): Promise<TeacherNote | { error: string }> {
+  const { data, error } = await supabase.from("teacher_notes").insert([noteData]).select().single()
+  if (error) {
+    console.error("Error adding teacher note:", error)
+    return { error: error.message }
+  }
+  return data as TeacherNote
 }
