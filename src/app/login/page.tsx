@@ -38,15 +38,17 @@ export default function LoginPage() {
     }
   }, [])
 
-  // Admin already logged in — redirect
+  // Authenticated user (Supabase) — redirect to correct portal based on role
   useEffect(() => {
     if (user && !loading) {
       const params = new URLSearchParams(window.location.search)
       const redirectParam = params.get("redirect")
-      if (redirectParam && redirectParam.startsWith("/")) {
-        window.location.href = redirectParam
+      if (redirectParam && redirectParam.startsWith("/") && !redirectParam.startsWith("/login")) {
+        router.replace(redirectParam)
       } else {
-        window.location.href = "/dashboard/admin"
+        // Route to the correct portal based on role
+        const target = user.role === "admin" ? "/dashboard/admin" : "/dashboard/parent"
+        router.replace(target)
       }
     }
   }, [user, loading, router])

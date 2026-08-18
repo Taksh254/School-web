@@ -30,13 +30,23 @@ export default function ParentProfilePage() {
     
     // Load student info
     const loadStudent = async () => {
-      if (user?.childId) {
-        try {
+      try {
+        // Primary: Load from secure parent session
+        const res = await fetch("/api/parent-data?type=student", { cache: "no-store" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.student) {
+            setChild(data.student)
+            return
+          }
+        }
+
+        if (user?.childId) {
           const s = await getStudent(user.childId)
           setChild(s || null)
-        } catch (err) {
-          console.error("Error loading student in profile:", err)
         }
+      } catch (err) {
+        console.error("Error loading student in profile:", err)
       }
     }
     loadStudent()

@@ -192,13 +192,22 @@ export default function ChangePasswordPage() {
                 <span>{submitting ? "Updating Password..." : "Update & Continue"}</span>
               </motion.button>
 
-              <button
-                type="button"
-                onClick={logout}
-                className="w-full text-center text-xs text-olive/40 hover:text-olive/75 transition-colors font-body mt-2"
-              >
-                Log Out
-              </button>
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => router.push(user?.role === "admin" ? "/dashboard/admin" : "/dashboard/parent")}
+                  className="text-xs text-olive/50 hover:text-olive hover:underline font-body transition-colors"
+                >
+                  Skip for now →
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-xs text-olive/40 hover:text-olive/75 transition-colors font-body"
+                >
+                  Log Out
+                </button>
+              </div>
             </form>
           )}
         </div>

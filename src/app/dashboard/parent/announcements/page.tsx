@@ -15,6 +15,15 @@ export default function ParentAnnouncementsPage() {
     const fetchAnnouncements = async () => {
       setLoading(true)
       try {
+        const res = await fetch("/api/parent-data?type=announcements", { cache: "no-store" })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.announcements) {
+            setAnnouncements(json.announcements)
+            setLoading(false)
+            return
+          }
+        }
         const data = await getAnnouncements()
         setAnnouncements(data.filter((a) => a.published))
       } catch (err) {

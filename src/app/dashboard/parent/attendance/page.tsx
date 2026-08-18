@@ -21,19 +21,29 @@ export default function AttendancePage() {
   const [child, setChild] = useState<any>(null)
 
   useEffect(() => {
-    if (!childId) {
-      setLoading(false)
-      return
-    }
     const fetchAttendance = async () => {
       setLoading(true)
       try {
-        const [data, studentData] = await Promise.all([
-          getAttendance(childId),
-          getStudent(childId),
-        ])
-        setRecords(data)
-        setChild(studentData || null)
+        // Primary: Load from parent-data
+        const res = await fetch("/api/parent-data?type=attendance", { cache: "no-store" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.student) {
+            setRecords(data.attendance || [])
+            setChild(data.student)
+            setLoading(false)
+            return
+          }
+        }
+
+        if (childId) {
+          const [data, studentData] = await Promise.all([
+            getAttendance(childId),
+            getStudent(childId),
+          ])
+          setRecords(data)
+          setChild(studentData || null)
+        }
       } catch (err) {
         console.error("Attendance fetch error:", err)
       } finally {

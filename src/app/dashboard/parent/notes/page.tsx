@@ -19,18 +19,30 @@ export default function ParentNotesPage() {
   const { user } = useAuth()
   const childId = user?.childId
   const [notes, setNotes] = useState<TeacherNote[]>([])
+  const [hasChild, setHasChild] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!childId) {
-      setLoading(false)
-      return
-    }
     const fetchNotes = async () => {
       setLoading(true)
       try {
-        const data = await getNotes(childId)
-        setNotes(data)
+        // Primary: Load from parent-data
+        const res = await fetch("/api/parent-data?type=notes", { cache: "no-store" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.student) {
+            setNotes(data.notes || [])
+            setHasChild(true)
+            setLoading(false)
+            return
+          }
+        }
+
+        if (childId) {
+          const data = await getNotes(childId)
+          setNotes(data)
+          setHasChild(true)
+        }
       } catch (err) {
         console.error("Notes fetch error:", err)
       } finally {
@@ -48,7 +60,7 @@ export default function ParentNotesPage() {
     )
   }
 
-  if (!childId) {
+  if (!hasChild && !childId) {
     return (
       <div className="space-y-6">
         <div>

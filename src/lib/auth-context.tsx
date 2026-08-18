@@ -78,6 +78,23 @@ async function fetchProfileFromDb(userId: string, emailFallback: string): Promis
 }
 
 /**
+ * Checks for an active cookie-based parent session from /api/parent-session.
+ */
+async function fetchParentSession(): Promise<User | null> {
+  try {
+    const res = await fetch("/api/parent-session", { cache: "no-store" })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.authenticated && data.user) {
+      return data.user as User
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Ensures a profile row exists for the user. Creates one if absent.
  * Role is provided by the caller (sourced from DB or defaults to "parent").
  * Never writes "admin" unless the DB already says so or the server explicitly
@@ -113,32 +130,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
 
-  // ── Init: resolve session from onAuthStateChange ───────────────────────
-  //
-  // ARCHITECTURE NOTE — why onAuthStateChange drives init (not getUser):
-  //
-  // The middleware validates the JWT server-side on every request before the
-  // page is served. By the time this component mounts, the session is already
-  // authenticated. We only need to read the locally-cached token.
-  //
-  // Using getUser() here creates a race condition under React Strict Mode:
-  // Strict Mode intentionally mounts → unmounts → remounts every effect.
-  // The cleanup calls subscription.unsubscribe(), which cancels the global
-  // auto-refresh timer on the supabase-js singleton. The concurrent getUser()
-  // network call may complete after cleanup, causing the second mount's init
-  // to race against the first mount's in-flight result.
-  //
-  // The correct pattern: let onAuthStateChange with INITIAL_SESSION be the
-  // single authoritative source of session state on mount. This is synchronous
-  // (reads localStorage), cannot race, and the Supabase team documents this
-  // as the correct client-side pattern when middleware handles server validation.
+  // ── Init: resolve session from onAuthStateChange or parent cookie ─────────
   useEffect(() => {
-    if (!isSupabaseConfigured()) {
+    let active = true
+
+    const initParentFallback = async () => {
+      const parentUser = await fetchParentSession()
+      if (!active) return
+      if (parentUser) {
+        setUser(parentUser)
+      } else {
+        setUser(null)
+      }
       setLoading(false)
-      return
     }
 
-    let active = true
+    if (!isSupabaseConfigured()) {
+      initParentFallback()
+      return
+    }
 
     // Subscribe — INITIAL_SESSION fires synchronously on subscribe if a
     // valid local session exists; TOKEN_REFRESHED / SIGNED_IN / SIGNED_OUT
@@ -147,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return
 
       if (event === "INITIAL_SESSION") {
-        // Session is present — hydrate the profile from DB.
+        // Session is present in Supabase Auth — hydrate the profile from DB.
         if (session?.user) {
           const sbUser = session.user
           const email = sbUser.email?.trim().toLowerCase() || ""
@@ -172,15 +182,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false)
           }
         } else {
-          // No session in storage — user is not authenticated.
-          setUser(null)
-          setLoading(false)
+          // No Supabase Auth session — check for parent cookie session
+          await initParentFallback()
         }
         return
       }
 
       if (event === "SIGNED_OUT") {
-        setUser(null)
+        const parentUser = await fetchParentSession()
+        if (!active) return
+        setUser(parentUser)
+        setLoading(false)
         return
       }
 
@@ -268,6 +280,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!res.ok) {
         return { success: false, error: json.error || "Login failed" }
       }
+
+      // Populate user state immediately from parent session
+      const parentUser = await fetchParentSession()
+      if (parentUser) {
+        setUser(parentUser)
+      }
+
       return { success: true, mustChangePassword: json.mustChangePassword }
     } catch (err: any) {
       return { success: false, error: err?.message || "A connection error occurred." }
@@ -352,6 +371,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── updatePassword ───────────────────────────────────────────────────────
   const updatePassword = useCallback(async (password: string) => {
+    // If user is a cookie-authenticated parent, use /api/parent-change-password
+    if (user?.role === "parent") {
+      try {
+        const res = await fetch("/api/parent-change-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newPassword: password }),
+        })
+        const json = await res.json()
+        if (!res.ok) {
+          return { success: false, error: json.error || "Failed to update password." }
+        }
+        return { success: true }
+      } catch (err: any) {
+        return { success: false, error: err?.message || "An error occurred." }
+      }
+    }
+
     if (!isSupabaseConfigured()) {
       return { success: false, error: "Authentication service is not configured." }
     }
@@ -362,7 +399,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       return { success: false, error: err?.message || "An error occurred." }
     }
-  }, [])
+  }, [user?.role])
 
   // ── logout ───────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {

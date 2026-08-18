@@ -20,21 +20,32 @@ export default function ParentFeesPage() {
   const [child, setChild] = useState<any>(null)
 
   useEffect(() => {
-    if (!childId) {
-      setLoading(false)
-      return
-    }
     const fetchFeesData = async () => {
       setLoading(true)
       try {
-        const [feesData, paymentsData, studentData] = await Promise.all([
-          getFees(childId),
-          getPayments(childId),
-          getStudent(childId),
-        ])
-        setFees(feesData)
-        setPayments(paymentsData)
-        setChild(studentData || null)
+        // Primary: Load from parent-data
+        const res = await fetch("/api/parent-data?type=fees", { cache: "no-store" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.student) {
+            setFees(data.fees || [])
+            setPayments(data.payments || [])
+            setChild(data.student)
+            setLoading(false)
+            return
+          }
+        }
+
+        if (childId) {
+          const [feesData, paymentsData, studentData] = await Promise.all([
+            getFees(childId),
+            getPayments(childId),
+            getStudent(childId),
+          ])
+          setFees(feesData)
+          setPayments(paymentsData)
+          setChild(studentData || null)
+        }
       } catch (err) {
         console.error("Fees page fetch error:", err)
       } finally {
@@ -52,7 +63,7 @@ export default function ParentFeesPage() {
     )
   }
 
-  if (!childId) {
+  if (!child && !childId) {
     return (
       <div className="space-y-6">
         <div>

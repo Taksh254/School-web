@@ -23,6 +23,15 @@ export default function ParentEventsPage() {
     const fetchEvents = async () => {
       setLoading(true)
       try {
+        const res = await fetch("/api/parent-data?type=events", { cache: "no-store" })
+        if (res.ok) {
+          const json = await res.json()
+          if (json.events) {
+            setEvents(json.events)
+            setLoading(false)
+            return
+          }
+        }
         const data = await getEvents()
         setEvents(data)
       } catch (err) {

@@ -49,6 +49,42 @@ export default function ParentDashboard() {
     const loadData = async () => {
       setLoadingData(true)
       try {
+        // Primary: Load from secure server-verified parent session
+        const res = await fetch("/api/parent-data?type=dashboard", { cache: "no-store" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.student) {
+            const activeChild = data.student
+            setChildren([activeChild])
+            setChild(activeChild)
+
+            // Attendance
+            const records: any[] = data.attendance || []
+            const total = records.filter((r) => r.status !== "holiday").length
+            const present = records.filter((r) => r.status === "present").length
+            setAttendanceRate(total > 0 ? Math.round((present / total) * 100) : 0)
+
+            // Fees
+            const fees: any[] = data.fees || []
+            const pendingFees = fees.filter((f) => f.status !== "paid")
+            setFeeStatus(pendingFees.length > 0 ? `${pendingFees.length} Pending` : "All Paid")
+
+            // Notes
+            const fetchedNotes: any[] = data.notes || []
+            setNotes(fetchedNotes.slice(0, 3))
+
+            // Announcements & events
+            const ann: any[] = data.announcements || []
+            const evs: any[] = data.events || []
+            setAnnouncements(ann.slice(0, 3))
+            setEvents(evs.slice(0, 3))
+
+            setLoadingData(false)
+            return
+          }
+        }
+
+        // Fallback for legacy OAuth/profiles
         const userId = user?.id || ""
         const userEmail = user?.email || ""
         
@@ -70,7 +106,6 @@ export default function ParentDashboard() {
           await loadChildData(activeChild)
         }
 
-        // Announcements & events (global)
         setAnnouncements(ann.filter((a) => a.published).slice(0, 3))
         setEvents(evs.slice(0, 3))
       } catch (err) {

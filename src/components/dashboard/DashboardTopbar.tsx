@@ -112,18 +112,22 @@ export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
                   <p className="text-xs text-olive/50 truncate">{dbProfile?.email || user?.email}</p>
                 </div>
                 
-                <Link href="/dashboard/profile" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
+                <Link href={user?.role === "parent" ? "/dashboard/parent/profile" : "/dashboard/profile"} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
                   <User className="w-4 h-4 text-olive/50" /> My Profile
                 </Link>
-                <Link href="/dashboard/profile?tab=Personal" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
-                  <Settings className="w-4 h-4 text-olive/50" /> Edit Profile
-                </Link>
-                <Link href="/dashboard/profile?tab=Security" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
-                  <Shield className="w-4 h-4 text-olive/50" /> Change Password
-                </Link>
-                <Link href="/dashboard/profile?tab=Notifications" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
-                  <Bell className="w-4 h-4 text-olive/50" /> Notification Settings
-                </Link>
+                {user?.role !== "parent" && (
+                  <>
+                    <Link href="/dashboard/profile?tab=Personal" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
+                      <Settings className="w-4 h-4 text-olive/50" /> Edit Profile
+                    </Link>
+                    <Link href="/dashboard/profile?tab=Security" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
+                      <Shield className="w-4 h-4 text-olive/50" /> Change Password
+                    </Link>
+                    <Link href="/dashboard/profile?tab=Notifications" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-olive hover:bg-cream/50 transition-colors font-medium">
+                      <Bell className="w-4 h-4 text-olive/50" /> Notification Settings
+                    </Link>
+                  </>
+                )}
                 
                 <div className="h-px bg-beige/10 my-2" />
                 

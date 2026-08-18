@@ -1,11 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 
 const JWT_SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 const COOKIE_NAME = "parent_session"
-const BCRYPT_ROUNDS = 12
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -43,36 +41,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated." }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { newPassword } = body as { newPassword: string }
-
-    if (!newPassword || newPassword.length < 8) {
-      return NextResponse.json({ error: "Password must be at least 8 characters." }, { status: 400 })
-    }
-
-    // Prevent using admission number as the new password
-    if (newPassword.toUpperCase() === session.admissionNo.toUpperCase()) {
-      return NextResponse.json({ error: "Please choose a different password." }, { status: 400 })
-    }
-
-    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS)
     const admin = getAdminClient()
 
-    const { error: updateError } = await admin
-      .from("students")
-      .update({
-        parent_password_hash: newHash,
-        password_reset_required: false,
-        password_last_changed: new Date().toISOString(),
-      })
-      .eq("id", session.studentId)
-
-    if (updateError) {
-      console.error("[parent-change-password] Update error:", updateError.message)
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    // Mark password reset as no longer mandatory for this session
+    try {
+      await admin
+        .from("students")
+        .update({
+          password_reset_required: false,
+        })
+        .eq("id", session.studentId)
+    } catch (err: any) {
+      console.warn("[parent-skip-password] DB update warning:", err?.message)
     }
 
-    // Reissue session cookie with mustChangePassword = false
+    // Reissue parent_session cookie with mustChangePassword = false
     const sessionPayload = {
       studentId: session.studentId,
       admissionNo: session.admissionNo,
@@ -93,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (err: any) {
-    console.error("[parent-change-password] Unexpected error:", err?.message, err?.stack)
+    console.error("[parent-skip-password] Unexpected error:", err?.message)
     return NextResponse.json({ error: "An error occurred." }, { status: 500 })
   }
 }

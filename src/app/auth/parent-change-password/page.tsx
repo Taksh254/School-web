@@ -11,6 +11,28 @@ export default function ParentChangePasswordPage() {
   const [error, setError] = useState("")
   const [showPass, setShowPass] = useState(false)
 
+  const [skipping, setSkipping] = useState(false)
+
+  const handleSkip = async () => {
+    setSkipping(true)
+    setError("")
+    try {
+      const res = await fetch("/api/parent-skip-password", {
+        method: "POST",
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        setError(json.error || "Failed to skip. Please try again.")
+        setSkipping(false)
+        return
+      }
+      window.location.href = "/dashboard/parent"
+    } catch {
+      setError("A connection error occurred. Please try again.")
+      setSkipping(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -31,16 +53,22 @@ export default function ParentChangePasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPassword }),
       })
-      const json = await res.json()
+      const json = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(json.error || "Failed to update password.")
+        if (process.env.NODE_ENV === "development") {
+          console.error(`[parent-change-password] API error ${res.status}:`, json.error || "Unknown error")
+        }
+        setError(json.error || "Failed to update password. Please try again.")
         setSubmitting(false)
         return
       }
       // Redirect to parent dashboard on success
       window.location.href = "/dashboard/parent"
-    } catch {
-      setError("An error occurred. Please try again.")
+    } catch (err: any) {
+      if (process.env.NODE_ENV === "development") {
+        console.error("[parent-change-password] Network/client error:", err?.message)
+      }
+      setError("A connection error occurred. Please try again.")
       setSubmitting(false)
     }
   }
@@ -68,7 +96,7 @@ export default function ParentChangePasswordPage() {
             </div>
             <h1 className="text-olive text-2xl font-display font-bold mb-2">Set New Password</h1>
             <p className="text-olive/60 text-sm font-body">
-              Please create a new password to continue. Your default password was your admission number.
+              Please create a new password to continue, or skip to use your admission number for now.
             </p>
           </div>
 
@@ -126,14 +154,25 @@ export default function ParentChangePasswordPage() {
 
             <motion.button
               type="submit"
-              disabled={submitting}
-              whileHover={!submitting ? { scale: 1.02, y: -1 } : {}}
-              whileTap={!submitting ? { scale: 0.98 } : {}}
+              disabled={submitting || skipping}
+              whileHover={!submitting && !skipping ? { scale: 1.02, y: -1 } : {}}
+              whileTap={!submitting && !skipping ? { scale: 0.98 } : {}}
               className="w-full flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white text-sm font-medium font-body transition-all duration-300 disabled:opacity-60 shadow-[0_4px_16px_rgba(183,201,168,0.25)] mt-2"
             >
               <span>{submitting ? "Saving..." : "Set Password & Continue"}</span>
               <ArrowRight className="w-4 h-4" />
             </motion.button>
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={handleSkip}
+                disabled={submitting || skipping}
+                className="text-xs text-olive/50 hover:text-olive hover:underline font-body transition-colors disabled:opacity-50 py-1 inline-flex items-center gap-1"
+              >
+                {skipping ? "Skipping..." : "Skip for now →"}
+              </button>
+            </div>
           </form>
         </div>
       </motion.div>

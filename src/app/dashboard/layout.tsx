@@ -15,11 +15,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     console.log(`[dashboard/layout] Guard check — Path: ${pathname}, Loading: ${loading}, User: ${user ? user.email : "none"}`)
     if (!loading) {
-      if (!user) {
+      // /dashboard/parent/* is protected by the parent_session JWT cookie enforced in
+      // middleware.ts. The Supabase AuthProvider has no knowledge of that cookie-based
+      // session, so user will be null for cookie-auth parents. Do NOT redirect to /login
+      // for these routes — the middleware already handled it.
+      const isParentRoute = pathname.startsWith("/dashboard/parent")
+
+      if (!user && !isParentRoute) {
         console.log(`[dashboard/layout] Redirecting to /login because user is null`)
         router.replace("/login")
-      } else {
-
+      } else if (user) {
+        // Supabase-authenticated user: enforce role-based routing.
         const isWrongAdmin = pathname.startsWith("/dashboard/admin") && user.role !== "admin"
         const isWrongParent = pathname.startsWith("/dashboard/parent") && user.role !== "parent"
         if (isWrongAdmin) {
@@ -48,7 +54,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     )
   }
 
-  if (!user) return null
+  // For parent routes, user will be null (cookie-auth) but the route is already
+  // middleware-protected. Render children in that case.
+  const isParentRoute = pathname.startsWith("/dashboard/parent")
+  if (!user && !isParentRoute) return null
 
   return (
     <div className="min-h-screen bg-cream flex">
