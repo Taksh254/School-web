@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
+import Image from "next/image"
 import TiltCard from "@/components/ui/tilt-card"
 import { getPrincipalProfile, DEFAULT_PRINCIPAL } from "@/lib/data-store"
 
@@ -9,13 +10,6 @@ const staticTeachers = [
   { name: "Ms. Priya Kapoor", role: "Head of Curriculum", initial: "P", color: "bg-sage/20", photoUrl: "" },
   { name: "Ms. Anita Desai", role: "Senior Teacher", initial: "A", color: "bg-cream", photoUrl: "" },
   { name: "Mr. Rohan Joshi", role: "Activity Coordinator", initial: "R", color: "bg-beige/30", photoUrl: "" },
-]
-
-const floatAnims = [
-  { y: [0, -5, 0, -3, 0], duration: 5 },
-  { y: [0, -7, 0, -4, 0], duration: 6.5 },
-  { y: [0, -4, 0, -2, 0], duration: 4.5 },
-  { y: [0, -6, 0, -3, 0], duration: 5.5 },
 ]
 
 export default function TeachersSection() {
@@ -53,20 +47,27 @@ export default function TeachersSection() {
           {allTeachers.map((t, i) => (
             <motion.div
               key={t.name}
-              animate={{ y: floatAnims[i].y }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
               transition={{
-                duration: floatAnims[i].duration,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * 0.3,
+                duration: 0.5,
+                delay: i * 0.1,
+                ease: [0.25, 0.1, 0.25, 1],
               }}
             >
               <TiltCard
                 className="text-center bg-soft-white rounded-3xl p-6 md:p-8 border border-white/50 shadow-soft hover:shadow-lift transition-shadow duration-500"
               >
-                <div className={`w-24 h-24 mx-auto rounded-full ${t.color} flex items-center justify-center text-3xl font-display font-bold text-olive mb-5 overflow-hidden`}>
+                <div className={`relative w-24 h-24 mx-auto rounded-full ${t.color} flex items-center justify-center text-3xl font-display font-bold text-olive mb-5 overflow-hidden`}>
                   {t.photoUrl ? (
-                    <img src={t.photoUrl} alt={t.name} className="w-full h-full object-cover" />
+                    <Image
+                      src={t.photoUrl}
+                      alt={t.name}
+                      width={96}
+                      height={96}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     t.initial
                   )}
@@ -82,3 +83,4 @@ export default function TeachersSection() {
     </section>
   )
 }
+

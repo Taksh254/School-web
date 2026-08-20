@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
+import { supabase } from "@/lib/supabase"
 import { getStudents, addStudent, updateStudent, deleteStudent, bulkAddStudents, linkParentToStudent } from "@/lib/data-store"
 import type { Student, ProgramType } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
@@ -207,7 +208,24 @@ export default function AdminStudentsPage() {
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+
+    const channel = supabase
+      .channel("admin-students-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "students" },
+        () => {
+          refresh()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [refresh])
 
   const filtered = filter === "all" ? students : students.filter((s) => s.program === filter)
 

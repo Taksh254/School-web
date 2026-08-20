@@ -27,10 +27,10 @@ export default function ActivitiesSection() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
           {activities.map((a, i) => (
             <motion.div key={a.title}
-              initial={{ opacity: 0, scale: 0.8, y: 10 }}
-              whileInView={{ opacity: 1, scale: 1, y: 0 }}
-              viewport={{ once: false, margin: "-30px" }}
-              transition={{ duration: 0.35, delay: i * 0.08, ease: [0.15, 1.1, 0.3, 1] }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.25, 0.1, 0.25, 1] }}
               whileHover={{ y: -3 }} className="bg-soft-white rounded-2xl p-5 md:p-6 border border-beige/20 shadow-soft hover:shadow-card transition-all duration-300">
               <div className={`w-12 h-12 rounded-xl ${a.color} flex items-center justify-center mb-4`}><a.icon className="w-6 h-6" /></div>
               <h3 className="text-base font-display font-semibold text-olive mb-2">{a.title}</h3>

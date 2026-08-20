@@ -98,3 +98,43 @@
     0 4px 12px rgba(90, 100, 80, 0.06),
     0 12px 40px rgba(90, 100, 80, 0.08);
 }
+
+/* ── PRINT STYLESHEET ──────────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Hide navigation, headers, footers, sidebars, background elements, action buttons */
+  header,
+  footer,
+  nav,
+  aside,
+  video,
+  .whatsapp-button,
+  .print\:hidden,
+  button,
+  a[href^="tel:"],
+  [role="navigation"] {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Only print the designated receipt container cleanly */
+  #receipt-printable {
+    display: block !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    page-break-inside: avoid !important;
+    width: 100% !important;
+    max-width: 480px !important;
+  }
+}
+

@@ -164,6 +164,12 @@ export default function AttendancePage() {
           {calendarDays.map((cell, i) => {
             if (cell.day === 0) return <div key={`e-${i}`} />
 
+            const today = new Date()
+            const isToday =
+              cell.day === today.getDate() &&
+              month === today.getMonth() &&
+              year === today.getFullYear()
+
             let bg = "bg-cream/40 text-olive/30" // no data
             let dot = ""
             if (cell.status === "present") { bg = "bg-pistachio/15 text-olive"; dot = "bg-pistachio" }
@@ -174,9 +180,16 @@ export default function AttendancePage() {
             return (
               <div
                 key={cell.day}
-                className={`relative aspect-square rounded-xl ${bg} flex flex-col items-center justify-center text-sm font-medium transition-colors`}
+                className={`relative aspect-square rounded-xl ${bg} ${
+                  isToday ? "ring-2 ring-olive ring-offset-1 font-bold shadow-sm" : ""
+                } flex flex-col items-center justify-center text-sm font-medium transition-colors`}
               >
                 {cell.day}
+                {isToday && (
+                  <span className="absolute top-1 text-[8px] font-bold uppercase tracking-wider text-olive/70">
+                    Today
+                  </span>
+                )}
                 {dot && <span className={`absolute bottom-1 w-1 h-1 rounded-full ${dot}`} />}
               </div>
             )

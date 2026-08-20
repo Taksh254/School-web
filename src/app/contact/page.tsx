@@ -2,14 +2,60 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Mail, Phone, MapPin, Clock, Send, CheckCircle } from "lucide-react"
+import { Mail, Phone, MapPin, Clock, Send, CheckCircle, AlertCircle } from "lucide-react"
 
 export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [subject, setSubject] = useState("Schedule a Visit")
+  const [message, setMessage] = useState("")
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    if (loading) return
+    setError(null)
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/enquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          childName: name.trim(),
+          childDob: new Date(Date.now() - 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+          program: "Nursery",
+          parentName: name.trim(),
+          parentEmail: email.trim(),
+          parentPhone: phone.trim() || "+91 99999 99999",
+          message: `[Subject: ${subject}] ${message.trim()}`,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Failed to send message. Please try again.")
+        return
+      }
+
+      setSubmitted(true)
+    } catch {
+      setError("Network error. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReset = () => {
+    setSubmitted(false)
+    setName("")
+    setEmail("")
+    setPhone("")
+    setMessage("")
+    setError(null)
   }
 
   return (
@@ -32,34 +78,48 @@ export default function ContactPage() {
                   </div>
                   <h3 className="text-xl font-display font-semibold text-olive mb-2">Thank You!</h3>
                   <p className="text-olive/60 text-sm">We&apos;ve received your message and will get back to you within 24 hours.</p>
-                  <button onClick={() => setSubmitted(false)} className="mt-6 text-sm text-olive hover:text-pistachio font-medium underline underline-offset-2">Send another message</button>
+                  <button onClick={handleReset} className="mt-6 text-sm text-olive hover:text-pistachio font-medium underline underline-offset-2">Send another message</button>
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {error && (
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-red-700 text-xs font-body border border-red-200">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
                   <div className="grid sm:grid-cols-2 gap-5">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium text-olive mb-1.5 font-body">Your Name</label>
                       <input id="name" type="text" required placeholder="e.g., Priya Sharma"
-                        className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                        value={name} onChange={(e) => setName(e.target.value)}
+                        disabled={loading}
+                        className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body disabled:opacity-60"
                         style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                     </div>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-olive mb-1.5 font-body">Email</label>
                       <input id="email" type="email" required placeholder="you@example.com"
-                        className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                        value={email} onChange={(e) => setEmail(e.target.value)}
+                        disabled={loading}
+                        className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body disabled:opacity-60"
                         style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                     </div>
                   </div>
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-olive mb-1.5 font-body">Phone</label>
                     <input id="phone" type="tel" placeholder="+91 98765 43210"
-                      className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body"
+                      value={phone} onChange={(e) => setPhone(e.target.value)}
+                      disabled={loading}
+                      className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body disabled:opacity-60"
                       style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                   </div>
                   <div>
                     <label htmlFor="subject" className="block text-sm font-medium text-olive mb-1.5 font-body">Subject</label>
                     <select id="subject"
-                      className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body">
+                      value={subject} onChange={(e) => setSubject(e.target.value)}
+                      disabled={loading}
+                      className="w-full px-5 py-3.5 rounded-full bg-cream border border-white/60 text-olive text-sm transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body disabled:opacity-60">
                       <option>Schedule a Visit</option>
                       <option>Admission Inquiry</option>
                       <option>General Question</option>
@@ -69,12 +129,23 @@ export default function ContactPage() {
                   <div>
                     <label htmlFor="message" className="block text-sm font-medium text-olive mb-1.5 font-body">Message</label>
                     <textarea id="message" rows={4} required placeholder="Tell us how we can help..."
-                      className="w-full px-5 py-3.5 rounded-2xl bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body resize-none"
+                      value={message} onChange={(e) => setMessage(e.target.value)}
+                      disabled={loading}
+                      className="w-full px-5 py-3.5 rounded-2xl bg-cream border border-white/60 text-olive text-sm placeholder:text-beige/60 transition-all duration-300 outline-none focus:bg-white focus:border-pistachio focus:shadow-glow font-body resize-none disabled:opacity-60"
                       style={{ boxShadow: "inset 0 2px 4px rgba(90,100,80,0.04)" }} />
                   </div>
-                  <motion.button type="submit" whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
-                    className="w-full flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium shadow-soft hover:shadow-lift transition-all duration-300">
-                    <Send className="w-4 h-4" /> Send Message
+                  <motion.button type="submit" disabled={loading} whileHover={!loading ? { scale: 1.02, y: -1 } : {}} whileTap={!loading ? { scale: 0.98 } : {}}
+                    className="w-full flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium shadow-soft hover:shadow-lift transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed">
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        <span>Sending Message...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" /> <span>Send Message</span>
+                      </>
+                    )}
                   </motion.button>
                 </form>
               )}
@@ -86,14 +157,23 @@ export default function ContactPage() {
               <h3 className="text-lg font-display font-semibold text-olive mb-4">Get in Touch</h3>
               <div className="space-y-4">
                 {[
-                  { icon: Phone, label: "Phone", value: "+91 8527737413", color: "bg-pistachio/10 text-olive" },
-                  { icon: Mail, label: "Email", value: "tinymindplayschool01@gmail.com", color: "bg-sage/10 text-olive" },
+                  { icon: Phone, label: "Phone", value: "+91 8527737413", href: "tel:+918527737413", color: "bg-pistachio/10 text-olive" },
+                  { icon: Mail, label: "Email", value: "tinymindplayschool01@gmail.com", href: "mailto:tinymindplayschool01@gmail.com", color: "bg-sage/10 text-olive" },
                   { icon: MapPin, label: "Address", value: "Plot No 95, Near Main Market, Mahipalpur, Delhi-110037", color: "bg-cream text-olive" },
                   { icon: Clock, label: "Hours", value: "Mon-Sat: 8AM-1PM", color: "bg-beige/30 text-olive" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center shrink-0`}><item.icon className="w-5 h-5" /></div>
-                    <div><p className="text-sm font-medium text-olive">{item.label}</p><p className="text-sm text-olive/60">{item.value}</p></div>
+                    <div>
+                      <p className="text-sm font-medium text-olive">{item.label}</p>
+                      {item.href ? (
+                        <a href={item.href} className="text-sm text-olive/70 hover:text-pistachio hover:underline transition-colors">
+                          {item.value}
+                        </a>
+                      ) : (
+                        <p className="text-sm text-olive/60">{item.value}</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -114,3 +194,4 @@ export default function ContactPage() {
     </section>
   )
 }
+

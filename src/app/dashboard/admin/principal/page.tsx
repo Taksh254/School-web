@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { Save, ArrowLeft, Eye, EyeOff, Lock } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
@@ -24,47 +25,46 @@ export default function PrincipalProfilePage() {
   const [pwSuccess, setPwSuccess] = useState("")
 
   useEffect(() => {
-    if (user && user.role !== "admin") {
-      router.replace("/dashboard/parent")
-      return
-    }
     setProfile(getPrincipalProfile())
-  }, [user, router])
+  }, [])
 
-  const handleSave = async () => {
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
     setSaving(true)
-    setSaved(false)
-    // Derive initial from name
-    const updated = { ...profile, initial: profile.name ? profile.name.charAt(0).toUpperCase() : "?" }
+    const initial = profile.name.charAt(0).toUpperCase() || "P"
+    const updated = { ...profile, initial }
     updatePrincipalProfile(updated)
     setProfile(updated)
-    await new Promise((r) => setTimeout(r, 400))
     setSaving(false)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), 3000)
   }
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!password || !confirmPassword) return
+    setPwError("")
+    setPwSuccess("")
+
+    if (password.length < 6) {
+      setPwError("Password must be at least 6 characters.")
+      return
+    }
+
     if (password !== confirmPassword) {
-      setPwError("Passwords do not match")
-      setPwSuccess("")
+      setPwError("Passwords do not match.")
       return
     }
 
     setUpdatingPassword(true)
-    setPwError("")
-    setPwSuccess("")
-
     try {
       const res = await updatePassword(password)
       if (res.success) {
-        setPwSuccess("Password updated successfully!")
+        setPwSuccess("Password changed successfully!")
         setPassword("")
         setConfirmPassword("")
+        setTimeout(() => setPwSuccess(""), 4000)
       } else {
-        setPwError(res.error || "Failed to update password")
+        setPwError(res.error || "Failed to update password.")
       }
     } catch {
       setPwError("An error occurred. Please try again.")
@@ -80,19 +80,22 @@ export default function PrincipalProfilePage() {
   if (!user || user.role !== "admin") return null
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-4xl space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/dashboard/admin")}
-            className="inline-flex items-center gap-1.5 text-xs text-olive/40 hover:text-olive transition-colors font-body mb-2"
+            onClick={() => router.back()}
+            className="p-2 rounded-xl bg-soft-white hover:bg-cream border border-beige/20 text-olive transition-colors"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Dashboard
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-xl font-display font-bold text-olive">Profile</h1>
-          <p className="text-sm text-olive/50 font-body">Edit how the principal appears on the website</p>
+          <div>
+            <h1 className="text-2xl font-display font-bold text-olive">Profile & Settings</h1>
+            <p className="text-sm text-olive/50 font-body">Manage your principal profile, bio, and account password.</p>
+          </div>
         </div>
+
         <motion.button
           onClick={handleSave}
           disabled={saving}
@@ -112,9 +115,9 @@ export default function PrincipalProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-soft-white rounded-3xl p-6 border border-beige/20 shadow-soft text-center"
         >
-          <div className="w-32 h-32 mx-auto rounded-full bg-pistachio/20 flex items-center justify-center text-5xl font-display font-bold text-olive mb-4 overflow-hidden">
+          <div className="relative w-32 h-32 mx-auto rounded-full bg-pistachio/20 flex items-center justify-center text-5xl font-display font-bold text-olive mb-4 overflow-hidden">
             {profile.photoUrl ? (
-              <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
+              <Image src={profile.photoUrl} alt={profile.name || "Principal"} width={128} height={128} className="w-full h-full object-cover" />
             ) : (
               profile.initial || "?"
             )}
@@ -197,7 +200,7 @@ export default function PrincipalProfilePage() {
             <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-xs text-green-800 text-center font-body">{pwSuccess}</div>
           )}
 
-          <form onSubmit={handlePasswordChange} className="space-y-4">
+          <form onSubmit={handlePasswordUpdate} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-olive mb-1.5 font-body text-olive/70">New Password</label>
               <div className="relative">
@@ -265,9 +268,9 @@ export default function PrincipalProfilePage() {
       >
         <h3 className="text-base font-display font-semibold text-olive mb-4">Preview</h3>
         <div className="flex items-center gap-5 p-4 rounded-2xl bg-cream/50">
-          <div className="w-16 h-16 rounded-full bg-pistachio/20 flex items-center justify-center text-2xl font-display font-bold text-olive shrink-0 overflow-hidden">
+          <div className="relative w-16 h-16 rounded-full bg-pistachio/20 flex items-center justify-center text-2xl font-display font-bold text-olive shrink-0 overflow-hidden">
             {profile.photoUrl ? (
-              <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
+              <Image src={profile.photoUrl} alt={profile.name || "Principal"} width={64} height={64} className="w-full h-full object-cover" />
             ) : (
               profile.initial || "?"
             )}

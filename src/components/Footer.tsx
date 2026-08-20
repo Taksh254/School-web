@@ -70,10 +70,12 @@ export default function Footer() {
                 Plot No 95, Near Main Market, Mahipalpur, Delhi-110037
               </li>
               <li className="flex items-center gap-3 text-sm text-white/60">
-                <Phone className="w-4 h-4 shrink-0 text-pistachio" />+91 8527737413
+                <Phone className="w-4 h-4 shrink-0 text-pistachio" />
+                <a href="tel:+918527737413" className="hover:text-pistachio hover:underline transition-colors">+91 8527737413</a>
               </li>
               <li className="flex items-center gap-3 text-sm text-white/60">
-                <Mail className="w-4 h-4 shrink-0 text-pistachio" />tinymindplayschool01@gmail.com
+                <Mail className="w-4 h-4 shrink-0 text-pistachio" />
+                <a href="mailto:tinymindplayschool01@gmail.com" className="hover:text-pistachio hover:underline transition-colors">tinymindplayschool01@gmail.com</a>
               </li>
               <li className="flex items-start gap-3 text-sm text-white/60">
                 <Clock className="w-4 h-4 mt-0.5 shrink-0 text-pistachio" />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
 
 const images = [
   "/images/IMG20260519102701.jpg",
@@ -49,10 +50,13 @@ export default function HeroCarousel() {
             transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
             className="absolute inset-0"
           >
-            <img
+            <Image
               src={images[current]}
               alt="Preschool moments"
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 1024px) 100vw, 500px"
+              priority={current === 0}
+              className="object-cover"
               onLoad={() => setLoaded((prev) => new Set(prev).add(current))}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-olive/20 via-transparent to-transparent" />

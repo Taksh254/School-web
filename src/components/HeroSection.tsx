@@ -19,23 +19,42 @@ export default function HeroSection() {
         <div className="bg-soft-white rounded-3xl border border-beige/30 shadow-soft p-8 md:p-12">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="text-center lg:text-left">
-              <div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0 }}
+              >
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-pistachio/10 text-olive text-sm font-display font-medium mb-6">
                   <span className="w-2 h-2 rounded-full bg-pistachio animate-float" />
                   Welcome to Tiny Mind Play School
                 </span>
-              </div>
+              </motion.div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold text-olive leading-[1.1] tracking-tight">
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.15 }}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold text-olive leading-[1.1] tracking-tight"
+              >
                 Where Little Minds
                 <span className="block text-pistachio mt-1">Grow With Joy</span>
-              </h1>
+              </motion.h1>
 
-              <p className="mt-6 text-lg md:text-xl text-olive/60 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="mt-6 text-lg md:text-xl text-olive/60 max-w-lg mx-auto lg:mx-0 leading-relaxed"
+              >
                 A warm, nurturing space where your child&apos;s first steps into learning are filled with curiosity, creativity, and joy.
-              </p>
+              </motion.p>
 
-              <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.45 }}
+                className="mt-8 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
+              >
                 <Link href="/contact"
                   className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-pistachio to-sage text-white font-medium text-base shadow-soft hover:shadow-lift hover:-translate-y-0.5 transition-all duration-300">
                   Book a Visit <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
@@ -44,13 +63,18 @@ export default function HeroSection() {
                   className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full border-2 border-pistachio/30 text-olive font-medium text-base hover:bg-cream hover:border-pistachio/50 transition-all duration-300">
                   Explore Programs
                 </Link>
-              </div>
+              </motion.div>
 
-              <div className="mt-10 flex flex-wrap items-center gap-6 justify-center lg:justify-start text-sm text-olive/50">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+                className="mt-10 flex flex-wrap items-center gap-6 justify-center lg:justify-start text-sm text-olive/50"
+              >
                 {["Montessori Inspired", "Age 2-6 Years", "Certified Teachers", "Safe Environment"].map((item) => (
                   <span key={item} className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-pistachio" />{item}</span>
                 ))}
-              </div>
+              </motion.div>
             </div>
 
             <div><HeroCarousel /></div>

@@ -16,8 +16,9 @@ export default function BackgroundVideo() {
     if (!video) return
 
     // Programmatically mute and play the video to ensure autoplay works
-    // seamlessly across all modern browsers (bypassing strict browser policies).
+    // seamlessly across all modern browsers (including iOS Safari).
     video.muted = true
+    video.playsInline = true
     video.play().catch((err) => {
       console.warn("Background video autoPlay failed or was blocked:", err)
     })
@@ -39,3 +40,4 @@ export default function BackgroundVideo() {
     </video>
   )
 }
+

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Menu, LogOut, User, Crown, Settings, Bell, Shield, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { getPrincipalProfile } from "@/lib/data-store"
@@ -83,9 +84,9 @@ export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-soft-white border border-beige/15 hover:border-pistachio/30 transition-colors"
           >
-            <div className="w-7 h-7 rounded-lg bg-pistachio/15 flex items-center justify-center overflow-hidden">
+            <div className="relative w-7 h-7 rounded-lg bg-pistachio/15 flex items-center justify-center overflow-hidden">
               {displayPhoto ? (
-                <img src={displayPhoto} alt={displayName || ""} className="w-full h-full object-cover" />
+                <Image src={displayPhoto} alt={displayName || "User avatar"} width={28} height={28} className="w-full h-full object-cover" />
               ) : (
                 <User className="w-3.5 h-3.5 text-olive" />
               )}

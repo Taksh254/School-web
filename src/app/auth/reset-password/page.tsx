@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { ArrowRight, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
@@ -177,8 +178,8 @@ export default function ResetPasswordPage() {
         className="relative w-full max-w-[420px]">
         <div className="bg-soft-white rounded-[32px] p-8 sm:p-10 shadow-card border border-white/50 paper-texture">
           <div className="text-center mb-8">
-            <div className="w-[88px] h-[88px] mx-auto mb-5 rounded-full overflow-hidden border border-white/60 flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)] bg-gradient-to-br from-pistachio to-sage">
-              <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+            <div className="relative w-[88px] h-[88px] mx-auto mb-5 rounded-full overflow-hidden border border-white/60 flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)] bg-gradient-to-br from-pistachio to-sage">
+              <Image src="/images/logo.jpg" alt="Logo" width={88} height={88} className="w-full h-full object-cover" priority />
             </div>
             <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5 font-bold">Reset Password</h1>
             <p className="text-olive/60 text-sm font-body">Choose a new password for your account</p>

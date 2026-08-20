@@ -3,6 +3,7 @@ import { Nunito, Inter, Caveat } from "next/font/google"
 import "./globals.css"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
+import WhatsAppButton from "@/components/WhatsAppButton"
 import { AuthProvider } from "@/lib/auth-context"
 import BackgroundVideo from "@/components/BackgroundVideo"
 import { Suspense } from "react"
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Header />
               <main className="flex-1">{children}</main>
               <Footer />
+              <WhatsAppButton />
             </AuthProvider>
           </Suspense>
         </div>

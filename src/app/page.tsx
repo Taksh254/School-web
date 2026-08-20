@@ -1,4 +1,5 @@
 import HeroSection from "@/components/HeroSection"
+import StatsSection from "@/components/StatsSection"
 import WhyTrustUs from "@/components/WhyTrustUs"
 import ProgramsSection from "@/components/ProgramsSection"
 import ActivitiesSection from "@/components/ActivitiesSection"
@@ -11,6 +12,7 @@ export default function Home() {
   return (
     <>
       <HeroSection />
+      <StatsSection />
       <WhyTrustUs />
       <ProgramsSection />
       <ActivitiesSection />

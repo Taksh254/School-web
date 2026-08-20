@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Image from "next/image"
 import { getProfile, updateProfile, getUserActivity, toggleAccountStatus } from "@/app/actions/profile-actions"
 import { supabase } from "@/lib/supabase"
 import { UserProfile, UserActivity } from "@/lib/types"
@@ -117,7 +118,7 @@ export default function AdminUserProfileEditor() {
         <div className="relative group shrink-0">
           <div className="w-32 h-32 rounded-3xl bg-pistachio/10 flex items-center justify-center text-4xl font-display font-bold text-olive shadow-inner border border-white/50 overflow-hidden relative">
             {profile.photo_url ? (
-              <img src={profile.photo_url} alt={profile.name} className="w-full h-full object-cover" />
+              <Image src={profile.photo_url} alt={profile.name || "User profile photo"} width={128} height={128} className="w-full h-full object-cover" />
             ) : (
               profile.name?.charAt(0) || "U"
             )}

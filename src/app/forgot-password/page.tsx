@@ -1,15 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowRight, ArrowLeft } from "lucide-react"
+import { ArrowLeft, ArrowRight } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 import { isSupabaseConfigured } from "@/lib/supabase"
 
 export default function ForgotPasswordPage() {
-  const router = useRouter()
   const { forgotPassword } = useAuth()
   const [email, setEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -60,7 +59,7 @@ export default function ForgotPasswordPage() {
           </Link>
           <div className="text-center mb-8">
             <div className="w-[88px] h-[88px] mx-auto mb-5 rounded-full overflow-hidden border border-white/60 flex items-center justify-center shadow-[0_4px_16px_rgba(183,201,168,0.3)] bg-gradient-to-br from-pistachio to-sage">
-              <img src="/images/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+              <Image src="/images/logo.jpg" alt="Logo" width={88} height={88} className="w-full h-full object-cover" priority />
             </div>
             <h1 className="text-olive text-[28px] sm:text-[32px] font-display font-bold leading-tight mb-1.5 font-bold">Forgot Password</h1>
             <p className="text-olive/60 text-sm font-body">Enter your email address to receive a secure password recovery link</p>

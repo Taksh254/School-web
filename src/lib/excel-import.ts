@@ -1,3 +1,4 @@
+import { z } from "zod"
 import type { Student, ProgramType } from "./types"
 
 export interface ImportedRow {
@@ -20,7 +21,60 @@ export interface ImportPreview {
   invalidCount: number
 }
 
+// ── ZOD SCHEMAS ─────────────────────────────────────────────────────────────
+export const importedStudentSchema = z.object({
+  studentName: z.string().trim().min(1, "Student Name is required").max(100, "Student Name too long"),
+  parentName: z.string().trim().min(1, "Parent Name is required").max(100, "Parent Name too long"),
+  dob: z.string().optional().refine((val) => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), {
+    message: "Invalid Date of Birth (expected YYYY-MM-DD)",
+  }),
+  email: z.string().trim().optional().refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+    message: "Invalid email format",
+  }),
+  phone: z.string().trim().optional(),
+  admissionNo: z.string().trim().min(1, "Admission Number is required").max(50, "Admission Number too long"),
+  className: z.string().trim().min(1, "Class is required"),
+})
+
+export const MAX_IMPORT_FILE_SIZE = 2 * 1024 * 1024 // 2MB
+
+export const ALLOWED_MIME_TYPES = [
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
+  "text/csv",
+  "application/csv",
+  "text/plain",
+  "application/vnd.oasis.opendocument.spreadsheet",
+]
+
+export function validateImportFile(file: File): { valid: boolean; error?: string } {
+  if (!file) {
+    return { valid: false, error: "No file provided" }
+  }
+
+  // 1. File size check (Cap at 2MB)
+  if (file.size > MAX_IMPORT_FILE_SIZE) {
+    return { valid: false, error: `File size exceeds 2MB limit (Actual: ${(file.size / (1024 * 1024)).toFixed(2)}MB)` }
+  }
+
+  // 2. MIME & extension check
+  const ext = file.name.split(".").pop()?.toLowerCase() || ""
+  const validExtensions = ["xlsx", "xls", "csv"]
+  const mimeValid = ALLOWED_MIME_TYPES.includes(file.type) || validExtensions.includes(ext)
+
+  if (!mimeValid && !validExtensions.includes(ext)) {
+    return { valid: false, error: "Invalid file type. Please upload an Excel (.xlsx, .xls) or CSV (.csv) file." }
+  }
+
+  return { valid: true }
+}
+
 export async function parseExcelFile(file: File): Promise<Record<string, unknown>[]> {
+  const validation = validateImportFile(file)
+  if (!validation.valid) {
+    throw new Error(validation.error)
+  }
+
   const XLSX = await import("xlsx")
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -114,38 +168,49 @@ export function generatePreview(rows: Record<string, unknown>[], existingAdmissi
     const rowNumber = i + 2
     const errs: string[] = []
 
-    const studentName = getVal(row, ["studentname", "student name", "name"])
-    const parentName = getVal(row, ["parentsname", "parents name", "parentname", "parent name", "fathername", "mothername"])
+    const rawStudentName = getVal(row, ["studentname", "student name", "name"])
+    const rawParentName = getVal(row, ["parentsname", "parents name", "parentname", "parent name", "fathername", "mothername"])
     const rawDob = getVal(row, ["dateofbirth", "date of birth", "dob", "birthdate"])
-    const email = getVal(row, ["email", "emailaddress", "email address"])
-    const phone = getVal(row, ["phone", "phonenumber", "phone number", "phoneno", "phone no", "mobile"])
-    const admissionNo = getVal(row, ["admissionno", "admission no", "admissionnumber", "admission number", "rollno"])
+    const rawEmail = getVal(row, ["email", "emailaddress", "email address"])
+    const rawPhone = getVal(row, ["phone", "phonenumber", "phone number", "phoneno", "phone no", "mobile"])
+    const rawAdmissionNo = getVal(row, ["admissionno", "admission no", "admissionnumber", "admission number", "rollno"])
     const rawClass = getVal(row, ["class", "classname", "class name", "program"])
-
-    if (!studentName) errs.push("Student Name is required")
-    if (!parentName) errs.push("Parent Name is required")
-    if (!admissionNo) errs.push("Admission Number is required")
-    if (!rawClass) {
-      errs.push("Class is required")
-    } else {
-      const normalizedClass = rawClass.toLowerCase()
-      const program = programMapping[normalizedClass]
-      if (!program) {
-        errs.push(`Invalid Class '${rawClass}'. Must be: Play Group, Nursery, LKG, or UKG`)
-      }
-    }
-
-    if (email && !email.includes("@")) {
-      errs.push("Invalid email format")
-    }
-
-    const normalizedAdmissionNo = String(admissionNo || "").trim().toLowerCase()
 
     const parsedDob = parseDate(rawDob)
     if (rawDob && !parsedDob) {
       errs.push(`Invalid Date of Birth format: '${rawDob}'. Expected YYYY-MM-DD or valid date.`)
     }
 
+    // Zod schema validation & field sanitization
+    const zodResult = importedStudentSchema.safeParse({
+      studentName: rawStudentName,
+      parentName: rawParentName,
+      dob: parsedDob || undefined,
+      email: rawEmail || undefined,
+      phone: rawPhone || undefined,
+      admissionNo: rawAdmissionNo,
+      className: rawClass,
+    })
+
+    if (!zodResult.success) {
+      zodResult.error.issues.forEach((err) => {
+        errs.push(err.message)
+      })
+    }
+
+    const normalizedClass = rawClass.toLowerCase()
+    const program = programMapping[normalizedClass]
+    if (rawClass && !program) {
+      errs.push(`Invalid Class '${rawClass}'. Must be: Play Group, Nursery, LKG, or UKG`)
+    }
+
+    const studentName = zodResult.success ? zodResult.data.studentName : rawStudentName
+    const parentName = zodResult.success ? zodResult.data.parentName : rawParentName
+    const email = zodResult.success ? zodResult.data.email || "" : rawEmail
+    const phone = zodResult.success ? zodResult.data.phone || "" : rawPhone
+    const admissionNo = zodResult.success ? zodResult.data.admissionNo : rawAdmissionNo
+
+    const normalizedAdmissionNo = String(admissionNo || "").trim().toLowerCase()
     if (normalizedAdmissionNo && existingAdmissionNos.includes(normalizedAdmissionNo)) {
       errs.push(`Duplicate admission number: ${admissionNo}`)
     }

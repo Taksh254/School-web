@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './DomeGallery.css';
 
 const PRESCHOOL_IMAGES = [
@@ -189,6 +190,7 @@ export default function DomeGallery({
 
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [swipeStartX, setSwipeStartX] = useState(null);
+  const [showDragTooltip, setShowDragTooltip] = useState(false);
 
   const rotationRef = useRef({ x: 0, y: 0 });
   const startRotRef = useRef({ x: 0, y: 0 });
@@ -385,6 +387,23 @@ export default function DomeGallery({
   useEffect(() => {
     applyTransform(rotationRef.current.x, rotationRef.current.y);
     startAutoRotate();
+
+    // Auto-rotate for 2 seconds on mount, then pause and show drag tooltip for 3 seconds
+    const rotateTimeout = setTimeout(() => {
+      autoRotatePaused.current = true;
+      setShowDragTooltip(true);
+
+      const tooltipTimeout = setTimeout(() => {
+        setShowDragTooltip(false);
+      }, 3000);
+
+      return () => clearTimeout(tooltipTimeout);
+    }, 2000);
+
+    return () => {
+      clearTimeout(rotateTimeout);
+      if (autoRotateRAF.current) cancelAnimationFrame(autoRotateRAF.current);
+    };
   }, [startAutoRotate]);
 
   const stopInertia = useCallback(() => {
@@ -925,6 +944,22 @@ export default function DomeGallery({
           </button>
         </div>
       )}
+
+      {/* Drag to Explore Floating Tooltip */}
+      <AnimatePresence>
+        {showDragTooltip && (
+          <motion.div
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center gap-2 px-5 py-2.5 rounded-full bg-olive/90 backdrop-blur-md text-white text-xs font-semibold shadow-lift tracking-wide border border-white/20"
+          >
+            <span className="text-sm">✋</span>
+            <span>Drag to explore</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

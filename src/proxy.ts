@@ -81,19 +81,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── /auth/* routes: pass through EXCEPT /auth/parent-change-password ─
-  // BUG 2 FIX: /auth/parent-change-password requires a valid parent_session cookie.
-  // All other /auth/* paths (callback, reset-password, etc.) are public.
-  if (pathname.startsWith("/auth/") && pathname !== "/auth/parent-change-password") {
-    return NextResponse.next()
-  }
-
-  // ── Parent change-password page: validate parent session only ─────────
-  if (pathname === "/auth/parent-change-password") {
+  // ── Password change routes: whitelist & prevent redirect loop ────────
+  if (pathname.startsWith("/auth/parent-change-password")) {
     const parentSession = await getParentSession(request)
     if (!parentSession) {
       return NextResponse.redirect(new URL("/login?tab=parent", request.url))
     }
+    // Session is valid — permit access to change password page (no redirect loops)
+    return NextResponse.next()
+  }
+
+  // ── Other /auth/* routes: pass through (callback, reset-password, change-password) ─
+  if (pathname.startsWith("/auth/")) {
     return NextResponse.next()
   }
 

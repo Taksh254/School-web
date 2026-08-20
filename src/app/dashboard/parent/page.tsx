@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { motion } from "framer-motion"
 import { useAuth } from "@/lib/auth-context"
+import { supabase } from "@/lib/supabase"
 import { getStudentsByParent, getAttendance, getFees, getAnnouncements, getEvents, getNotes } from "@/lib/data-store"
 import type { Student, Announcement, SchoolEvent, TeacherNote } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
@@ -18,7 +19,9 @@ export default function ParentDashboard() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [events, setEvents] = useState<SchoolEvent[]>([])
   const [notes, setNotes] = useState<TeacherNote[]>([])
+  const [unreadChatCount, setUnreadChatCount] = useState(0)
   const [loadingData, setLoadingData] = useState(true)
+  const channelRef = useRef<any>(null)
 
   const loadChildData = async (activeChild: Student) => {
     try {
@@ -44,6 +47,48 @@ export default function ParentDashboard() {
       console.error("Child data load error:", err)
     }
   }
+
+  // Load chat unread count and subscribe to Realtime
+  useEffect(() => {
+    const fetchChatUnread = async () => {
+      try {
+        const res = await fetch("/api/chat/conversations")
+        if (res.ok) {
+          const data = await res.json()
+          if (typeof data.unreadCount === "number") {
+            setUnreadChatCount(data.unreadCount)
+          }
+        }
+      } catch (err) {
+        console.warn("[ParentDashboard] Chat unread fetch failed:", err)
+      }
+    }
+
+    fetchChatUnread()
+
+    // Realtime subscription for incoming principal messages
+    const channel = supabase
+      .channel("parent-dashboard-unread")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload: any) => {
+          if (payload.new?.sender_role === "principal") {
+            setUnreadChatCount((prev) => prev + 1)
+          }
+        }
+      )
+      .subscribe()
+
+    channelRef.current = channel
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const loadData = async () => {
@@ -175,20 +220,39 @@ export default function ParentDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-soft-white rounded-3xl p-6 border border-beige/20 shadow-soft"
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pistachio/20 to-sage/20 flex items-center justify-center text-2xl font-display font-bold text-olive">
-              {child.name.charAt(0)}
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-display font-bold text-olive">{child.name}</h2>
-              <div className="flex flex-wrap gap-3 mt-1 text-sm text-olive/50 font-body">
-                <span>{child.program} · Section {child.section}</span>
-                <span>·</span>
-                <span>Age {child.age} years</span>
-                <span>·</span>
-                <span>Teacher: {child.teacher}</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pistachio/20 to-sage/20 flex items-center justify-center text-2xl font-display font-bold text-olive">
+                {child.name.charAt(0)}
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-display font-bold text-olive">{child.name}</h2>
+                <div className="flex flex-wrap gap-3 mt-1 text-sm text-olive/50 font-body">
+                  <span>{child.program} · Section {child.section}</span>
+                  <span>·</span>
+                  <span>Age {child.age} years</span>
+                  <span>·</span>
+                  <span>Teacher: {child.teacher}</span>
+                </div>
               </div>
             </div>
+
+            {/* Quick Chat Link with Live Pulsing Badge */}
+            <Link
+              href="/dashboard/parent/chat"
+              className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-cream hover:bg-beige/40 text-olive text-xs font-semibold border border-beige/20 transition-all shadow-sm group"
+            >
+              <MessageCircle className="w-4 h-4 text-pistachio" />
+              <span>Chat with Principal</span>
+              {unreadChatCount > 0 && (
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[8px] text-white font-bold items-center justify-center">
+                    {unreadChatCount}
+                  </span>
+                </span>
+              )}
+            </Link>
           </div>
         </motion.div>
         </>

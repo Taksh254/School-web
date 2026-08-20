@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowLeft, Save, Eye, EyeOff, User, Mail, GraduationCap } from "lucide-react"
+import { ArrowLeft, Save, Eye, EyeOff, User, Mail, Phone, GraduationCap } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { getStudent } from "@/lib/data-store"
 import type { Student } from "@/lib/types"
@@ -136,6 +136,14 @@ export default function ParentProfilePage() {
                   <p className="text-xs text-olive/40 font-body">Admission No</p>
                   <p className="text-sm font-medium text-olive font-body">{child.admissionNo}</p>
                 </div>
+                {child.parentPhone && (
+                  <div>
+                    <p className="text-xs text-olive/40 font-body">Registered Phone</p>
+                    <a href={`tel:${child.parentPhone.replace(/\s+/g, "")}`} className="text-sm font-medium text-olive hover:text-pistachio hover:underline transition-colors font-body">
+                      {child.parentPhone}
+                    </a>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-xs text-olive/50 font-body">No student profile linked to this account.</p>
@@ -178,6 +186,18 @@ export default function ParentProfilePage() {
                   disabled
                   className="w-full px-5 py-3 rounded-xl bg-cream/50 border border-white/60 text-olive/60 text-sm outline-none font-body cursor-not-allowed"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-olive mb-1.5 font-body flex items-center gap-1.5 text-olive/60">
+                  <Phone className="w-3.5 h-3.5" />
+                  Helpdesk / Support Phone
+                </label>
+                <div className="w-full px-5 py-3 rounded-xl bg-cream/50 border border-white/60 text-olive text-sm font-body">
+                  <a href="tel:+918527737413" className="hover:text-pistachio hover:underline transition-colors font-medium">
+                    +91 8527737413
+                  </a>
+                </div>
               </div>
             </div>
           </motion.div>

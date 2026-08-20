@@ -27,10 +27,10 @@ export default function ProgramsSection() {
         <div className="grid md:grid-cols-2 gap-6 md:gap-8">
           {programs.map((p, i) => (
             <motion.div key={p.title}
-              initial={{ opacity: 0, x: i % 2 === 0 ? -80 : 80, y: 30 }}
-              whileInView={{ opacity: 1, x: 0, y: 0 }}
-              viewport={{ once: false, margin: "-50px" }}
-              transition={{ duration: 0.6, delay: i * 0.12, ease: [0.25, 0.1, 0.25, 1] }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1, ease: [0.25, 0.1, 0.25, 1] }}
               whileHover={{ y: -4 }}
               className="group relative bg-soft-white rounded-3xl p-6 md:p-8 border border-white/50 shadow-soft hover:shadow-card transition-shadow duration-300">
               <div className="flex items-start gap-4 md:gap-6">

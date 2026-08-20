@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
 import { getProfile, updateProfile, getUserActivity } from "@/app/actions/profile-actions"
 import { supabase } from "@/lib/supabase"
@@ -140,7 +141,7 @@ function ProfileContent() {
         <div className="relative group shrink-0">
           <div className="w-32 h-32 rounded-3xl bg-pistachio/10 flex items-center justify-center text-4xl font-display font-bold text-olive shadow-inner border border-white/50 overflow-hidden relative">
             {profile.photo_url ? (
-              <img src={profile.photo_url} alt={profile.name} className="w-full h-full object-cover" />
+              <Image src={profile.photo_url} alt={profile.name || "Profile Photo"} width={128} height={128} className="w-full h-full object-cover" />
             ) : (
               profile.name?.charAt(0) || "U"
             )}

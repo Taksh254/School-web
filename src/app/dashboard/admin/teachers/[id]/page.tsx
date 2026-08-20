@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
+import Image from "next/image"
 import {
   ArrowLeft, User, CreditCard, CalendarCheck, CalendarMinus, FileText,
   Plus, Pencil, Trash2, Download, Upload, Printer, IdCard, MessageSquare, Briefcase, Activity
@@ -199,9 +200,9 @@ export default function TeacherProfilePage() {
         <div className="flex flex-col md:flex-row gap-8 relative z-10">
           {/* Avatar Area */}
           <div className="flex flex-col items-center space-y-4">
-            <div className="w-32 h-32 rounded-3xl bg-pistachio/10 flex items-center justify-center text-4xl font-display font-bold text-olive shadow-inner border border-white/50 overflow-hidden">
+            <div className="relative w-32 h-32 rounded-3xl bg-pistachio/10 flex items-center justify-center text-4xl font-display font-bold text-olive shadow-inner border border-white/50 overflow-hidden">
               {teacher.photo ? (
-                <img src={teacher.photo} alt={teacher.full_name} className="w-full h-full object-cover rounded-3xl" />
+                <Image src={teacher.photo} alt={teacher.full_name || "Teacher photo"} width={128} height={128} className="w-full h-full object-cover rounded-3xl" />
               ) : (
                 teacher.full_name.charAt(0)
               )}

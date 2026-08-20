@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import Image from "next/image"
 import { Search, Shield, User, Activity, Edit, MoreVertical, Plus } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { UserProfile } from "@/lib/types"
@@ -115,8 +116,8 @@ export default function UsersManagementPage() {
                 label: "User", 
                 render: (r: any) => (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-pistachio/15 flex items-center justify-center text-xs font-bold text-olive overflow-hidden">
-                      {r.photo_url ? <img src={r.photo_url} className="w-full h-full object-cover"/> : r.name?.charAt(0) || "U"}
+                    <div className="relative w-8 h-8 rounded-full bg-pistachio/15 flex items-center justify-center text-xs font-bold text-olive overflow-hidden">
+                      {r.photo_url ? <Image src={r.photo_url} alt={r.name || "User"} width={32} height={32} className="w-full h-full object-cover" /> : r.name?.charAt(0) || "U"}
                     </div>
                     <div>
                       <p className="font-medium text-olive">{r.name || 'Unnamed'}</p>
