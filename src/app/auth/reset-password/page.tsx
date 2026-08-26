@@ -52,31 +52,21 @@ export default function ResetPasswordPage() {
 
     let settled = false
 
-    function settle(valid: boolean, err?: string) {
+    const settle = (valid: boolean, err?: string) => {
       if (settled) return
       settled = true
-      console.log("[reset-password] settle →", valid, err ?? "")
       if (!valid && err) setError(err)
       setSessionValid(valid)
       setVerifyingSession(false)
     }
 
     // ── Debug: log current URL and hash ──────────────────────────────────────
-    if (typeof window !== "undefined") {
-      console.log("[reset-password] href  :", window.location.href)
-      console.log("[reset-password] hash  :", window.location.hash || "(empty)")
-      console.log("[reset-password] search:", window.location.search || "(empty)")
-    }
-
     // ── Step 1: onAuthStateChange (covers implicit/MODE B, and PKCE refresh) ─
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[reset-password] onAuthStateChange →", event, session ? "session present" : "no session")
       if (event === "PASSWORD_RECOVERY") {
-        console.log("[reset-password] PASSWORD_RECOVERY — showing form")
         settle(true)
       } else if (event === "SIGNED_IN" && session) {
         // Some Supabase versions fire SIGNED_IN for recovery sessions on this page
-        console.log("[reset-password] SIGNED_IN with session — showing form")
         settle(true)
       } else if (event === "SIGNED_OUT") {
         settle(false, "Session expired. Please request a new password reset link.")
@@ -87,17 +77,12 @@ export default function ResetPasswordPage() {
     async function checkExistingSession() {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        console.log(
-          "[reset-password] getSession() →",
-          session ? `session present (user: ${session.user?.email})` : "null",
-          sessionError ? `error: ${sessionError.message}` : ""
-        )
         if (session && !sessionError) {
           settle(true)
         }
         // If null — don't fail yet; wait for onAuthStateChange or timeout
-      } catch (err: any) {
-        console.error("[reset-password] getSession() threw:", err?.message)
+      } catch {
+        // Non-fatal
       }
     }
     checkExistingSession()

@@ -134,10 +134,12 @@ export async function GET(request: NextRequest) {
 
     // Resolve student record exclusively from the server-verified session
     let student: any = null
+    const studentCols = "id, name, age, date_of_birth, program, section, parent_name, parent_email, parent_id, parent_phone, admission_no, teacher, photo"
+
     if (session.studentId) {
       const { data, error } = await admin
         .from("students")
-        .select("*")
+        .select(studentCols)
         .eq("id", session.studentId)
         .maybeSingle()
       if (!error && data) student = data
@@ -146,7 +148,7 @@ export async function GET(request: NextRequest) {
     if (!student && session.admissionNo) {
       const { data, error } = await admin
         .from("students")
-        .select("*")
+        .select(studentCols)
         .ilike("admission_no", session.admissionNo.trim())
         .maybeSingle()
       if (!error && data) student = data
@@ -159,9 +161,6 @@ export async function GET(request: NextRequest) {
     const studentId = student.id
     const type = request.nextUrl.searchParams.get("type") || "dashboard"
 
-    // Safe diagnostic log (never exposes secrets/passwords)
-    console.log(`[parent-data] Serving data type="${type}" for studentId="${studentId}" admissionNo="${student.admission_no}"`)
-
     const mappedStudent = mapStudentFromDb(student)
 
     if (type === "student") {
@@ -169,10 +168,23 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === "attendance") {
-      const { data: attendanceData, error: attError } = await admin
+      // Default to a 6-month lookback (covers full school year).
+      // Client can pass dateFrom/dateTo params to override.
+      const dateFrom = request.nextUrl.searchParams.get("dateFrom") ||
+        (() => {
+          const d = new Date()
+          d.setMonth(d.getMonth() - 6)
+          return d.toISOString().slice(0, 10)
+        })()
+      const dateTo = request.nextUrl.searchParams.get("dateTo") ||
+        new Date().toISOString().slice(0, 10)
+
+      const { data: attendanceData } = await admin
         .from("attendance")
-        .select("*")
+        .select("id, student_id, date, status")
         .eq("student_id", studentId)
+        .gte("date", dateFrom)
+        .lte("date", dateTo)
         .order("date", { ascending: false })
 
       return NextResponse.json({
@@ -181,10 +193,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
+
     if (type === "fees") {
       const [{ data: feesData }, { data: paymentsData }] = await Promise.all([
-        admin.from("fees").select("*").eq("student_id", studentId).order("due_date", { ascending: true }),
-        admin.from("payments").select("*").eq("student_id", studentId).order("date", { ascending: false }),
+        admin.from("fees").select("id, student_id, student_name, term, amount, paid_amount, due_date, status, created_at").eq("student_id", studentId).order("due_date", { ascending: true }),
+        admin.from("payments").select("id, fee_id, student_id, student_name, amount, date, method, receipt_no, description").eq("student_id", studentId).order("date", { ascending: false }),
       ])
 
       return NextResponse.json({
@@ -197,7 +210,7 @@ export async function GET(request: NextRequest) {
     if (type === "notes") {
       const { data: notesData } = await admin
         .from("notes")
-        .select("*")
+        .select("id, student_id, teacher_name, date, message, category")
         .eq("student_id", studentId)
         .order("date", { ascending: false })
 
@@ -210,7 +223,7 @@ export async function GET(request: NextRequest) {
     if (type === "announcements") {
       const { data } = await admin
         .from("announcements")
-        .select("*")
+        .select("id, title, content, date, priority, published, author")
         .eq("published", true)
         .order("date", { ascending: false })
 
@@ -222,7 +235,7 @@ export async function GET(request: NextRequest) {
     if (type === "events") {
       const { data } = await admin
         .from("events")
-        .select("*")
+        .select("id, title, description, date, time, location, type")
         .order("date", { ascending: true })
 
       return NextResponse.json({
@@ -238,11 +251,11 @@ export async function GET(request: NextRequest) {
       { data: announcementsData },
       { data: eventsData },
     ] = await Promise.all([
-      admin.from("attendance").select("*").eq("student_id", studentId).order("date", { ascending: false }),
-      admin.from("fees").select("*").eq("student_id", studentId).order("due_date", { ascending: true }),
-      admin.from("notes").select("*").eq("student_id", studentId).order("date", { ascending: false }),
-      admin.from("announcements").select("*").eq("published", true).order("date", { ascending: false }),
-      admin.from("events").select("*").order("date", { ascending: true }),
+      admin.from("attendance").select("id, student_id, date, status").eq("student_id", studentId).order("date", { ascending: false }),
+      admin.from("fees").select("id, student_id, student_name, term, amount, paid_amount, due_date, status, created_at").eq("student_id", studentId).order("due_date", { ascending: true }),
+      admin.from("notes").select("id, student_id, teacher_name, date, message, category").eq("student_id", studentId).order("date", { ascending: false }),
+      admin.from("announcements").select("id, title, content, date, priority, published, author").eq("published", true).order("date", { ascending: false }).limit(5),
+      admin.from("events").select("id, title, description, date, time, location, type").order("date", { ascending: true }).limit(5),
     ])
 
     return NextResponse.json({

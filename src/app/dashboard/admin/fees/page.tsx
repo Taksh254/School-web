@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { motion } from "framer-motion"
 import { getFees, getStudents, addFee, markFeePaid, deleteFee, updateFee, bulkAddFees } from "@/lib/data-store"
 import type { FeeRecord, Student } from "@/lib/types"
@@ -86,20 +86,22 @@ export default function AdminFeesPage() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const [feesData, studentsData] = await Promise.all([
-        getFees(),
-        getStudents(),
-      ])
+      // Load fees first — they're needed to display the page
+      const feesData = await getFees()
       setFees(feesData)
-      setStudents(studentsData)
+      setLoading(false)
+      // Load students in background — needed for admission number column + Add Fee dropdown
+      getStudents().then(setStudents).catch((err) => {
+        if (process.env.NODE_ENV === "development") console.error("Fetch students error:", err)
+      })
     } catch (err) {
-      console.error("Refresh fees error:", err)
-    } finally {
+      if (process.env.NODE_ENV === "development") console.error("Refresh fees error:", err)
       setLoading(false)
     }
   }, [])
 
   useEffect(() => { refresh() }, [refresh])
+
 
   const totalAmount = fees.reduce((s, f) => s + f.amount, 0)
   const totalPaid = fees.reduce((s, f) => s + f.paidAmount, 0)
@@ -183,10 +185,29 @@ export default function AdminFeesPage() {
     )
   }
 
+  const feesWithAdmission = useMemo(() => {
+    return fees.map((f) => {
+      const student = students.find((s) => s.id === f.studentId)
+      return {
+        ...f,
+        admissionNo: student ? student.admissionNo : "",
+      }
+    })
+  }, [fees, students])
+
   const columns = [
     {
       key: "studentName", label: "Student", sortable: true,
-      render: (row: FeeRecord) => <span className="font-medium text-olive">{row.studentName}</span>,
+      render: (row: FeeRecord & { admissionNo?: string }) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-olive">{row.studentName}</span>
+          {row.admissionNo && (
+            <span className="text-[10px] px-1.5 py-0.2 rounded bg-pistachio/15 text-olive/70 font-mono">
+              {row.admissionNo}
+            </span>
+          )}
+        </div>
+      ),
     },
     { key: "term", label: "Term", sortable: true },
     {
@@ -273,9 +294,9 @@ export default function AdminFeesPage() {
         className="bg-soft-white rounded-3xl p-6 border border-beige/20 shadow-soft">
         <DataTable
           columns={columns as { key: string; label: string; sortable?: boolean; render?: (row: Record<string, unknown>) => React.ReactNode }[]}
-          data={fees as unknown as Record<string, unknown>[]}
-          searchKeys={["studentName", "term"]}
-          searchPlaceholder="Search by student or term..."
+          data={feesWithAdmission as unknown as Record<string, unknown>[]}
+          searchKeys={["studentName", "admissionNo", "term"]}
+          searchPlaceholder="Search by student name, admission no, or term..."
           emptyTitle="No fee records"
           emptyDescription="Create a new fee record to get started"
           actions={(row) => {

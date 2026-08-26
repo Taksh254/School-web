@@ -2,9 +2,9 @@
 
 export const dynamic = "force-dynamic"
 
-import { useEffect, useRef, useState, useCallback } from "react"
+import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageCircle, ArrowLeft, User, Users, Wifi, WifiOff } from "lucide-react"
+import { MessageCircle, ArrowLeft, User, Users, Wifi, WifiOff, Search } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/lib/auth-context"
 import ChatBubble from "@/components/chat/ChatBubble"
@@ -56,6 +56,17 @@ export default function AdminMessagesPage() {
   const [error, setError] = useState<string | null>(null)
   const [realtime, setRealtime] = useState(false)
   const [adminName, setAdminName] = useState("Principal")
+  const [search, setSearch] = useState("")
+
+  const filteredConversations = useMemo(() => {
+    if (!search) return conversations
+    const q = search.toLowerCase().trim()
+    return conversations.filter(
+      (c) =>
+        (c.parent_name && c.parent_name.toLowerCase().includes(q)) ||
+        (c.admission_no && c.admission_no.toLowerCase().includes(q))
+    )
+  }, [conversations, search])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
@@ -299,30 +310,51 @@ export default function AdminMessagesPage() {
 
       {/* Conversation list */}
       {!selectedConv && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-soft-white rounded-3xl border border-beige/20 shadow-soft overflow-hidden"
-        >
-          {loadingConvs ? (
-            <div className="flex items-center justify-center py-16">
-              <div className="w-7 h-7 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
+        <div className="space-y-4">
+          {conversations.length > 0 && (
+            <div className="relative">
+              <Search className="w-4 h-4 text-olive/40 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search conversations by admission number or parent name..."
+                className="w-full pl-11 pr-4 py-2.5 rounded-2xl bg-soft-white border border-beige/25 text-sm text-olive placeholder:text-olive/40 outline-none focus:border-pistachio focus:ring-2 focus:ring-pistachio/20 transition-all font-body shadow-soft"
+              />
             </div>
-          ) : conversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-14 h-14 rounded-full bg-pistachio/10 flex items-center justify-center">
-                <Users className="w-7 h-7 text-pistachio/50" />
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-soft-white rounded-3xl border border-beige/20 shadow-soft overflow-hidden"
+          >
+            {loadingConvs ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="w-7 h-7 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
               </div>
-              <div className="text-center">
-                <p className="text-sm font-display font-semibold text-olive/60">No conversations yet</p>
+            ) : conversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className="w-14 h-14 rounded-full bg-pistachio/10 flex items-center justify-center">
+                  <Users className="w-7 h-7 text-pistachio/50" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-display font-semibold text-olive/60">No conversations yet</p>
+                  <p className="text-xs text-olive/40 font-body mt-1">
+                    Conversations will appear here when parents send their first message.
+                  </p>
+                </div>
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <p className="text-sm font-display font-semibold text-olive/60">No matching conversations</p>
                 <p className="text-xs text-olive/40 font-body mt-1">
-                  Conversations will appear here when parents send their first message.
+                  Try searching with a different admission number or parent name.
                 </p>
               </div>
-            </div>
-          ) : (
-            <ul className="divide-y divide-beige/10">
-              {conversations.map((conv) => (
+            ) : (
+              <ul className="divide-y divide-beige/10">
+                {filteredConversations.map((conv) => (
                 <li key={conv.id}>
                   <button
                     onClick={() => openConversation(conv)}
@@ -366,8 +398,9 @@ export default function AdminMessagesPage() {
                 </li>
               ))}
             </ul>
-          )}
-        </motion.div>
+            )}
+          </motion.div>
+        </div>
       )}
 
       {/* Chat window */}

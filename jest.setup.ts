@@ -98,6 +98,11 @@ jest.mock("@supabase/ssr", () => ({
       single: jest.fn().mockResolvedValue({ data: null, error: { message: "not found" } }),
       maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
     })),
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+    })),
+    removeChannel: jest.fn(),
   })),
   createServerClient: jest.fn(),
 }))
@@ -122,6 +127,18 @@ beforeEach(() => {
   localStorageMock.clear()
 })
 
+// ── Global fetch mock ─────────────────────────────────────────
+if (typeof global.fetch === "undefined") {
+  global.fetch = jest.fn().mockImplementation(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(""),
+      blob: () => Promise.resolve(new Blob()),
+    })
+  ) as any
+}
+
 // ── Suppress console warnings in tests ────────────────────────
 const originalWarn = console.warn
 beforeAll(() => {
@@ -134,3 +151,4 @@ beforeAll(() => {
   }
 })
 afterAll(() => { console.warn = originalWarn })
+

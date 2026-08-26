@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
 import { supabase } from "@/lib/supabase"
 import { getStudents, addStudent, updateStudent, deleteStudent, bulkAddStudents, linkParentToStudent } from "@/lib/data-store"
-import type { Student, ProgramType } from "@/lib/types"
+import { getTeachers } from "@/app/actions/teacher-actions"
+import type { Student, Teacher, ProgramType } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
 import DataTable from "@/components/dashboard/DataTable"
 import Modal from "@/components/dashboard/Modal"
@@ -40,6 +41,7 @@ const emptyForm = {
 
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState<Student[]>([])
+  const [teachers, setTeachers] = useState<Teacher[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Student | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -199,25 +201,91 @@ export default function AdminStudentsPage() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getStudents()
-      setStudents(data)
+      const [studentsData, teachersData] = await Promise.all([
+        getStudents(),
+        getTeachers(),
+      ])
+      setStudents(studentsData)
+      setTeachers(teachersData)
     } catch (err) {
-      console.error("Refresh students error:", err)
+      if (process.env.NODE_ENV === "development") console.error("Refresh students error:", err)
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
+    // Initial load — fetch everything once
     refresh()
 
+    // On subsequent Realtime events: update state surgically from the payload
+    // instead of re-fetching the entire table on every change.
     const channel = supabase
       .channel("admin-students-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "students" },
-        () => {
-          refresh()
+        { event: "INSERT", schema: "public", table: "students" },
+        (payload) => {
+          const raw = payload.new as Record<string, unknown>
+          // Map DB snake_case to our Student camelCase type
+          const newStudent: import("@/lib/types").Student = {
+            id: raw.id as string,
+            name: raw.name as string,
+            age: raw.age as number,
+            dateOfBirth: raw.date_of_birth as string,
+            program: raw.program as import("@/lib/types").ProgramType,
+            section: raw.section as string,
+            parentName: raw.parent_name as string,
+            parentEmail: raw.parent_email as string,
+            parentId: raw.parent_id as string | undefined,
+            parentPhone: raw.parent_phone as string,
+            admissionNo: raw.admission_no as string,
+            teacher: raw.teacher as string,
+            teacherId: raw.teacher_id as string | undefined,
+            photo: raw.photo as string | undefined,
+          }
+          setStudents((prev) => {
+            // Avoid duplicate on optimistic + Realtime
+            if (prev.some((s) => s.id === newStudent.id)) return prev
+            return [...prev, newStudent].sort((a, b) => a.name.localeCompare(b.name))
+          })
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "students" },
+        (payload) => {
+          const raw = payload.new as Record<string, unknown>
+          setStudents((prev) =>
+            prev.map((s) =>
+              s.id === raw.id
+                ? {
+                    ...s,
+                    name: raw.name as string,
+                    age: raw.age as number,
+                    dateOfBirth: raw.date_of_birth as string,
+                    program: raw.program as import("@/lib/types").ProgramType,
+                    section: raw.section as string,
+                    parentName: raw.parent_name as string,
+                    parentEmail: raw.parent_email as string,
+                    parentId: raw.parent_id as string | undefined,
+                    parentPhone: raw.parent_phone as string,
+                    admissionNo: raw.admission_no as string,
+                    teacher: raw.teacher as string,
+                    teacherId: raw.teacher_id as string | undefined,
+                    photo: raw.photo as string | undefined,
+                  }
+                : s
+            )
+          )
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "students" },
+        (payload) => {
+          const deletedId = (payload.old as Record<string, unknown>).id as string
+          setStudents((prev) => prev.filter((s) => s.id !== deletedId))
         }
       )
       .subscribe()
@@ -226,6 +294,7 @@ export default function AdminStudentsPage() {
       supabase.removeChannel(channel)
     }
   }, [refresh])
+
 
   const filtered = filter === "all" ? students : students.filter((s) => s.program === filter)
 
@@ -451,8 +520,8 @@ export default function AdminStudentsPage() {
         <DataTable
           columns={columns as { key: string; label: string; sortable?: boolean; render?: (row: Record<string, unknown>) => React.ReactNode }[]}
           data={filtered as unknown as Record<string, unknown>[]}
-          searchKeys={["name", "parentName", "teacher"]}
-          searchPlaceholder="Search students..."
+          searchKeys={["name", "admissionNo", "parentName", "teacher"]}
+          searchPlaceholder="Search students by name, admission no, parent, teacher..."
           emptyTitle="No students found"
           actions={(row) => {
             const student = row as unknown as Student
@@ -610,9 +679,23 @@ export default function AdminStudentsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="student-teacher-input" className="block text-xs font-medium text-olive mb-1 font-body">Teacher</label>
-              <input id="student-teacher-input" type="text" value={form.teacher} onChange={(e) => setForm({ ...form, teacher: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body" />
+              <label htmlFor="student-teacher-input" className="block text-xs font-medium text-olive mb-1 font-body">Assign Teacher</label>
+              <select
+                id="student-teacher-input"
+                value={form.teacher}
+                onChange={(e) => setForm({ ...form, teacher: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-cream border border-beige/20 text-sm text-olive outline-none focus:border-pistachio focus:shadow-glow transition-all font-body"
+              >
+                <option value="">Select a Teacher</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.full_name}>
+                    {t.full_name} ({t.designation || "Teacher"})
+                  </option>
+                ))}
+                {form.teacher && !teachers.some((t) => t.full_name === form.teacher) && (
+                  <option value={form.teacher}>{form.teacher} (Custom)</option>
+                )}
+              </select>
             </div>
           </div>
 

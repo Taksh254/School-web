@@ -103,7 +103,8 @@ export default function AttendancePage() {
     )
   }
 
-  const rate = total > 0 ? Math.round((present / total) * 100) : 0
+  const workingDays = present + absent
+  const rate = workingDays > 0 ? Math.round((present / workingDays) * 100) : (total > 0 ? 100 : 0)
 
   const prevMonth = () => {
     if (month === 0) { setMonth(11); setYear(year - 1) }

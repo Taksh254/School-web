@@ -3,6 +3,8 @@
 import { supabase } from "@/lib/supabase"
 import { UserProfile, UserActivity } from "@/lib/types"
 
+const PROFILE_COLS = "id, email, name, role, child_id, must_change_password, photo_url, theme, language, timezone, date_format, phone, alt_phone, date_of_birth, gender, address, city, state, country, pin_code, emergency_contact, is_active, last_login_at, created_at"
+
 /**
  * Get a single profile by ID. If no ID is provided, it tries to get the current user's profile.
  */
@@ -17,7 +19,7 @@ export async function getProfile(userId?: string): Promise<UserProfile | { error
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select(PROFILE_COLS)
       .eq("id", targetId)
       .single()
 
@@ -35,7 +37,7 @@ export async function getAllProfiles(): Promise<UserProfile[] | { error: string 
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select(PROFILE_COLS)
       .order("name")
 
     if (error) throw error
@@ -86,7 +88,7 @@ export async function getUserActivity(userId: string): Promise<UserActivity[] | 
   try {
     const { data, error } = await supabase
       .from("user_activity")
-      .select("*")
+      .select("id, user_id, action, ip_address, device, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20)

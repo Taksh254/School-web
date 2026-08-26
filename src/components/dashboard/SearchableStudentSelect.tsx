@@ -16,7 +16,7 @@ export default function SearchableStudentSelect({
   students,
   value,
   onChange,
-  placeholder = "Select student...",
+  placeholder = "Search student by name or admission no...",
   required = false,
 }: SearchableStudentSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -43,9 +43,11 @@ export default function SearchableStudentSelect({
     if (selectedStudent && inputValue === selectedStudent.name) {
       return true
     }
+    const q = inputValue.toLowerCase().trim()
     return (
-      s.name.toLowerCase().includes(inputValue.toLowerCase()) ||
-      s.program.toLowerCase().includes(inputValue.toLowerCase())
+      s.name.toLowerCase().includes(q) ||
+      (s.admissionNo && s.admissionNo.toLowerCase().includes(q)) ||
+      s.program.toLowerCase().includes(q)
     )
   })
 
@@ -54,8 +56,13 @@ export default function SearchableStudentSelect({
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false)
-        // If the user typed a name that matches a student exactly, select them
-        const exactMatch = students.find(s => s.name.toLowerCase() === inputValue.trim().toLowerCase())
+        const q = inputValue.trim().toLowerCase()
+        // If the user typed a name or admission number that matches a student exactly, select them
+        const exactMatch = students.find(
+          (s) =>
+            s.name.toLowerCase() === q ||
+            (s.admissionNo && s.admissionNo.toLowerCase() === q)
+        )
         if (exactMatch) {
           onChange(exactMatch.id)
         } else if (selectedStudent) {
@@ -122,7 +129,14 @@ export default function SearchableStudentSelect({
                 }`}
               >
                 <div>
-                  <p className="font-semibold">{s.name}</p>
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <span>{s.name}</span>
+                    {s.admissionNo && (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-pistachio/15 text-olive/70 font-mono font-normal">
+                        {s.admissionNo}
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[10px] text-olive/40">{s.program}</p>
                 </div>
                 {s.id === value && <Check className="w-3.5 h-3.5 text-pistachio shrink-0" />}

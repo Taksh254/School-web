@@ -226,6 +226,7 @@ function mapStudentFromDb(row: any): Student {
     parentPhone: row.parent_phone,
     admissionNo: row.admission_no,
     teacher: row.teacher,
+    teacherId: row.teacher_id || undefined,
     photo: row.photo || undefined,
   }
 }
@@ -243,6 +244,7 @@ function mapStudentToDb(s: Omit<Student, "id"> | Partial<Student>): any {
   if (s.parentPhone !== undefined) row.parent_phone = s.parentPhone
   if (s.admissionNo !== undefined) row.admission_no = s.admissionNo
   if (s.teacher !== undefined) row.teacher = s.teacher
+  if (s.teacherId !== undefined) row.teacher_id = s.teacherId
   if (s.photo !== undefined) row.photo = s.photo
   return row
 }
@@ -251,8 +253,11 @@ function mapAttendanceFromDb(row: any): AttendanceRecord {
   return {
     id: row.id,
     studentId: row.student_id,
+    teacherId: row.teacher_id || undefined,
     date: row.date,
     status: row.status,
+    createdAt: row.created_at || undefined,
+    updatedAt: row.updated_at || undefined,
   }
 }
 
@@ -379,10 +384,12 @@ export function updatePrincipalProfile(profile: PrincipalProfile): void {
 
 // ── Student CRUD ──────────────────────────────────────────────
 
+const STUDENT_COLS = "id, name, age, date_of_birth, program, section, admission_no, parent_name, parent_email, parent_id, parent_phone, teacher, teacher_id, photo"
+
 export async function getStudents(): Promise<Student[]> {
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.from("students").select("*").order("name")
+      const { data, error } = await supabase.from("students").select(STUDENT_COLS).order("name")
       if (!error && data) return data.map(mapStudentFromDb)
       console.warn("Supabase fetch failed, fallback to local storage:", error)
     } catch (err) {
@@ -404,7 +411,7 @@ export async function getStudentsByParent(parentId: string, parentEmail: string)
 
       const { data, error } = await supabase
         .from("students")
-        .select("*")
+        .select(STUDENT_COLS)
         .or(conditions.join(","))
         .order("name")
       
@@ -424,7 +431,7 @@ export async function getStudentsByParent(parentId: string, parentEmail: string)
 export async function getStudent(id: string): Promise<Student | undefined> {
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.from("students").select("*").eq("id", id).maybeSingle()
+      const { data, error } = await supabase.from("students").select(STUDENT_COLS).eq("id", id).maybeSingle()
       if (!error && data) return mapStudentFromDb(data)
       console.warn("Supabase fetch failed, fallback to local storage:", error)
     } catch (err) {
@@ -537,18 +544,26 @@ export async function deleteStudent(id: string): Promise<void> {
 
 // ── Attendance ────────────────────────────────────────────────
 
-export async function getAttendance(studentId?: string): Promise<AttendanceRecord[]> {
+export async function getAttendance(
+  studentId?: string,
+  dateFrom?: string,
+  dateTo?: string
+): Promise<AttendanceRecord[]> {
   if (isSupabaseConfigured()) {
     try {
-      let query = supabase.from("attendance").select("*")
-      if (studentId) {
-        query = query.eq("student_id", studentId)
-      }
+      let query = supabase
+        .from("attendance")
+        .select("id, student_id, teacher_id, date, status, created_at, updated_at")
+      if (studentId) query = query.eq("student_id", studentId)
+      if (dateFrom) query = query.gte("date", dateFrom)
+      if (dateTo) query = query.lte("date", dateTo)
       const { data, error } = await query.order("date")
       if (!error && data) return data.map(mapAttendanceFromDb)
-      console.warn("Supabase fetch failed, fallback to local storage:", error)
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Supabase fetch failed, fallback to local storage:", error)
+      }
     } catch (err) {
-      console.error("Supabase error:", err)
+      if (process.env.NODE_ENV === "development") console.error("Supabase error:", err)
     }
   }
   return getLocalAttendance(studentId)
@@ -614,7 +629,11 @@ function generateReceiptNo(): string {
 export async function markFeePaid(feeId: string, method: Payment["method"] = "Cash"): Promise<void> {
   if (isSupabaseConfigured()) {
     try {
-      const { data: fee, error: fetchErr } = await supabase.from("fees").select("*").eq("id", feeId).single()
+      const { data: fee, error: fetchErr } = await supabase
+        .from("fees")
+        .select("id, student_id, student_name, amount, paid_amount, term, status")
+        .eq("id", feeId)
+        .single()
       if (!fetchErr && fee) {
         const remaining = Number(fee.amount) - Number(fee.paid_amount)
         const { error: updateErr } = await supabase.from("fees").update({ paid_amount: fee.amount, status: "paid" }).eq("id", feeId)
@@ -635,9 +654,11 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
           return
         }
       }
-      console.warn("Supabase mark paid failed, fallback to local storage:", fetchErr)
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Supabase mark paid failed, fallback to local storage:", fetchErr)
+      }
     } catch (err) {
-      console.error("Supabase error:", err)
+      if (process.env.NODE_ENV === "development") console.error("Supabase error:", err)
     }
   }
 
@@ -667,18 +688,6 @@ export async function markFeePaid(feeId: string, method: Payment["method"] = "Ca
   set(K.payments, payments)
 }
 
-export async function deleteFee(id: string): Promise<void> {
-  if (isSupabaseConfigured()) {
-    const { error } = await supabase.from("fees").delete().eq("id", id)
-    if (error) {
-      console.error("Supabase delete fee failed:", error)
-      throw new Error(error.message)
-    }
-    return
-  }
-  set(K.fees, getLocalFees().filter((f) => f.id !== id))
-}
-
 export async function updateFee(id: string, data: Partial<Pick<FeeRecord, "term" | "amount" | "dueDate">>): Promise<void> {
   if (isSupabaseConfigured()) {
     try {
@@ -706,12 +715,24 @@ export async function updateFee(id: string, data: Partial<Pick<FeeRecord, "term"
   set(K.fees, fees)
 }
 
+export async function deleteFee(id: string): Promise<void> {
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase.from("fees").delete().eq("id", id)
+    if (error) {
+      console.error("Supabase delete fee failed:", error)
+      throw new Error(error.message)
+    }
+    return
+  }
+  set(K.fees, getLocalFees().filter((f) => f.id !== id))
+}
+
 // ── Payments ──────────────────────────────────────────────────
 
 export async function getPayments(studentId?: string): Promise<Payment[]> {
   if (isSupabaseConfigured()) {
     try {
-      let query = supabase.from("payments").select("*")
+      let query = supabase.from("payments").select("id, fee_id, student_id, student_name, amount, date, method, receipt_no, description")
       if (studentId) {
         query = query.eq("student_id", studentId)
       }
@@ -730,7 +751,7 @@ export async function getPayments(studentId?: string): Promise<Payment[]> {
 export async function getAnnouncements(limit?: number): Promise<Announcement[]> {
   if (isSupabaseConfigured()) {
     try {
-      let query = supabase.from("announcements").select("*").order("date", { ascending: false })
+      let query = supabase.from("announcements").select("id, title, content, date, priority, published, author").order("date", { ascending: false })
       if (limit) {
         query = query.limit(limit)
       }
@@ -826,7 +847,7 @@ export async function deleteAnnouncement(id: string): Promise<void> {
 export async function getEvents(): Promise<SchoolEvent[]> {
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase.from("events").select("*").order("date")
+      const { data, error } = await supabase.from("events").select("id, title, description, date, time, location, type").order("date")
       if (!error && data) return data.map(mapEventFromDb)
       console.warn("Supabase fetch failed, fallback to local storage:", error)
     } catch (err) {
@@ -841,7 +862,7 @@ export async function getEvents(): Promise<SchoolEvent[]> {
 export async function getNotes(studentId?: string): Promise<TeacherNote[]> {
   if (isSupabaseConfigured()) {
     try {
-      let query = supabase.from("notes").select("*")
+      let query = supabase.from("notes").select("id, student_id, teacher_name, date, message, category")
       if (studentId) {
         query = query.eq("student_id", studentId)
       }

@@ -292,7 +292,7 @@ async function handleParentRequest(
 async function handleAdminRequest(admin: ReturnType<typeof getAdminClient>) {
   const { data: conversations, error } = await admin
     .from("conversations")
-    .select("*")
+    .select("id, student_id, parent_name, admission_no, status, updated_at, created_at")
     .order("updated_at", { ascending: false })
 
   if (error) {
@@ -303,30 +303,51 @@ async function handleAdminRequest(admin: ReturnType<typeof getAdminClient>) {
     )
   }
 
-  const enriched = await Promise.all(
-    (conversations || []).map(async (conv: any) => {
-      const [lastMsgResult, unreadResult] = await Promise.all([
-        admin
-          .from("messages")
-          .select("message, created_at, sender_role")
-          .eq("conversation_id", conv.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        admin
-          .from("messages")
-          .select("id", { count: "exact" })
-          .eq("conversation_id", conv.id)
-          .eq("sender_role", "parent")
-          .is("read_at", null),
-      ])
-      return {
-        ...conv,
-        lastMessage: lastMsgResult.data || null,
-        unreadCount: unreadResult.count || 0,
+  if (!conversations || conversations.length === 0) {
+    return NextResponse.json({ conversations: [] })
+  }
+
+  const convIds = conversations.map((c: any) => c.id)
+
+  // Batch query 1: Unread counts across all conversations in a single request
+  // Batch query 2: Latest messages across all conversations in a single request
+  const [unreadRes, msgsRes] = await Promise.all([
+    admin
+      .from("messages")
+      .select("conversation_id")
+      .in("conversation_id", convIds)
+      .eq("sender_role", "parent")
+      .is("read_at", null),
+    admin
+      .from("messages")
+      .select("conversation_id, message, created_at, sender_role")
+      .in("conversation_id", convIds)
+      .order("created_at", { ascending: false }),
+  ])
+
+  // Build unread count map
+  const unreadMap: Record<string, number> = {}
+  ;(unreadRes.data || []).forEach((m: any) => {
+    unreadMap[m.conversation_id] = (unreadMap[m.conversation_id] || 0) + 1
+  })
+
+  // Build last message map (first encountered is newest because of ordering)
+  const lastMsgMap: Record<string, any> = {}
+  ;(msgsRes.data || []).forEach((m: any) => {
+    if (!lastMsgMap[m.conversation_id]) {
+      lastMsgMap[m.conversation_id] = {
+        message: m.message,
+        created_at: m.created_at,
+        sender_role: m.sender_role,
       }
-    })
-  )
+    }
+  })
+
+  const enriched = conversations.map((conv: any) => ({
+    ...conv,
+    lastMessage: lastMsgMap[conv.id] || null,
+    unreadCount: unreadMap[conv.id] || 0,
+  }))
 
   return NextResponse.json({ conversations: enriched })
 }

@@ -2,13 +2,19 @@
 
 import { motion } from "framer-motion"
 import { MessageCircle } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 export default function WhatsAppButton() {
+  const pathname = usePathname()
   const phoneNumber = "918527737413"
   const defaultMessage = encodeURIComponent(
     "Hello Tiny Mind Play School, I would like to enquire about admissions and schedule a campus visit."
   )
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${defaultMessage}`
+
+  if (pathname === "/login" || pathname?.startsWith("/dashboard")) {
+    return null
+  }
 
   return (
     <aside aria-label="WhatsApp quick chat" className="print:hidden whatsapp-button">

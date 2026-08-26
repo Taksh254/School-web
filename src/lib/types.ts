@@ -78,6 +78,7 @@ export interface Student {
   parentPhone: string
   admissionNo: string
   teacher: string
+  teacherId?: string
   photo?: string
 }
 
@@ -88,8 +89,11 @@ export type AttendanceStatus = "present" | "absent" | "holiday" | "leave"
 export interface AttendanceRecord {
   id: string
   studentId: string
+  teacherId?: string
   date: string // YYYY-MM-DD
   status: AttendanceStatus
+  createdAt?: string
+  updatedAt?: string
 }
 
 // ── Fees & Payments ───────────────────────────────────────────
@@ -268,4 +272,85 @@ export interface AdminTeacherNote {
   note: string
   author: string
   date?: string
+}
+
+// ── Student Development (Preschool Observations) ─────────────
+
+export type DevelopmentRating = "Needs Support" | "Developing" | "Good" | "Very Good" | "Excellent"
+
+export interface StudentDevelopment {
+  id: string
+  studentId: string
+  studentName?: string
+  program?: string
+  section?: string
+  teacherId?: string
+  teacherName?: string
+  date: string // YYYY-MM-DD
+  communication: DevelopmentRating
+  cognitiveDevelopment: DevelopmentRating
+  motorSkills: DevelopmentRating
+  socialDevelopment: DevelopmentRating
+  creativity: DevelopmentRating
+  participation: DevelopmentRating
+  observation: string
+  createdAt?: string
+}
+
+// ── Class Activities ──────────────────────────────────────────
+
+export type ActivityType = "Drawing" | "Storytelling" | "Music" | "Outdoor Play" | "Numbers" | "Alphabet" | "Puzzle" | "Craft" | "General"
+
+export interface ClassActivity {
+  id: string
+  title: string
+  description: string
+  activityType: ActivityType
+  date: string // YYYY-MM-DD
+  program: ProgramType
+  section: string
+  teacherId?: string
+  teacherName?: string
+  studentParticipation?: string
+  observations?: string
+  createdAt?: string
+}
+
+// ── Home Activities ───────────────────────────────────────────
+
+export interface HomeActivity {
+  id: string
+  title: string
+  instructions: string
+  program: ProgramType
+  section: string
+  date: string // YYYY-MM-DD
+  dueDate?: string
+  teacherId?: string
+  teacherName?: string
+  createdAt?: string
+}
+
+// ── Teacher ↔ Principal Chat ──────────────────────────────────
+
+export interface TeacherConversation {
+  id: string
+  teacherId: string
+  teacherName: string
+  teacherEmail: string
+  status: "open" | "closed"
+  updatedAt: string
+  createdAt: string
+  unreadCount?: number
+  lastMessage?: string
+}
+
+export interface TeacherChatMessage {
+  id: string
+  conversationId: string
+  senderRole: "teacher" | "principal"
+  senderName: string
+  message: string
+  createdAt: string
+  readAt?: string | null
 }

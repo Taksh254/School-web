@@ -25,6 +25,7 @@ interface NoteRow {
   id: string
   studentId: string
   studentName: string
+  admissionNo: string
   teacherName: string
   date: string
   message: string
@@ -83,6 +84,7 @@ export default function AdminNotesPage() {
       id: n.id,
       studentId: n.studentId,
       studentName: student ? student.name : "Unknown Student",
+      admissionNo: student ? student.admissionNo : "",
       teacherName: n.teacherName,
       date: n.date,
       message: n.message,
@@ -241,8 +243,8 @@ export default function AdminNotesPage() {
         <DataTable
           columns={columns as { key: string; label: string; sortable?: boolean; render?: (row: Record<string, unknown>) => React.ReactNode }[]}
           data={filteredRows as unknown as Record<string, unknown>[]}
-          searchKeys={["studentName", "message", "teacherName"]}
-          searchPlaceholder="Search notes..."
+          searchKeys={["studentName", "admissionNo", "message", "teacherName"]}
+          searchPlaceholder="Search notes by student name, admission no, or message..."
           emptyTitle="No teacher notes found"
           emptyDescription="Click 'Add Teacher Note' to share remarks"
           actions={(row) => (

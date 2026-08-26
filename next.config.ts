@@ -5,9 +5,15 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
   reactStrictMode: true,
+  experimental: {
+    // Tree-shake lucide-react (~600 icons) and framer-motion to bundle only
+    // the specific exports actually used, reducing JS bundle size.
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
   images: {
     formats: ["image/avif", "image/webp"],
   },
+
   async headers() {
     return [
       {

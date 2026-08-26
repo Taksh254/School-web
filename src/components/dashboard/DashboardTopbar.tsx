@@ -2,14 +2,18 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/auth-context"
-import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Menu, LogOut, User, Crown, Settings, Bell, Shield, ChevronDown } from "lucide-react"
+import { Menu, LogOut, User, Settings, Bell, Shield, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { getPrincipalProfile } from "@/lib/data-store"
 import { motion, AnimatePresence } from "framer-motion"
 import { getProfile } from "@/app/actions/profile-actions"
 import { UserProfile } from "@/lib/types"
+
+// ── Module-level profile cache ─────────────────────────────────────────────
+// Prevents a DB round-trip on every dashboard navigation.
+// Keyed by user ID; cleared on logout (user ID changes to undefined).
+const profileCache = new Map<string, UserProfile>()
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -17,7 +21,6 @@ interface TopbarProps {
 
 export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
   const { user, logout } = useAuth()
-  const router = useRouter()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   
@@ -25,16 +28,24 @@ export default function DashboardTopbar({ onMenuClick }: TopbarProps) {
   const [dbProfile, setDbProfile] = useState<UserProfile | null>(null)
 
   useEffect(() => {
-    async function loadProfile() {
-      if (user?.id) {
-        const p = await getProfile(user.id)
-        if (!('error' in p)) {
-          setDbProfile(p as UserProfile)
-        }
-      }
+    if (!user?.id) {
+      setDbProfile(null)
+      return
     }
-    loadProfile()
-  }, [user])
+    // Return immediately from cache — no DB call needed
+    const cached = profileCache.get(user.id)
+    if (cached) {
+      setDbProfile(cached)
+      return
+    }
+    // First visit: fetch and store in cache
+    getProfile(user.id).then((p) => {
+      if (!("error" in p)) {
+        profileCache.set(user.id!, p as UserProfile)
+        setDbProfile(p as UserProfile)
+      }
+    })
+  }, [user?.id])
 
   // Close dropdown on click outside
   useEffect(() => {

@@ -24,6 +24,11 @@ import {
   User,
   ClipboardList,
   MessageSquare,
+  Sparkles,
+  Palette,
+  BookOpen,
+  CalendarDays,
+  Settings,
 } from "lucide-react"
 
 interface SidebarProps {
@@ -43,6 +48,22 @@ const adminLinks = [
   { href: "/dashboard/admin/announcements", label: "Announcements", icon: Bell },
   { href: "/dashboard/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/dashboard/admin/principal", label: "Profile", icon: Crown },
+]
+
+const teacherLinks = [
+  { href: "/dashboard/teacher", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/teacher/students", label: "My Students", icon: Users },
+  { href: "/dashboard/teacher/attendance", label: "Attendance", icon: CalendarCheck },
+  { href: "/dashboard/teacher/development", label: "Student Development", icon: Sparkles },
+  { href: "/dashboard/teacher/notes", label: "Notes", icon: FileText },
+  { href: "/dashboard/teacher/activities", label: "Activities", icon: Palette },
+  { href: "/dashboard/teacher/home-activities", label: "Home Activities", icon: BookOpen },
+  { href: "/dashboard/teacher/announcements", label: "Announcements", icon: Bell },
+  { href: "/dashboard/teacher/calendar", label: "Calendar", icon: Calendar },
+  { href: "/dashboard/teacher/leave-requests", label: "Leave Requests", icon: CalendarDays },
+  { href: "/dashboard/teacher/messages", label: "Messages", icon: MessageSquare },
+  { href: "/dashboard/teacher/profile", label: "My Profile", icon: User },
+  { href: "/dashboard/teacher/settings", label: "Settings", icon: Settings },
 ]
 
 const parentLinks = [
@@ -85,33 +106,58 @@ async function fetchAdminUnread(token: string): Promise<number> {
   }
 }
 
+// ── Module-level session token cache ──────────────────────────────────────────
+// Avoids calling getSession() (network round-trip) on every Realtime message.
+let _cachedToken: string | null = null
+async function getCachedToken(): Promise<string | null> {
+  if (_cachedToken) return _cachedToken
+  const { data: { session } } = await supabase.auth.getSession()
+  _cachedToken = session?.access_token ?? null
+  return _cachedToken
+}
+
+/** Debounce helper — waits `ms` ms after the last call before executing fn. */
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  return ((...args: unknown[]) => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), ms)
+  }) as T
+}
+
 export default function DashboardSidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { user } = useAuth()
-  const links = user?.role === "admin" ? adminLinks : parentLinks
+  const isTeacher = user?.role === "teacher" || pathname.startsWith("/dashboard/teacher")
+  const isAdmin = user?.role === "admin"
+  const isParent = !user || pathname.startsWith("/dashboard/parent")
+  const links = isAdmin ? adminLinks : isTeacher ? teacherLinks : parentLinks
 
   const [unreadCount, setUnreadCount] = useState(0)
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-  const isParent = !user || pathname.startsWith("/dashboard/parent")
-  const isAdmin = user?.role === "admin"
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refreshUnread = useCallback(async () => {
+    const token = await getCachedToken()
     if (isAdmin) {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) {
-        const count = await fetchAdminUnread(session.access_token)
+      if (token) {
+        const count = await fetchAdminUnread(token)
         setUnreadCount(count)
       }
     } else if (isParent) {
       // Works for both cookie-auth and Supabase-auth parents
-      const { data: { session } } = await supabase.auth.getSession()
-      const count = await fetchParentUnread(session?.access_token || undefined)
+      const count = await fetchParentUnread(token || undefined)
       setUnreadCount(count)
     }
   }, [isAdmin, isParent])
 
   useEffect(() => {
+    // Invalidate cached token on mount (may have changed)
+    _cachedToken = null
     refreshUnread()
+
+    // Debounced refresh so rapid message bursts don't pile up API calls
+    const debouncedRefresh = debounce(() => { refreshUnread() }, 600)
 
     // Subscribe to new messages to update badge in real time
     const channel = supabase
@@ -119,18 +165,19 @@ export default function DashboardSidebar({ open, onClose }: SidebarProps) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
-        () => { refreshUnread() }
+        debouncedRefresh
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages" },
-        () => { refreshUnread() }
+        debouncedRefresh
       )
       .subscribe()
 
     channelRef.current = channel
 
     return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current)
         channelRef.current = null
@@ -160,7 +207,7 @@ export default function DashboardSidebar({ open, onClose }: SidebarProps) {
         <div className="min-w-0">
           <span className="text-base font-display font-bold text-olive block leading-tight">Tiny Mind Play School</span>
           <span className="text-[10px] text-olive/40 font-body uppercase tracking-wider">
-            {user?.role === "admin" ? "Admin Portal" : "Parent Portal"}
+            {isAdmin ? "Admin Portal" : isTeacher ? "Teacher Portal" : "Parent Portal"}
           </span>
         </div>
       </div>

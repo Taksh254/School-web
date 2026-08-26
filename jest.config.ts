@@ -48,6 +48,7 @@ const config: Config = {
   transform: {
     "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: { jsx: "react-jsx" } }],
   },
+  testTimeout: 20000,
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

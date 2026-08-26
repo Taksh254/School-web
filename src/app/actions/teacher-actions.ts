@@ -5,8 +5,10 @@ import { Teacher, TeacherSalary, TeacherAttendance, TeacherLeave, TeacherDocumen
 
 // ── Teacher CRUD ──────────────────────────────────────────────
 
+const TEACHER_COLS = "id, teacher_id, full_name, gender, dob, phone, email, address, qualification, designation, department, specialization, joining_date, status, emergency_contact, blood_group, employment_type, photo, created_at, updated_at"
+
 export async function getTeachers(): Promise<Teacher[]> {
-  const { data, error } = await supabase.from("teachers").select("*").order("full_name")
+  const { data, error } = await supabase.from("teachers").select(TEACHER_COLS).order("full_name")
   if (error) {
     console.error("Error fetching teachers:", error)
     return []
@@ -15,7 +17,7 @@ export async function getTeachers(): Promise<Teacher[]> {
 }
 
 export async function getTeacher(id: string): Promise<Teacher | null> {
-  const { data, error } = await supabase.from("teachers").select("*").eq("id", id).single()
+  const { data, error } = await supabase.from("teachers").select(TEACHER_COLS).eq("id", id).single()
   if (error) {
     console.error("Error fetching teacher:", error)
     return null
@@ -53,7 +55,7 @@ export async function deleteTeacher(id: string): Promise<{ success: boolean; err
 // ── Teacher Salary ────────────────────────────────────────────
 
 export async function getTeacherSalaries(teacherId: string): Promise<TeacherSalary[]> {
-  const { data, error } = await supabase.from("teacher_salary").select("*").eq("teacher_id", teacherId).order("month_year", { ascending: false })
+  const { data, error } = await supabase.from("teacher_salary").select("id, teacher_id, month_year, basic_salary, allowances, bonus, deductions, pf, esi, net_salary, status, payment_date, payment_mode, created_at").eq("teacher_id", teacherId).order("month_year", { ascending: false })
   if (error) {
     console.error("Error fetching teacher salaries:", error)
     return []
@@ -73,7 +75,7 @@ export async function addTeacherSalary(salaryData: Omit<TeacherSalary, "id" | "c
 // ── Teacher Attendance ────────────────────────────────────────
 
 export async function getTeacherAttendance(teacherId: string): Promise<TeacherAttendance[]> {
-  const { data, error } = await supabase.from("teacher_attendance").select("*").eq("teacher_id", teacherId).order("date", { ascending: false })
+  const { data, error } = await supabase.from("teacher_attendance").select("id, teacher_id, date, status, notes").eq("teacher_id", teacherId).order("date", { ascending: false })
   if (error) {
     console.error("Error fetching teacher attendance:", error)
     return []
@@ -93,7 +95,7 @@ export async function addTeacherAttendance(attendanceData: Omit<TeacherAttendanc
 // ── Teacher Leave ─────────────────────────────────────────────
 
 export async function getTeacherLeaves(teacherId?: string): Promise<TeacherLeave[]> {
-  let query = supabase.from("teacher_leave").select("*").order("start_date", { ascending: false })
+  let query = supabase.from("teacher_leave").select("id, teacher_id, start_date, end_date, type, reason, status, applied_on").order("start_date", { ascending: false })
   if (teacherId) {
     query = query.eq("teacher_id", teacherId)
   }
@@ -126,7 +128,7 @@ export async function updateTeacherLeaveStatus(id: string, status: TeacherLeave[
 // ── Teacher Documents ─────────────────────────────────────────
 
 export async function getTeacherDocuments(teacherId: string): Promise<TeacherDocument[]> {
-  const { data, error } = await supabase.from("teacher_documents").select("*").eq("teacher_id", teacherId).order("uploaded_at", { ascending: false })
+  const { data, error } = await supabase.from("teacher_documents").select("id, teacher_id, title, type, file_url, uploaded_at").eq("teacher_id", teacherId).order("uploaded_at", { ascending: false })
   if (error) {
     console.error("Error fetching teacher documents:", error)
     return []
@@ -146,7 +148,7 @@ export async function addTeacherDocument(docData: Omit<TeacherDocument, "id" | "
 // ── Teacher Notes ─────────────────────────────────────────────
 
 export async function getTeacherNotes(teacherId: string): Promise<AdminTeacherNote[]> {
-  const { data, error } = await supabase.from("teacher_notes").select("*").eq("teacher_id", teacherId).order("date", { ascending: false })
+  const { data, error } = await supabase.from("teacher_notes").select("id, teacher_id, note, author, date").eq("teacher_id", teacherId).order("date", { ascending: false })
   if (error) { console.error("Error fetching teacher notes:", error); return [] }
   return data as AdminTeacherNote[]
 }

@@ -101,45 +101,19 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── Protected: /dashboard/parent/* ────────────────────────────────────
-  if (pathname.startsWith("/dashboard/parent")) {
-    // 1. Check parent_session JWT cookie (admission number login)
+// ── Protected: /dashboard/* ──────────────────────────────────────────
+  if (pathname.startsWith("/dashboard")) {
     const parentSession = await getParentSession(request)
-    if (parentSession) {
+
+    // Handle /dashboard/parent/* with parent_session cookie
+    if (pathname.startsWith("/dashboard/parent") && parentSession) {
       if (parentSession.mustChangePassword) {
         return NextResponse.redirect(new URL("/auth/parent-change-password", request.url))
       }
       return NextResponse.next()
     }
 
-    // 2. Check Supabase Auth session (Google OAuth / Supabase email login)
-    const authClient = createClient(request)
-    try {
-      const { data: { user }, error } = await authClient.supabase.auth.getUser()
-      if (!error && user) {
-        const { data: profile } = await authClient.supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .maybeSingle()
-
-        const role = profile?.role || "parent"
-        if (role === "parent" || role === "admin") {
-          return authClient.supabaseResponse
-        }
-      }
-    } catch (err: any) {
-      console.error(`[proxy] Parent session check failed for ${pathname}:`, err?.message)
-    }
-
-    // Unauthenticated -> redirect to parent login tab
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("tab", "parent")
-    return NextResponse.redirect(loginUrl)
-  }
-
-  // ── Protected: /dashboard/admin/* and /dashboard → Supabase JWT ───────
-  if (pathname.startsWith("/dashboard")) {
+    // Check Supabase Auth session
     const authClient = createClient(request)
     const supabase = authClient.supabase
 
@@ -155,40 +129,78 @@ export async function proxy(request: NextRequest) {
           .eq("id", user.id)
           .maybeSingle()
 
-        role = profile?.role || "parent"
+        if (profile?.role) {
+          role = profile.role
+        } else if (user.email) {
+          const { data: teacherRecord } = await supabase
+            .from("teachers")
+            .select("id")
+            .ilike("email", user.email.trim())
+            .maybeSingle()
+
+          if (teacherRecord) {
+            role = "teacher"
+          } else {
+            role = "parent"
+          }
+        } else {
+          role = "parent"
+        }
       }
-    } catch (err: any) {
-      console.error(`[proxy] Session check failed for ${pathname}:`, err?.message)
+    } catch {
+      // Non-fatal session lookup error
     }
 
-    // Check if user has parent cookie session for root /dashboard
-    if (!role) {
-      const parentSession = await getParentSession(request)
-      if (parentSession) {
-        if (parentSession.mustChangePassword) {
-          return NextResponse.redirect(new URL("/auth/parent-change-password", request.url))
-        }
+    // If no Supabase user but parent cookie exists, route to /dashboard/parent
+    if (!role && parentSession) {
+      if (parentSession.mustChangePassword) {
+        return NextResponse.redirect(new URL("/auth/parent-change-password", request.url))
+      }
+      if (pathname === "/dashboard" || pathname === "/dashboard/") {
         return NextResponse.redirect(new URL("/dashboard/parent", request.url))
       }
+      if (pathname.startsWith("/dashboard/parent")) {
+        return NextResponse.next()
+      }
+      // Parent cookie attempting to access admin or teacher dashboard -> redirect to parent
+      return NextResponse.redirect(new URL("/dashboard/parent", request.url))
+    }
+
+    // Unauthenticated -> redirect to /login
+    if (!role) {
       const loginUrl = new URL("/login", request.url)
-      if (pathname !== "/dashboard" && pathname !== "/dashboard/") {
+      if (pathname.startsWith("/dashboard/parent")) {
+        loginUrl.searchParams.set("tab", "parent")
+      } else if (pathname !== "/dashboard" && pathname !== "/dashboard/") {
         loginUrl.searchParams.set("redirect", pathname)
       }
       return redirectWithCookies(request, loginUrl.pathname + loginUrl.search, authClient.supabaseResponse)
     }
 
-    // Resolve the root /dashboard
+    // Root /dashboard route
     if (pathname === "/dashboard" || pathname === "/dashboard/") {
-      return redirectWithCookies(
-        request,
-        role === "admin" ? "/dashboard/admin" : "/dashboard/parent",
-        authClient.supabaseResponse
-      )
+      const target =
+        role === "admin"
+          ? "/dashboard/admin"
+          : role === "teacher"
+          ? "/dashboard/teacher"
+          : "/dashboard/parent"
+      return redirectWithCookies(request, target, authClient.supabaseResponse)
     }
 
-    // Admin-only: non-admin users cannot access /dashboard/admin
+    // Role enforcement
     if (pathname.startsWith("/dashboard/admin") && role !== "admin") {
+      const fallback = role === "teacher" ? "/dashboard/teacher" : "/dashboard/parent"
+      return redirectWithCookies(request, fallback, authClient.supabaseResponse)
+    }
+
+    if (pathname.startsWith("/dashboard/teacher") && role !== "teacher" && role !== "admin") {
       return redirectWithCookies(request, "/dashboard/parent", authClient.supabaseResponse)
+    }
+
+    if (pathname.startsWith("/dashboard/parent") && role !== "parent" && role !== "admin") {
+      const fallback = role === "teacher" ? "/dashboard/teacher" : "/dashboard/admin"
+      return redirectWithCookies(request, fallback, authClient.supabaseResponse)
     }
 
     return authClient.supabaseResponse

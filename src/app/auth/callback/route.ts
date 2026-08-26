@@ -85,6 +85,17 @@ export async function GET(request: NextRequest) {
     // Route based on DB role
     if (existingProfile?.role === "admin") {
       destination = "/dashboard/admin"
+    } else if (existingProfile?.role === "teacher") {
+      destination = "/dashboard/teacher"
+    } else {
+      const { data: teacherRecord } = await supabase
+        .from("teachers")
+        .select("id")
+        .ilike("email", email)
+        .maybeSingle()
+      if (teacherRecord) {
+        destination = "/dashboard/teacher"
+      }
     }
   }
 

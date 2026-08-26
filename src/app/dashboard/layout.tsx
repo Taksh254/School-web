@@ -6,6 +6,12 @@ import { useAuth } from "@/lib/auth-context"
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar"
 import DashboardTopbar from "@/components/dashboard/DashboardTopbar"
 
+function getTargetDashboard(role: string) {
+  if (role === "admin") return "/dashboard/admin"
+  if (role === "teacher") return "/dashboard/teacher"
+  return "/dashboard/parent"
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, loading } = useAuth()
@@ -13,51 +19,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
 
   useEffect(() => {
-    console.log(`[dashboard/layout] Guard check — Path: ${pathname}, Loading: ${loading}, User: ${user ? user.email : "none"}`)
     if (!loading) {
-      // /dashboard/parent/* is protected by the parent_session JWT cookie enforced in
-      // middleware.ts. The Supabase AuthProvider has no knowledge of that cookie-based
-      // session, so user will be null for cookie-auth parents. Do NOT redirect to /login
-      // for these routes — the middleware already handled it.
-      const isParentRoute = pathname.startsWith("/dashboard/parent")
-
-      if (!user && !isParentRoute) {
-        console.log(`[dashboard/layout] Redirecting to /login because user is null`)
+      if (!user) {
         router.replace("/login")
-      } else if (user) {
-        // Supabase-authenticated user: enforce role-based routing.
-        const isWrongAdmin = pathname.startsWith("/dashboard/admin") && user.role !== "admin"
-        const isWrongParent = pathname.startsWith("/dashboard/parent") && user.role !== "parent"
-        if (isWrongAdmin) {
-          console.log(`[dashboard/layout] RBAC redirection: User is a parent. Redirecting from admin route to /dashboard/parent`)
-          router.replace("/dashboard/parent")
-        } else if (isWrongParent) {
-          console.log(`[dashboard/layout] RBAC redirection: User is an admin. Redirecting from parent route to /dashboard/admin`)
-          router.replace("/dashboard/admin")
-        } else {
-          console.log(`[dashboard/layout] Access granted to ${user.email} (${user.role}) for path ${pathname}`)
-        }
+        return
+      }
+
+      // Check for mismatched role paths
+      if (pathname.startsWith("/dashboard/admin") && user.role !== "admin") {
+        router.replace(getTargetDashboard(user.role))
+      } else if (pathname.startsWith("/dashboard/teacher") && user.role !== "teacher" && user.role !== "admin") {
+        router.replace(getTargetDashboard(user.role))
+      } else if (pathname.startsWith("/dashboard/parent") && user.role !== "parent" && user.role !== "admin") {
+        router.replace(getTargetDashboard(user.role))
       }
     }
   }, [user, loading, router, pathname])
 
-  const isWrongRole = user && (
-    (pathname.startsWith("/dashboard/admin") && user.role !== "admin") ||
-    (pathname.startsWith("/dashboard/parent") && user.role !== "parent")
+  const isWrongRole = Boolean(
+    user && (
+      (pathname.startsWith("/dashboard/admin") && user.role !== "admin") ||
+      (pathname.startsWith("/dashboard/teacher") && user.role !== "teacher" && user.role !== "admin") ||
+      (pathname.startsWith("/dashboard/parent") && user.role !== "parent" && user.role !== "admin")
+    )
   )
 
-  if (loading || isWrongRole) {
+  if (loading || !user || isWrongRole) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-pistachio border-t-transparent animate-spin" />
       </div>
     )
   }
-
-  // For parent routes, user will be null (cookie-auth) but the route is already
-  // middleware-protected. Render children in that case.
-  const isParentRoute = pathname.startsWith("/dashboard/parent")
-  if (!user && !isParentRoute) return null
 
   return (
     <div className="min-h-screen bg-cream flex">

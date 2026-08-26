@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { useAuth } from "@/lib/auth-context"
-import { supabase } from "@/lib/supabase"
 import { getStudentsByParent, getAttendance, getFees, getAnnouncements, getEvents, getNotes } from "@/lib/data-store"
 import type { Student, Announcement, SchoolEvent, TeacherNote } from "@/lib/types"
 import StatCard from "@/components/dashboard/StatCard"
@@ -21,7 +20,6 @@ export default function ParentDashboard() {
   const [notes, setNotes] = useState<TeacherNote[]>([])
   const [unreadChatCount, setUnreadChatCount] = useState(0)
   const [loadingData, setLoadingData] = useState(true)
-  const channelRef = useRef<any>(null)
 
   const loadChildData = async (activeChild: Student) => {
     try {
@@ -48,7 +46,7 @@ export default function ParentDashboard() {
     }
   }
 
-  // Load chat unread count and subscribe to Realtime
+  // Load chat unread count on mount (badge; sidebar Realtime handles live updates)
   useEffect(() => {
     const fetchChatUnread = async () => {
       try {
@@ -60,34 +58,12 @@ export default function ParentDashboard() {
           }
         }
       } catch (err) {
-        console.warn("[ParentDashboard] Chat unread fetch failed:", err)
-      }
-    }
-
-    fetchChatUnread()
-
-    // Realtime subscription for incoming principal messages
-    const channel = supabase
-      .channel("parent-dashboard-unread")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        (payload: any) => {
-          if (payload.new?.sender_role === "principal") {
-            setUnreadChatCount((prev) => prev + 1)
-          }
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[ParentDashboard] Chat unread fetch failed:", err)
         }
-      )
-      .subscribe()
-
-    channelRef.current = channel
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
       }
     }
+    fetchChatUnread()
   }, [])
 
   useEffect(() => {

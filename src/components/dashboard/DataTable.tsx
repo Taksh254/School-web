@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { motion } from "framer-motion"
 import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import EmptyState from "./EmptyState"
 
@@ -131,11 +130,8 @@ export default function DataTable<T extends Record<string, unknown>>({
               </thead>
               <tbody>
                 {paginatedData.map((row, i) => (
-                  <motion.tr
+                  <tr
                     key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.02 }}
                     className="border-t border-beige/10 hover:bg-cream/30 transition-colors"
                   >
                     {columns.map((col) => (
@@ -144,7 +140,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                       </td>
                     ))}
                     {actions && <td className="px-4 py-3.5">{actions(row)}</td>}
-                  </motion.tr>
+                  </tr>
                 ))}
               </tbody>
             </table>

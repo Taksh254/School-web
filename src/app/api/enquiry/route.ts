@@ -128,11 +128,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to submit enquiry. Please try again." }, { status: 500 })
     }
 
-    console.log(`[enquiry] New inquiry submitted — ID: ${data.id}, Parent: ${parentEmail}, Child: ${childName} (${program})`)
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[enquiry] New inquiry submitted — ID: ${data.id}, Parent: ${parentEmail}, Child: ${childName} (${program})`)
+    }
     return NextResponse.json({ ok: true, id: data.id })
   } catch (err: any) {
-    console.error("[enquiry] Unexpected POST error:", err?.message)
+    if (process.env.NODE_ENV === "development") console.error("[enquiry] Unexpected POST error:", err?.message)
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 })
+
   }
 }
 
